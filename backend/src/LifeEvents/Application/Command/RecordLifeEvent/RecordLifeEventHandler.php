@@ -1,0 +1,11 @@
+<?php
+declare(strict_types=1);
+namespace App\LifeEvents\Application\Command\RecordLifeEvent;
+use App\LifeEvents\Application\Port\PersonExistenceChecker; use App\LifeEvents\Domain\Details\EngagementDetails; use App\LifeEvents\Domain\Details\GenericLifeEventDetails; use App\LifeEvents\Domain\Details\MarriageDetails; use App\LifeEvents\Domain\Enum\LifeEventType; use App\LifeEvents\Domain\Enum\ParticipantRole; use App\LifeEvents\Domain\Exception\LifeEventAlreadyExists; use App\LifeEvents\Domain\Model\LifeEvent; use App\LifeEvents\Domain\Model\LifeEventParticipant; use App\LifeEvents\Domain\Repository\LifeEventRepository; use App\LifeEvents\Domain\ValueObject\LifeEventId; use App\LifeEvents\Domain\ValueObject\PersonId; use Symfony\Component\Messenger\Attribute\AsMessageHandler;
+#[AsMessageHandler]
+final readonly class RecordLifeEventHandler {
+ public function __construct(private LifeEventRepository $lifeEvents,private PersonExistenceChecker $people){}
+ public function __invoke(RecordLifeEventCommand $command):LifeEventId{$type=LifeEventType::from($command->type);$participants=$this->participants($command->participants);foreach($participants as $p)if(!$this->people->exists($p->personId()))throw new \InvalidArgumentException('Person '.$p->personId()->toString().' does not exist.');$date=new \DateTimeImmutable($command->eventDate);$ids=array_map(fn(LifeEventParticipant $p)=>$p->personId(),$participants);if($this->lifeEvents->existsForParticipantsTypeOnDate($ids,$type,$date))throw LifeEventAlreadyExists::forParticipants($type->value,$date->format('Y-m-d'));$id=LifeEventId::generate();$this->lifeEvents->save(LifeEvent::create($id,$type,$participants,$date,$command->notes,$this->details($type,$command->details),new \DateTimeImmutable()));return $id;}
+ private function participants(array $raw):array{$result=[];foreach($raw as $p){$result[]=LifeEventParticipant::create(PersonId::fromString((string)$p['personId']),ParticipantRole::from((string)($p['role']??'subject')));}return $result;}
+ private function details(LifeEventType $type,array $data):object{return match($type){LifeEventType::MARRIAGE=>MarriageDetails::fromArray($data),LifeEventType::ENGAGEMENT=>EngagementDetails::fromArray($data),default=>new GenericLifeEventDetails($data)};}
+}

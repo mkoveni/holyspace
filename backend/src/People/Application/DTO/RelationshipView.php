@@ -1,0 +1,1 @@
+<?php declare(strict_types=1); namespace App\People\Application\DTO; final readonly class RelationshipView {public function __construct(public string $id,public string $personId,public string $relatedPersonId,public string $type,public ?string $endedAt,public string $createdAt,public string $updatedAt){} }

@@ -1,0 +1,61 @@
+version: '3.8'
+
+services:
+  # PHP-FPM Backend
+  php:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+    container_name: rivalani-php
+    volumes:
+      - ./backend:/var/www/html
+    depends_on:
+      - database
+    environment:
+      DATABASE_URL: mysql://rivalani:rivalani_secret@database:3306/rivalani_boutique?serverVersion=8.0
+      APP_ENV: dev
+      APP_SECRET: rivalani_boutique_secret_key_2024
+      CORS_ALLOW_ORIGIN: http://localhost:5173
+
+  # Nginx Web Server
+  nginx:
+    build:
+      context: .
+      dockerfile: docker/nginx/Dockerfile
+    container_name: rivalani-nginx
+    ports:
+      - "8282:80"
+    volumes:
+      - ./backend:/var/www/html
+    depends_on:
+      - php
+
+  # MySQL Database
+  database:
+    image: mysql:8.0
+    container_name: rivalani-db
+    environment:
+      MYSQL_ROOT_PASSWORD: root_password
+      MYSQL_DATABASE: rivalani_boutique
+      MYSQL_USER: rivalani
+      MYSQL_PASSWORD: rivalani_secret
+    volumes:
+      - db_data:/var/lib/mysql
+
+  # Vue.js Frontend
+  frontend:
+    build:
+      context: .
+      dockerfile: docker/frontend/Dockerfile
+    container_name: rivalani-frontend
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+      - frontend_node_modules:/app/node_modules
+    environment:
+      VITE_API_URL: http://localhost:8282/api
+
+volumes:
+  db_data:
+  frontend_node_modules:

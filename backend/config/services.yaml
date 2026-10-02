@@ -1,0 +1,94 @@
+# config/services.yaml
+
+parameters:
+
+services:
+    _defaults:
+        autowire: true
+        autoconfigure: true
+
+    # ============================================================
+    # Application
+    # ============================================================
+
+    App\IdentityAccess\Application\:
+        resource: '../src/IdentityAccess/Application/'
+
+    App\People\Application\:
+        resource: '../src/People/Application/'
+
+    App\LifeEvents\Application\:
+        resource: '../src/LifeEvents/Application/'
+
+
+    # ============================================================
+    # Infrastructure
+    # ============================================================
+
+    App\IdentityAccess\Infrastructure\:
+        resource: '../src/IdentityAccess/Infrastructure/'
+        exclude:
+            - ../src/IdentityAccess/Infrastructure/Security/SymfonyUser.php
+
+    App\People\Infrastructure\:
+        resource: '../src/People/Infrastructure/'
+
+    App\LifeEvents\Infrastructure\:
+        resource: '../src/LifeEvents/Infrastructure/'
+
+
+    # ============================================================
+    # Presentation
+    # ============================================================
+
+    App\IdentityAccess\Presentation\:
+        resource: '../src/IdentityAccess/Presentation/'
+
+    App\People\Presentation\:
+        resource: '../src/People/Presentation/'
+
+    App\LifeEvents\Presentation\:
+        resource: '../src/LifeEvents/Presentation/'
+
+
+    # ============================================================
+    # IdentityAccess repositories
+    # ============================================================
+
+    App\IdentityAccess\Domain\Repository\UserAccountRepository:
+        alias: App\IdentityAccess\Infrastructure\Persistence\DBAL\DbalUserAccountRepository
+
+    App\IdentityAccess\Domain\Repository\RoleRepository:
+        alias: App\IdentityAccess\Infrastructure\Persistence\DBAL\DbalRoleRepository
+
+    App\IdentityAccess\Domain\Repository\PermissionRepository:
+        alias: App\IdentityAccess\Infrastructure\Persistence\DBAL\DbalPermissionRepository
+
+
+    # ============================================================
+    # People repositories
+    # ============================================================
+
+    App\People\Domain\Repository\PersonRepository:
+        alias: App\People\Infrastructure\Persistence\DBAL\DbalPersonRepository
+
+    App\People\Domain\Repository\FamilyRepository:
+        alias: App\People\Infrastructure\Persistence\DBAL\DbalFamilyRepository
+
+    App\People\Domain\Repository\RelationshipRepository:
+        alias: App\People\Infrastructure\Persistence\DBAL\DbalRelationshipRepository
+
+
+    # ============================================================
+    # LifeEvents repositories
+    # ============================================================
+
+    App\LifeEvents\Domain\Repository\LifeEventRepository:
+        alias: App\LifeEvents\Infrastructure\Persistence\DBAL\DbalLifeEventRepository
+
+    # ===========================================================
+    # Domain
+    # ===========================================================
+
+    App\IdentityAccess\Domain\Service\PasswordHasher:
+        alias: App\IdentityAccess\Infrastructure\Security\SymfonyPasswordHasher

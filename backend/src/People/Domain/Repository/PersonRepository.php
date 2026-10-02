@@ -1,0 +1,1 @@
+<?php declare(strict_types=1); namespace App\People\Domain\Repository; use App\People\Domain\Model\Person; use App\People\Domain\ValueObject\PersonId; interface PersonRepository {public function save(Person $person):void;public function findById(PersonId $id):?Person;public function exists(PersonId $id):bool;/** @return list<Person> */public function findAll():array;}

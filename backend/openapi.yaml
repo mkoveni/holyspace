@@ -1,0 +1,1134 @@
+openapi: 3.0.3
+info:
+  title: Church Management Portal API
+  version: 1.0.0
+  description: REST API for the Church Management Portal application
+  contact:
+    name: API Support
+    email: support@churchportal.local
+
+servers:
+  - url: https://api.churchportal.local/v1
+    description: Production server
+  - url: http://localhost:8000/v1
+    description: Development server
+
+paths:
+  /health:
+    get:
+      summary: Health check endpoint
+      description: Returns the health status of the application
+      responses:
+        '200':
+          description: Application is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+                  application:
+                    type: string
+                    example: church-management-portal
+
+  /api/me:
+    get:
+      summary: Get current user information
+      description: Returns information about the currently authenticated user
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: User information retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    example: "123e4567-e89b-12d3-a456-426614174000"
+                  username:
+                    type: string
+                    example: john_doe
+                  personId:
+                    type: string
+                    example: "123e4567-e89b-12d3-a456-426614174001"
+                  status:
+                    type: string
+                    example: active
+                  roles:
+                    type: array
+                    items:
+                      type: string
+                  createdAt:
+                    type: string
+                    format: date-time
+                    example: "2023-01-01T00:00:00Z"
+                  updatedAt:
+                    type: string
+                    format: date-time
+                    example: "2023-01-01T00:00:00Z"
+        '401':
+          description: Authentication required
+
+  /api/login_check:
+    post:
+      summary: Login endpoint
+      description: Authenticates a user and returns a JWT token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - username
+                - password
+              properties:
+                username:
+                  type: string
+                  example: john_doe
+                password:
+                  type: string
+                  format: password
+                  example: secret_password
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                    example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+
+  /api/people:
+    post:
+      summary: Create a new person
+      description: Creates a new person in the system
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - firstName
+                - lastName
+              properties:
+                firstName:
+                  type: string
+                  example: John
+                lastName:
+                  type: string
+                  example: Doe
+                dateOfBirth:
+                  type: string
+                  format: date
+                  example: "1980-01-01"
+                gender:
+                  type: string
+                  enum: [male, female, unspecified]
+                  example: unspecified
+                email:
+                  type: string
+                  example: john.doe@example.com
+                phone:
+                  type: string
+                  example: "+1234567890"
+      responses:
+        '201':
+          description: Person created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    example: "123e4567-e89b-12d3-a456-426614174000"
+        '400':
+          description: Invalid request data
+
+    get:
+      summary: List people
+      description: Retrieves a list of all people in the system
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: List of people retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Person'
+
+  /api/people/{id}:
+    get:
+      summary: Get person by ID
+      description: Retrieves a specific person by their ID
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Person retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Person'
+        '404':
+          description: Person not found
+
+    put:
+      summary: Update person
+      description: Updates an existing person's information
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                firstName:
+                  type: string
+                  example: John
+                lastName:
+                  type: string
+                  example: Doe
+                dateOfBirth:
+                  type: string
+                  format: date
+                  example: "1980-01-01"
+                gender:
+                  type: string
+                  enum: [male, female, unspecified]
+                  example: unspecified
+                email:
+                  type: string
+                  example: john.doe@example.com
+                phone:
+                  type: string
+                  example: "+1234567890"
+      responses:
+        '204':
+          description: Person updated successfully
+        '404':
+          description: Person not found
+
+  /api/people/{id}/status:
+    post:
+      summary: Change person's membership status
+      description: Changes the membership status of a person
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - status
+              properties:
+                status:
+                  type: string
+                  example: active
+      responses:
+        '204':
+          description: Membership status updated successfully
+        '404':
+          description: Person not found
+
+  /api/families:
+    post:
+      summary: Create a new family
+      description: Creates a new family in the system
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+              properties:
+                name:
+                  type: string
+                  example: "Doe Family"
+      responses:
+        '201':
+          description: Family created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    example: "123e4567-e89b-12d3-a456-426614174000"
+        '400':
+          description: Invalid request data
+
+    get:
+      summary: List families
+      description: Retrieves a list of all families in the system
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: List of families retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Family'
+
+  /api/families/{id}:
+    get:
+      summary: Get family by ID
+      description: Retrieves a specific family by their ID
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Family retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Family'
+        '404':
+          description: Family not found
+
+  /api/families/{familyId}/members:
+    post:
+      summary: Add a member to a family
+      description: Adds a person as a member of a family
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: familyId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - personId
+              properties:
+                personId:
+                  type: string
+                  example: "123e4567-e89b-12d3-a456-426614174001"
+                role:
+                  type: string
+                  example: member
+      responses:
+        '204':
+          description: Member added successfully
+        '404':
+          description: Family or person not found
+
+  /api/people/{personId}/relationships:
+    get:
+      summary: Get person's relationships
+      description: Retrieves all relationships for a specific person
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: personId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Relationships retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Relationship'
+        '404':
+          description: Person not found
+
+    post:
+      summary: Create a new relationship
+      description: Creates a new relationship between two people
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: personId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - relatedPersonId
+                - type
+              properties:
+                relatedPersonId:
+                  type: string
+                  example: "123e4567-e89b-12d3-a456-426614174002"
+                type:
+                  type: string
+                  example: spouse
+      responses:
+        '201':
+          description: Relationship created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    example: "123e4567-e89b-12d3-a456-426614174003"
+        '400':
+          description: Invalid request data
+
+  /api/relationships/{id}/end:
+    post:
+      summary: End a relationship
+      description: Ends an existing relationship
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                endedAt:
+                  type: string
+                  format: date-time
+                  example: "2023-01-01T00:00:00Z"
+      responses:
+        '204':
+          description: Relationship ended successfully
+        '404':
+          description: Relationship not found
+
+  /api/useraccounts:
+    post:
+      summary: Create a new user account
+      description: Creates a new user account for a person
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - username
+                - password
+              properties:
+                username:
+                  type: string
+                  example: john_doe
+                password:
+                  type: string
+                  format: password
+                  example: secret_password
+                personId:
+                  type: string
+                  example: "123e4567-e89b-12d3-a456-426614174001"
+      responses:
+        '201':
+          description: User account created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    example: "123e4567-e89b-12d3-a456-426614174000"
+        '400':
+          description: Invalid request data
+
+  /api/useraccounts/{id}:
+    get:
+      summary: Get user account by ID
+      description: Retrieves a specific user account by their ID
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: User account retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserAccount'
+        '404':
+          description: User account not found
+
+  /api/useraccounts/{id}/permissions:
+    get:
+      summary: Get user permissions
+      description: Retrieves all permissions for a specific user
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Permissions retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+
+  /api/useraccounts/{id}/password:
+    put:
+      summary: Change user password
+      description: Changes the password for a specific user account
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - password
+              properties:
+                password:
+                  type: string
+                  format: password
+                  example: new_password
+      responses:
+        '204':
+          description: Password changed successfully
+        '404':
+          description: User account not found
+
+  /api/useraccounts/{id}/disable:
+    post:
+      summary: Disable user account
+      description: Disables a specific user account
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: User account disabled successfully
+        '404':
+          description: User account not found
+
+  /api/useraccounts/{id}/enable:
+    post:
+      summary: Enable user account
+      description: Enables a specific user account
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: User account enabled successfully
+        '404':
+          description: User account not found
+
+  /api/useraccounts/{id}/roles/{roleId}:
+    post:
+      summary: Assign role to user
+      description: Assigns a role to a specific user account
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: roleId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Role assigned successfully
+        '404':
+          description: User account or role not found
+
+    delete:
+      summary: Remove role from user
+      description: Removes a role from a specific user account
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: roleId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Role removed successfully
+        '404':
+          description: User account or role not found
+
+  /api/roles:
+    post:
+      summary: Create a new role
+      description: Creates a new role in the system
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+              properties:
+                name:
+                  type: string
+                  example: administrator
+                description:
+                  type: string
+                  example: System administrator with full access
+      responses:
+        '201':
+          description: Role created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    example: "123e4567-e89b-12d3-a456-426614174000"
+        '400':
+          description: Invalid request data
+
+  /api/roles/{roleId}/permissions/{permissionId}:
+    post:
+      summary: Add permission to role
+      description: Adds a permission to a specific role
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: roleId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: permissionId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Permission added to role successfully
+        '404':
+          description: Role or permission not found
+
+    delete:
+      summary: Remove permission from role
+      description: Removes a permission from a specific role
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: roleId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: permissionId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Permission removed from role successfully
+        '404':
+          description: Role or permission not found
+
+  /api/permissions:
+    post:
+      summary: Create a new permission
+      description: Creates a new permission in the system
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - code
+              properties:
+                code:
+                  type: string
+                  example: "user.read"
+                description:
+                  type: string
+                  example: "Read user information"
+      responses:
+        '201':
+          description: Permission created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    example: "123e4567-e89b-12d3-a456-426614174000"
+        '400':
+          description: Invalid request data
+
+  /api/life-events:
+    post:
+      summary: Create a new life event
+      description: Creates a new life event in the system
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - type
+                - participants
+                - eventDate
+              properties:
+                type:
+                  type: string
+                  example: marriage
+                participants:
+                  type: array
+                  items:
+                    type: string
+                  example: ["123e4567-e89b-12d3-a456-426614174001", "123e4567-e89b-12d3-a456-426614174002"]
+                eventDate:
+                  type: string
+                  format: date-time
+                  example: "2023-01-01T00:00:00Z"
+                details:
+                  type: object
+                  additionalProperties: true
+                notes:
+                  type: string
+                  example: "Wedding ceremony"
+      responses:
+        '201':
+          description: Life event created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    example: "123e4567-e89b-12d3-a456-426614174000"
+        '400':
+          description: Invalid request data
+
+    get:
+      summary: List life events
+      description: Retrieves a list of all life events in the system
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: type
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of life events retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/LifeEvent'
+
+  /api/life-events/{id}:
+    get:
+      summary: Get life event by ID
+      description: Retrieves a specific life event by their ID
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Life event retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LifeEvent'
+        '404':
+          description: Life event not found
+
+    put:
+      summary: Update life event
+      description: Updates an existing life event
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                type:
+                  type: string
+                  example: marriage
+                participants:
+                  type: array
+                  items:
+                    type: string
+                  example: ["123e4567-e89b-12d3-a456-426614174001", "123e4567-e89b-12d3-a456-426614174002"]
+                eventDate:
+                  type: string
+                  format: date-time
+                  example: "2023-01-01T00:00:00Z"
+                details:
+                  type: object
+                  additionalProperties: true
+                notes:
+                  type: string
+                  example: "Wedding ceremony"
+      responses:
+        '204':
+          description: Life event updated successfully
+        '404':
+          description: Life event not found
+
+    delete:
+      summary: Delete life event
+      description: Deletes a specific life event
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Life event deleted successfully
+        '404':
+          description: Life event not found
+
+  /api/people/{personId}/life-events:
+    get:
+      summary: Get person's life events
+      description: Retrieves all life events for a specific person
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: personId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Life events retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/LifeEvent'
+        '404':
+          description: Person not found
+
+  /api/life-events/{id}/cancel:
+    post:
+      summary: Cancel life event
+      description: Cancels a specific life event
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Life event cancelled successfully
+        '404':
+          description: Life event not found
+
+  /api/life-events/{id}/restore:
+    post:
+      summary: Restore life event
+      description: Restores a previously cancelled life event
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Life event restored successfully
+        '404':
+          description: Life event not found
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    Person:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "123e4567-e89b-12d3-a456-426614174000"
+        firstName:
+          type: string
+          example: John
+        lastName:
+          type: string
+          example: Doe
+        dateOfBirth:
+          type: string
+          format: date
+          example: "1980-01-01"
+        gender:
+          type: string
+          enum: [male, female, unspecified]
+          example: unspecified
+        email:
+          type: string
+          example: john.doe@example.com
+        phone:
+          type: string
+          example: "+1234567890"
+        status:
+          type: string
+          example: active
+        createdAt:
+          type: string
+          format: date-time
+          example: "2023-01-01T00:00:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          example: "2023-01-01T00:00:00Z"
+
+    Family:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "123e4567-e89b-12d3-a456-426614174000"
+        name:
+          type: string
+          example: "Doe Family"
+        createdAt:
+          type: string
+          format: date-time
+          example: "2023-01-01T00:00:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          example: "2023-01-01T00:00:00Z"
+
+    Relationship:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "123e4567-e89b-12d3-a456-426614174000"
+        personId:
+          type: string
+          example: "123e4567-e89b-12d3-a456-426614174001"
+        relatedPersonId:
+          type: string
+          example: "123e4567-e89b-12d3-a456-426614174002"
+        type:
+          type: string
+          example: spouse
+        startDate:
+          type: string
+          format: date-time
+          example: "2023-01-01T00:00:00Z"
+        endDate:
+          type: string
+          format: date-time
+          example: "2023-01-01T00:00:00Z"
+
+    UserAccount:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "123e4567-e89b-12d3-a456-426614174000"
+        username:
+          type: string
+          example: john_doe
+        personId:
+          type: string
+          example: "123e4567-e89b-12d3-a456-426614174001"
+        status:
+          type: string
+          example: active
+        createdAt:
+          type: string
+          format: date-time
+          example: "2023-01-01T00:00:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          example: "2023-01-01T00:00:00Z"
+
+    LifeEvent:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "123e4567-e89b-12d3-a456-426614174000"
+        type:
+          type: string
+          example: marriage
+        participants:
+          type: array
+          items:
+            type: string
+          example: ["123e4567-e89b-12d3-a456-426614174001", "123e4567-e89b-12d3-a456-426614174002"]
+        eventDate:
+          type: string
+          format: date-time
+          example: "2023-01-01T00:00:00Z"
+        details:
+          type: object
+          additionalProperties: true
+        notes:
+          type: string
+          example: "Wedding ceremony"
+        status:
+          type: string
+          example: active
+        createdAt:
+          type: string
+          format: date-time
+          example: "2023-01-01T00:00:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          example: "2023-01-01T00:00:00Z"

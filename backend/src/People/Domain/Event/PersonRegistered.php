@@ -1,0 +1,1 @@
+<?php declare(strict_types=1); namespace App\People\Domain\Event; use App\Shared\Domain\Event\DomainEvent; final readonly class PersonRegistered implements DomainEvent {public function __construct(public string $personId,public \DateTimeImmutable $occurredAt){} public function occurredAt():\DateTimeImmutable{return $this->occurredAt;} }

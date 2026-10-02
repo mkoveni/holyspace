@@ -1,0 +1,1 @@
+<?php declare(strict_types=1); namespace App\People\Application\Command\CreateRelationship; final readonly class CreateRelationshipCommand {public function __construct(public string $personId,public string $relatedPersonId,public string $type){} }

@@ -1,0 +1,3 @@
+<?php
+declare(strict_types=1); namespace App\IdentityAccess\Application\Command\CreatePermission; use App\IdentityAccess\Domain\Model\Permission; use App\IdentityAccess\Domain\Repository\PermissionRepository; use App\IdentityAccess\Domain\ValueObject\PermissionId; #[\Symfony\Component\Messenger\Attribute\AsMessageHandler]
+final readonly class CreatePermissionHandler { public function __construct(private PermissionRepository $permissions){} public function __invoke(CreatePermissionCommand $c):PermissionId{if($this->permissions->findByCode($c->code))throw new \InvalidArgumentException('Permission already exists.');$id=PermissionId::generate();$this->permissions->save(Permission::create($id,$c->code,$c->description,new \DateTimeImmutable()));return $id;} }

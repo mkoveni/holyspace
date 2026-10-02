@@ -1,0 +1,20 @@
+identity_api:
+    resource:
+        path: ../src/IdentityAccess/Presentation/Http/Controller/
+        namespace: App\IdentityAccess\Presentation\Http\Controller
+    type: attribute
+
+people_api:
+    resource:
+        path: ../src/People/Presentation/Http/Controller/
+        namespace: App\People\Presentation\Http\Controller
+    type: attribute
+
+life_events_api:
+    resource:
+        path: ../src/LifeEvents/Presentation/Http/Controller/
+        namespace: App\LifeEvents\Presentation\Http\Controller
+    type: attribute
+
+api_login_check:
+    path: /api/login_check

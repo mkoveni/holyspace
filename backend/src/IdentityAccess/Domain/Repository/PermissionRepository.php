@@ -1,0 +1,2 @@
+<?php
+declare(strict_types=1); namespace App\IdentityAccess\Domain\Repository; use App\IdentityAccess\Domain\Model\Permission; use App\IdentityAccess\Domain\ValueObject\PermissionId; use App\IdentityAccess\Domain\ValueObject\RoleId; interface PermissionRepository { public function save(Permission $permission):void; public function findById(PermissionId $id):?Permission; public function findByCode(string $code):?Permission; /** @return list<Permission> */ public function findForRole(RoleId $roleId):array; /** @return list<Permission> */ public function findAll():array; }

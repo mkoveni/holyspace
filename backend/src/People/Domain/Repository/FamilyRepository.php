@@ -1,0 +1,1 @@
+<?php declare(strict_types=1); namespace App\People\Domain\Repository; use App\People\Domain\Model\Family; use App\People\Domain\ValueObject\FamilyId; interface FamilyRepository {public function save(Family $family):void;public function findById(FamilyId $id):?Family;/** @return list<Family> */public function findAll():array;}

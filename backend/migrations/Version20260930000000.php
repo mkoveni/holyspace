@@ -1,0 +1,37 @@
+<?php
+
+declare(strict_types=1);
+
+namespace DoctrineMigrations;
+
+use Doctrine\DBAL\Schema\Schema;
+use Doctrine\Migrations\AbstractMigration;
+
+final class Version20260930000000 extends AbstractMigration
+{
+    public function getDescription(): string
+    {
+        return 'Rename Membership tables into the People bounded context and add People relationship metadata.';
+    }
+    public function up(Schema $schema): void
+    {
+        $this->addSql('RENAME TABLE persons TO people_persons');
+        $this->addSql('RENAME TABLE families TO people_families');
+        $this->addSql('RENAME TABLE family_members TO people_family_memberships');
+        $this->addSql("ALTER TABLE people_persons ADD gender VARCHAR(30) NOT NULL DEFAULT 'unspecified', ADD status VARCHAR(30) NOT NULL DEFAULT 'prospect'");
+        $this->addSql("CREATE TABLE people_relationships (id CHAR(36) NOT NULL, person_id CHAR(36) NOT NULL, related_person_id CHAR(36) NOT NULL, type VARCHAR(30) NOT NULL, ended_at DATETIME DEFAULT NULL, created_at DATETIME NOT NULL, updated_at DATETIME NOT NULL, PRIMARY KEY(id), CONSTRAINT fk_people_relationship_person FOREIGN KEY(person_id) REFERENCES people_persons(id), CONSTRAINT fk_people_relationship_related FOREIGN KEY(related_person_id) REFERENCES people_persons(id))");
+        $this->addSql('CREATE INDEX idx_people_relationship_person ON people_relationships(person_id)');
+        $this->addSql('CREATE INDEX idx_people_person_name ON people_persons(last_name,first_name)');
+        $this->addSql('ALTER TABLE people_family_memberships RENAME COLUMN relationship TO role');
+        $this->addSql("UPDATE people_family_memberships SET role='other' WHERE role NOT IN ('head','spouse','child','parent','other')");
+    }
+    public function down(Schema $schema): void
+    {
+        $this->addSql('DROP TABLE people_relationships');
+        $this->addSql('ALTER TABLE people_family_memberships RENAME COLUMN role TO relationship');
+        $this->addSql('ALTER TABLE people_persons DROP gender, DROP status');
+        $this->addSql('RENAME TABLE people_family_memberships TO family_members');
+        $this->addSql('RENAME TABLE people_families TO families');
+        $this->addSql('RENAME TABLE people_persons TO persons');
+    }
+}

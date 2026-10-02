@@ -1,0 +1,28 @@
+POST http://localhost:8081/api/auth/login HTTP/1.1
+Content-Type: application/json
+Accept: application/json
+
+{
+    "username": "mkoveni",
+    "password": "password"
+}
+
+###
+
+POST http://localhost:8081/api/login_check HTTP/1.1
+Content-Type: application/json
+Accept: application/json
+
+{
+    "username": "mkoveni",
+    "password": "password"
+}
+
+
+###
+
+
+GET  http://localhost:8081/api/me HTTP/1.1
+Content-Type: application/json
+Accept: application/json
+Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJpYXQiOjE3OTA5NDYzMDgsImV4cCI6MTc5MDk0OTkwOCwicm9sZXMiOlsiUk9MRV9VU0VSIl0sInVzZXJuYW1lIjoibWtvdmVuaSJ9.CYU3RH5bRuIywplHMm4nwsiPOQAxqapaXtT3LA0CnzZU3GrVPZhmUil86-QBjZc9vnoH3SNJkEbPfw_b0e7ocI4CbL5QLZxsghm8aQgPAYNDZB9gIYZThlrYZ5KLHUd089y_yb01PxkDRliEyk6Wl2kMDEW7qwNrJPY5U6A3ADtwt0DiGHItilw-eV20UFkSPdE60sW4Ri78qx4RjOr25LAYSYWSCMkO15ye4bVCshurR-1xQyiVhDPa7k1PN1T_3WGOw-GywOddO39YXx1L17VSNHurMvz4ayZR9qfMNB22SPaGN3YHc4A0t-_4tp8-Wa6SWHBZfLVNbGLowlXAfg

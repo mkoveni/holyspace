@@ -1,0 +1,1 @@
+<?php declare(strict_types=1); namespace App\People\Application\Command\EndRelationship; final readonly class EndRelationshipCommand {public function __construct(public string $relationshipId,public string $endedAt){} }

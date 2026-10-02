@@ -1,0 +1,1 @@
+<?php declare(strict_types=1); namespace App\People\Domain\Enum; enum MembershipStatus:string {case PROSPECT='prospect';case ACTIVE='active';case INACTIVE='inactive';case TRANSFERRED='transferred';case DECEASED='deceased';}
