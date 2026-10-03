@@ -31,7 +31,6 @@ final class UserAccount
         Username $username,
         PasswordHash $passwordHash,
         ?string $personId,
-        DateTimeImmutable $now,
     ): self {
         return new self(
             $id,
@@ -39,7 +38,7 @@ final class UserAccount
             $passwordHash,
             $personId,
             UserStatus::ACTIVE,
-            new AuditTimestamps($now, $now),
+            AuditTimestamps::now(),
         );
     }
 
@@ -68,57 +67,57 @@ final class UserAccount
     public function createdAt(): DateTimeImmutable { return $this->auditTimestamps->createdAt(); }
     public function updatedAt(): DateTimeImmutable { return $this->auditTimestamps->updatedAt(); }
 
-    public function changePassword(PasswordHash $passwordHash, DateTimeImmutable $now): void
+    public function changePassword(PasswordHash $passwordHash): void
     {
         $this->passwordHash = $passwordHash;
-        $this->auditTimestamps->touch($now);
+        $this->auditTimestamps->touch();
     }
 
-    public function disable(DateTimeImmutable $now): void
+    public function disable(): void
     {
         if ($this->status !== UserStatus::DISABLED) {
             $this->status = UserStatus::DISABLED;
-            $this->auditTimestamps->touch($now);
+            $this->auditTimestamps->touch();
         }
     }
 
-    public function enable(DateTimeImmutable $now): void
+    public function enable(): void
     {
         if ($this->status !== UserStatus::ACTIVE) {
             $this->status = UserStatus::ACTIVE;
-            $this->auditTimestamps->touch($now);
+            $this->auditTimestamps->touch();
         }
     }
 
-    public function lock(DateTimeImmutable $now): void
+    public function lock(): void
     {
         if ($this->status !== UserStatus::LOCKED) {
             $this->status = UserStatus::LOCKED;
-            $this->auditTimestamps->touch($now);
+            $this->auditTimestamps->touch();
         }
     }
 
-    public function unlock(DateTimeImmutable $now): void
+    public function unlock(): void
     {
         if ($this->status !== UserStatus::ACTIVE) {
             $this->status = UserStatus::ACTIVE;
-            $this->auditTimestamps->touch($now);
+            $this->auditTimestamps->touch();
         }
     }
 
-    public function assignRole(RoleId $roleId, DateTimeImmutable $now): void
+    public function assignRole(RoleId $roleId): void
     {
         if (!$this->hasRole($roleId)) {
             $this->roleIds[$roleId->toString()] = $roleId;
-            $this->auditTimestamps->touch($now);
+            $this->auditTimestamps->touch();
         }
     }
 
-    public function removeRole(RoleId $roleId, DateTimeImmutable $now): void
+    public function removeRole(RoleId $roleId): void
     {
         if ($this->hasRole($roleId)) {
             unset($this->roleIds[$roleId->toString()]);
-            $this->auditTimestamps->touch($now);
+            $this->auditTimestamps->touch();
         }
     }
 

@@ -18,11 +18,11 @@ final class Permission
         private readonly AuditTimestamps $auditTimestamps,
     ) {}
 
-    public static function create(PermissionId $id, string $code, string $description, DateTimeImmutable $now): self
+    public static function create(PermissionId $id, string $code, string $description): self
     {
         $code = trim($code);
         if ($code === '') throw new InvalidArgumentException('Permission code cannot be empty.');
-        return new self($id, $code, trim($description), new AuditTimestamps($now, $now));
+        return new self($id, $code, trim($description), AuditTimestamps::now());
     }
 
     public static function reconstitute(

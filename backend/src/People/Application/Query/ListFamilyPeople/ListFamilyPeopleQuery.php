@@ -1,0 +1,1 @@
+<?php declare(strict_types=1); namespace App\People\Application\Query\ListFamilyPeople; final readonly class ListFamilyPeopleQuery {public function __construct(public string $familyId){}}

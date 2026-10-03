@@ -1,0 +1,1 @@
+<?php declare(strict_types=1); namespace App\People\Application\Command\AddEducation; final readonly class AddEducationCommand {public function __construct(public string $personId,public string $institution, public string $qualification, public ?string $startDate, public ?string $endDate, public string $fieldOfStudy, public string $notes){}}

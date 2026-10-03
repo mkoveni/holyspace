@@ -12,44 +12,41 @@ services:
     # ============================================================
 
     App\IdentityAccess\Application\:
-        resource: '../src/IdentityAccess/Application/'
+        resource: "../src/IdentityAccess/Application/"
 
     App\People\Application\:
-        resource: '../src/People/Application/'
+        resource: "../src/People/Application/"
 
     App\LifeEvents\Application\:
-        resource: '../src/LifeEvents/Application/'
-
+        resource: "../src/LifeEvents/Application/"
 
     # ============================================================
     # Infrastructure
     # ============================================================
 
     App\IdentityAccess\Infrastructure\:
-        resource: '../src/IdentityAccess/Infrastructure/'
+        resource: "../src/IdentityAccess/Infrastructure/"
         exclude:
             - ../src/IdentityAccess/Infrastructure/Security/SymfonyUser.php
 
     App\People\Infrastructure\:
-        resource: '../src/People/Infrastructure/'
+        resource: "../src/People/Infrastructure/"
 
     App\LifeEvents\Infrastructure\:
-        resource: '../src/LifeEvents/Infrastructure/'
-
+        resource: "../src/LifeEvents/Infrastructure/"
 
     # ============================================================
     # Presentation
     # ============================================================
 
     App\IdentityAccess\Presentation\:
-        resource: '../src/IdentityAccess/Presentation/'
+        resource: "../src/IdentityAccess/Presentation/"
 
     App\People\Presentation\:
-        resource: '../src/People/Presentation/'
+        resource: "../src/People/Presentation/"
 
     App\LifeEvents\Presentation\:
-        resource: '../src/LifeEvents/Presentation/'
-
+        resource: "../src/LifeEvents/Presentation/"
 
     # ============================================================
     # IdentityAccess repositories
@@ -64,7 +61,6 @@ services:
     App\IdentityAccess\Domain\Repository\PermissionRepository:
         alias: App\IdentityAccess\Infrastructure\Persistence\DBAL\DbalPermissionRepository
 
-
     # ============================================================
     # People repositories
     # ============================================================
@@ -77,7 +73,12 @@ services:
 
     App\People\Domain\Repository\RelationshipRepository:
         alias: App\People\Infrastructure\Persistence\DBAL\DbalRelationshipRepository
-
+    App\People\Domain\Repository\PersonProfileRepository:
+        alias: App\People\Infrastructure\Persistence\DBAL\DbalPersonProfileRepository
+    App\People\Domain\Repository\PersonReadRepository:
+        alias: App\People\Infrastructure\ReadModel\DBAL\DbalPersonReadRepository
+    App\People\Domain\Repository\CommunicationOptionRepository:
+        alias: App\People\Infrastructure\Persistence\DBAL\DbalCommunicationOptionRepository
 
     # ============================================================
     # LifeEvents repositories

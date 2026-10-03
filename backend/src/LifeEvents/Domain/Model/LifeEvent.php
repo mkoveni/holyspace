@@ -29,11 +29,11 @@ final class LifeEvent
     ) { $this->participants=$this->normalizeParticipants($participants); }
 
     /** @param list<LifeEventParticipant> $participants */
-    public static function create(LifeEventId $id, LifeEventType $type, array $participants, DateTimeImmutable $eventDate, ?string $notes, LifeEventDetails $details, DateTimeImmutable $now): self
+    public static function create(LifeEventId $id, LifeEventType $type, array $participants, DateTimeImmutable $eventDate, ?string $notes, LifeEventDetails $details): self
     {
         self::validate($type,$participants,$details);
-        $event=new self($id,$type,$participants,self::normalizeDate($eventDate),self::normalizeNotes($notes),LifeEventStatus::ACTIVE,$details,new AuditTimestamps($now,$now));
-        $event->domainEvents[]=new LifeEventRecorded($id->toString(),$type->value,$event->eventDate,$now);
+        $event=new self($id,$type,$participants,self::normalizeDate($eventDate),self::normalizeNotes($notes),LifeEventStatus::ACTIVE,$details,AuditTimestamps::now());
+        $event->domainEvents[]=new LifeEventRecorded($id->toString(),$type->value,$event->eventDate,$event->createdAt());
         return $event;
     }
     /** @param list<LifeEventParticipant> $participants */
@@ -52,13 +52,13 @@ final class LifeEvent
     public function details(): LifeEventDetails { return $this->details; }
     public function createdAt(): DateTimeImmutable { return $this->auditTimestamps->createdAt(); }
     public function updatedAt(): DateTimeImmutable { return $this->auditTimestamps->updatedAt(); }
-    public function update(LifeEventType $type, array $participants, DateTimeImmutable $eventDate, ?string $notes, LifeEventDetails $details, DateTimeImmutable $now): void
+    public function update(LifeEventType $type, array $participants, DateTimeImmutable $eventDate, ?string $notes, LifeEventDetails $details): void
     {
-        self::validate($type,$participants,$details); $this->type=$type; $this->participants=$this->normalizeParticipants($participants); $this->eventDate=self::normalizeDate($eventDate); $this->notes=self::normalizeNotes($notes); $this->details=$details; $this->auditTimestamps->touch($now); $this->domainEvents[]=new LifeEventUpdated($this->id->toString(),$now);
+        self::validate($type,$participants,$details); $this->type=$type; $this->participants=$this->normalizeParticipants($participants); $this->eventDate=self::normalizeDate($eventDate); $this->notes=self::normalizeNotes($notes); $this->details=$details; $this->auditTimestamps->touch(); $this->domainEvents[]=new LifeEventUpdated($this->id->toString(),$this->updatedAt());
     }
-    public function cancel(DateTimeImmutable $now): void { if($this->status===LifeEventStatus::COMPLETED) throw InvalidLifeEvent::cannotCancelCompleted(); if($this->status!==LifeEventStatus::CANCELLED){$this->status=LifeEventStatus::CANCELLED;$this->auditTimestamps->touch($now);$this->domainEvents[]=new LifeEventCancelled($this->id->toString(),$now);} }
-    public function restore(DateTimeImmutable $now): void { if($this->status===LifeEventStatus::CANCELLED){$this->status=LifeEventStatus::ACTIVE;$this->auditTimestamps->touch($now);$this->domainEvents[]=new LifeEventUpdated($this->id->toString(),$now);} }
-    public function complete(DateTimeImmutable $now): void { if($this->status!==LifeEventStatus::COMPLETED){$this->status=LifeEventStatus::COMPLETED;$this->auditTimestamps->touch($now);$this->domainEvents[]=new LifeEventUpdated($this->id->toString(),$now);} }
+    public function cancel(): void { if($this->status===LifeEventStatus::COMPLETED) throw InvalidLifeEvent::cannotCancelCompleted(); if($this->status!==LifeEventStatus::CANCELLED){$this->status=LifeEventStatus::CANCELLED;$this->auditTimestamps->touch();$this->domainEvents[]=new LifeEventCancelled($this->id->toString(),$this->updatedAt());} }
+    public function restore(): void { if($this->status===LifeEventStatus::CANCELLED){$this->status=LifeEventStatus::ACTIVE;$this->auditTimestamps->touch();$this->domainEvents[]=new LifeEventUpdated($this->id->toString(),$this->updatedAt());} }
+    public function complete(): void { if($this->status!==LifeEventStatus::COMPLETED){$this->status=LifeEventStatus::COMPLETED;$this->auditTimestamps->touch();$this->domainEvents[]=new LifeEventUpdated($this->id->toString(),$this->updatedAt());} }
     public function anniversaryIn(int $year): DateTimeImmutable { if($this->type!==LifeEventType::MARRIAGE) throw new \LogicException('Anniversaries are only available for marriage life events.'); return $this->eventDate->setDate($year,(int)$this->eventDate->format('m'),(int)$this->eventDate->format('d')); }
     public function yearsMarriedOn(DateTimeImmutable $date): int { if($this->type!==LifeEventType::MARRIAGE) throw new \LogicException('Years married is only available for marriage life events.'); return $this->eventDate->diff($date)->y; }
     /** @return list<object> */ public function releaseDomainEvents(): array { $events=$this->domainEvents; $this->domainEvents=[]; return $events; }

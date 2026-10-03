@@ -11,5 +11,5 @@ use App\IdentityAccess\Domain\ValueObject\Username;
 #[AsMessageHandler]
 final readonly class CreateUserAccountHandler {
  public function __construct(private UserAccountRepository $users, private PasswordHasher $passwordHasher) {}
- public function __invoke(CreateUserAccountCommand $command): UserId { $username=Username::fromString($command->username); if($this->users->existsByUsername($username)) throw new UserAccountAlreadyExists($username->value()); if(trim($command->plainPassword)==='') throw new \InvalidArgumentException('Password cannot be empty.'); $id=UserId::generate(); $this->users->save(UserAccount::create($id,$username,$this->passwordHasher->hash($command->plainPassword),$command->personId,new \DateTimeImmutable())); return $id; }
+ public function __invoke(CreateUserAccountCommand $command): UserId { $username=Username::fromString($command->username); if($this->users->existsByUsername($username)) throw new UserAccountAlreadyExists($username->value()); if(trim($command->plainPassword)==='') throw new \InvalidArgumentException('Password cannot be empty.'); $id=UserId::generate(); $this->users->save(UserAccount::create($id,$username,$this->passwordHasher->hash($command->plainPassword),$command->personId)); return $id; }
 }

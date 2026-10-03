@@ -8,5 +8,5 @@ use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 #[AsMessageHandler]
 final readonly class RestoreLifeEventHandler {
  public function __construct(private LifeEventRepository $lifeEvents){}
- public function __invoke(RestoreLifeEventCommand $command):void{$id=LifeEventId::fromString($command->lifeEventId);$event=$this->lifeEvents->findById($id);if(!$event)throw LifeEventNotFound::withId($command->lifeEventId);$event->restore(new \DateTimeImmutable());$this->lifeEvents->save($event);}
+ public function __invoke(RestoreLifeEventCommand $command):void{$id=LifeEventId::fromString($command->lifeEventId);$event=$this->lifeEvents->findById($id);if(!$event)throw LifeEventNotFound::withId($command->lifeEventId);$event->restore();$this->lifeEvents->save($event);}
 }
