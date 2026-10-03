@@ -2,6 +2,13 @@
 
 Symfony 8 modular monolith using PHP 8.4+, Doctrine DBAL 4 and Doctrine Migrations. Doctrine ORM is intentionally not used.
 
+## Admin panel (frontend)
+
+A Vue 3 + Vuetify 3 administration panel lives in `./frontend`. It provides authenticated
+management of the established bounded contexts (People, Families, Relationships, Life Events,
+User Accounts, Roles and Permissions) against the backend's HTTP API described in
+`backend/openapi.yaml`. See `frontend/README.md` for setup and architecture notes.
+
 ## Bounded contexts
 
 - **IdentityAccess** — user accounts, roles, permissions, authentication adapter and authorization checks.

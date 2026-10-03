@@ -11,14 +11,12 @@ use App\IdentityAccess\Application\Command\AddPermissionToRole\AddPermissionToRo
 use App\IdentityAccess\Application\Command\RemovePermissionFromRole\RemovePermissionFromRoleCommand;
 use App\Shared\Presentation\Http\AbstractRestController;
 use Symfony\Component\Messenger\MessageBusInterface;
-use Override;
 
 class RolesController extends AbstractRestController
 {
-    #[Override]
     public function __construct(MessageBusInterface $bus)
     {
-        return parent::__construct($bus);
+        parent::__construct($bus);
     }
 
     #[Route('/api/roles', methods: ['POST'])]
