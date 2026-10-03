@@ -1,25 +1,28 @@
 <?php
-
+declare(strict_types=1);
 namespace App\IdentityAccess\Presentation\Http\Controller;
 
 use App\IdentityAccess\Application\Command\CreatePermission\CreatePermissionCommand;
-use App\Shared\Presentation\Http\AbstractRestController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Messenger\MessageBusInterface;
+use Symfony\Component\Messenger\Stamp\HandledStamp;
 use Symfony\Component\Routing\Attribute\Route;
 
-class PermissionsController extends AbstractRestController
+final readonly class PermissionsController
 {
+    public function __construct(private MessageBusInterface $bus) {}
+
     #[Route('/api/permissions', methods: ['POST'])]
-    public function createPermission(Request $request): JsonResponse
+    public function create(Request $request): JsonResponse
     {
         $data = $request->toArray();
-
-        $id = $this->result(new CreatePermissionCommand(
-            (string)($data['code'] ?? ''),
-            (string)($data['description'] ?? '')
+        $envelope = $this->bus->dispatch(new CreatePermissionCommand(
+            (string) ($data['code'] ?? ''),
+            (string) ($data['description'] ?? ''),
         ));
-
-        return new JsonResponse(['id' => $id?->toString()], 201);
+        $id = $envelope->last(HandledStamp::class)?->getResult();
+        return new JsonResponse(['id' => $id?->toString()], Response::HTTP_CREATED);
     }
 }

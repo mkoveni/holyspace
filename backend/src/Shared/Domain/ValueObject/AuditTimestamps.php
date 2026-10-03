@@ -17,14 +17,23 @@ final class AuditTimestamps
         }
     }
 
-    public function createdAt(): DateTimeImmutable { return $this->createdAt; }
-    public function updatedAt(): DateTimeImmutable { return $this->updatedAt; }
-
-    public function touch(DateTimeImmutable $now): void
+    public function createdAt(): DateTimeImmutable
     {
-        if ($now < $this->updatedAt) {
-            throw new \InvalidArgumentException('Updated timestamp cannot move backwards.');
-        }
-        $this->updatedAt = $now;
+        return $this->createdAt;
+    }
+    public function updatedAt(): DateTimeImmutable
+    {
+        return $this->updatedAt;
+    }
+
+    public static function now(): self
+    {
+        $now = new DateTimeImmutable();
+        return new self($now, $now);
+    }
+
+    public function touch(): void
+    {
+        $this->updatedAt = new DateTimeImmutable();
     }
 }

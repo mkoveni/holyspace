@@ -9,5 +9,5 @@ use App\IdentityAccess\Domain\ValueObject\UserId;
 #[AsMessageHandler]
 final readonly class ChangePasswordHandler {
  public function __construct(private UserAccountRepository $users, private PasswordHasher $passwordHasher) {}
- public function __invoke(ChangePasswordCommand $command): void { if(trim($command->plainPassword)==='') throw new \InvalidArgumentException('Password cannot be empty.'); $user=$this->users->findById(UserId::fromString($command->userId)); if(!$user) throw new UserAccountNotFound($command->userId); $user->changePassword($this->passwordHasher->hash($command->plainPassword),new \DateTimeImmutable()); $this->users->save($user); }
+ public function __invoke(ChangePasswordCommand $command): void { if(trim($command->plainPassword)==='') throw new \InvalidArgumentException('Password cannot be empty.'); $user=$this->users->findById(UserId::fromString($command->userId)); if(!$user) throw new UserAccountNotFound($command->userId); $user->changePassword($this->passwordHasher->hash($command->plainPassword)); $this->users->save($user); }
 }

@@ -11,5 +11,5 @@ use App\IdentityAccess\Domain\ValueObject\UserId;
 #[AsMessageHandler]
 final readonly class AssignRoleHandler {
  public function __construct(private UserAccountRepository $users, private RoleRepository $roles) {}
- public function __invoke(AssignRoleCommand $command): void { $user=$this->users->findById(UserId::fromString($command->userId)); if(!$user) throw new UserAccountNotFound($command->userId); $roleId=RoleId::fromString($command->roleId); if(!$this->roles->findById($roleId)) throw new RoleNotFound($command->roleId); $user->assignRole($roleId,new \DateTimeImmutable()); $this->users->save($user); }
+ public function __invoke(AssignRoleCommand $command): void { $user=$this->users->findById(UserId::fromString($command->userId)); if(!$user) throw new UserAccountNotFound($command->userId); $roleId=RoleId::fromString($command->roleId); if(!$this->roles->findById($roleId)) throw new RoleNotFound($command->roleId); $user->assignRole($roleId); $this->users->save($user); }
 }

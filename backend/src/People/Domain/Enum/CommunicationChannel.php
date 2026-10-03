@@ -1,0 +1,1 @@
+<?php declare(strict_types=1); namespace App\People\Domain\Enum; enum CommunicationChannel:string {case EMAIL='email';case PHONE='phone';case SMS='sms';case WHATSAPP='whatsapp';}

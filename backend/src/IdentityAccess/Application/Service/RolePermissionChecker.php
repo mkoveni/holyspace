@@ -1,12 +1,15 @@
 <?php
 
 declare(strict_types=1);
+
 namespace App\IdentityAccess\Application\Service;
+
 use App\IdentityAccess\Domain\Repository\PermissionRepository;
 use App\IdentityAccess\Domain\Repository\RoleRepository;
 use App\IdentityAccess\Domain\Repository\UserAccountRepository;
 use App\IdentityAccess\Domain\ValueObject\UserId;
-final readonly class RolePermissionChecker implements PermissionChecke
+
+final readonly class RolePermissionChecker implements PermissionChecker
 {
     public function __construct(
         private UserAccountRepository $users,

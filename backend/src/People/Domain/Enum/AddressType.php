@@ -1,0 +1,1 @@
+<?php declare(strict_types=1); namespace App\People\Domain\Enum; enum AddressType:string {case RESIDENTIAL='residential';case POSTAL='postal';case WORK='work';case OTHER='other';}
