@@ -83,22 +83,41 @@ The Vuetify theme (`src/plugins/vuetify.ts`) uses the project palette:
 
 | Role | Hex | Usage |
 | --- | --- | --- |
-| Primary | `#96cdf9` | Buttons, links, highlights |
-| Primary (darken) | `#2c4d94` | App bar accents, active nav state, gradients |
-| Secondary | `#252426` | Navigation drawer, dark surfaces |
+| Primary | `#2c4d94` | Navigation drawer, buttons, links, active state |
+| Primary (lighten) | `#96cdf9` | Avatars, soft highlights |
+| Secondary | `#252426` | Dark surfaces |
 | Accent | `#fce9b9` | Brand mark background |
+
+## Person profiles
+
+People now have a full profile beyond the core record, surfaced on the Person detail page:
+
+- **Addresses** — `GET/POST /api/people/{personId}/addresses`
+- **Communication options** — `POST /api/people/{personId}/communication-options`
+- **Education history** — `POST /api/people/{personId}/education`
+- **Employment history** — `POST /api/people/{personId}/employment`
+- **Families** — `GET /api/people/{personId}/families`
+
+All of the above are fetched together via `GET /api/people/{personId}/profile` (addresses,
+communication options, education, employment) and `GET /api/people/{personId}/families`, and
+managed through `stores/people.ts`. Note that the `/profile` endpoint returns raw database rows
+(snake_case keys), unlike the rest of the API; see `src/types/profile.ts` for the exact shapes.
+
+Families also expose their member list via `GET /api/families/{familyId}/people`
+(`stores/families.ts`), and a family can have addresses added via
+`POST /api/families/{familyId}/addresses` (no list endpoint exists for these yet).
 
 ## Known backend gaps
 
-The admin panel is built against `backend/openapi.yaml` as the source of truth. A few
-IdentityAccess endpoints are write/lookup-only today (no list endpoints exist yet for
-`GET /api/useraccounts`, `GET /api/roles`, or `GET /api/permissions`), and there is no endpoint
-to list a family's members. The UI handles this by:
+The admin panel is built against `backend/openapi.yaml` as the source of truth. IdentityAccess
+endpoints remain write/lookup-only (no list endpoints exist yet for `GET /api/useraccounts`,
+`GET /api/roles`, or `GET /api/permissions`). The UI handles this by:
 
 - Caching user accounts, roles, and permissions created/looked-up during the session
   (`stores/userAccounts.ts`, `stores/roles.ts`, `stores/permissions.ts`).
 - Offering a "Look up by ID" control on the User Accounts page.
-- Tracking family members added during the session locally (`stores/families.ts`).
 
 Once the corresponding list endpoints are added to the backend, swap the local caches for
-real `fetchAll()` calls in those stores.
+real `fetchAll()` calls in those stores. Family member listing and person profiles (addresses,
+communication, education, employment, families) are no longer gaps — the backend now exposes
+real endpoints for these, and the UI consumes them directly (see "Person profiles" above).

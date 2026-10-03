@@ -1,5 +1,13 @@
 import type { CreatedId } from '@/types/common'
+import type { PersonFamily } from '@/types/family'
 import type { ChangePersonStatusPayload, CreatePersonPayload, Person, UpdatePersonPayload } from '@/types/person'
+import type {
+  AddAddressPayload,
+  AddCommunicationOptionPayload,
+  AddEducationPayload,
+  AddEmploymentPayload,
+  PersonProfile,
+} from '@/types/profile'
 import type { CreateRelationshipPayload, EndRelationshipPayload, Relationship } from '@/types/relationship'
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
@@ -9,6 +17,8 @@ export const usePeopleStore = defineStore('people', () => {
   const people = ref<Person[]>([])
   const current = ref<Person | null>(null)
   const relationships = ref<Relationship[]>([])
+  const profile = ref<PersonProfile | null>(null)
+  const families = ref<PersonFamily[]>([])
   const isLoading = ref(false)
   const isSaving = ref(false)
 
@@ -104,10 +114,84 @@ export const usePeopleStore = defineStore('people', () => {
     }
   }
 
+  async function fetchProfile (personId: string) {
+    try {
+      const { data } = await useApi().get<PersonProfile>(`/api/people/${personId}/profile`)
+      profile.value = data
+      return data
+    } catch (error) {
+      throw new Error(extractErrorMessage(error, 'Unable to load person profile.'), { cause: error })
+    }
+  }
+
+  async function fetchFamilies (personId: string) {
+    try {
+      const { data } = await useApi().get<PersonFamily[]>(`/api/people/${personId}/families`)
+      families.value = data
+      return data
+    } catch (error) {
+      throw new Error(extractErrorMessage(error, 'Unable to load families for this person.'), { cause: error })
+    }
+  }
+
+  async function addAddress (personId: string, payload: AddAddressPayload) {
+    isSaving.value = true
+    try {
+      const { data } = await useApi().post<CreatedId>(`/api/people/${personId}/addresses`, payload)
+      await fetchProfile(personId)
+      return data.id
+    } catch (error) {
+      throw new Error(extractErrorMessage(error, 'Unable to add address.'), { cause: error })
+    } finally {
+      isSaving.value = false
+    }
+  }
+
+  async function addCommunicationOption (personId: string, payload: AddCommunicationOptionPayload) {
+    isSaving.value = true
+    try {
+      const { data } = await useApi().post<CreatedId>(`/api/people/${personId}/communication-options`, payload)
+      await fetchProfile(personId)
+      return data.id
+    } catch (error) {
+      throw new Error(extractErrorMessage(error, 'Unable to add communication option.'), { cause: error })
+    } finally {
+      isSaving.value = false
+    }
+  }
+
+  async function addEducation (personId: string, payload: AddEducationPayload) {
+    isSaving.value = true
+    try {
+      const { data } = await useApi().post<CreatedId>(`/api/people/${personId}/education`, payload)
+      await fetchProfile(personId)
+      return data.id
+    } catch (error) {
+      throw new Error(extractErrorMessage(error, 'Unable to add education history.'), { cause: error })
+    } finally {
+      isSaving.value = false
+    }
+  }
+
+  async function addEmployment (personId: string, payload: AddEmploymentPayload) {
+    isSaving.value = true
+    try {
+      const { data } = await useApi().post<CreatedId>(`/api/people/${personId}/employment`, payload)
+      await fetchProfile(personId)
+      return data.id
+    } catch (error) {
+      throw new Error(extractErrorMessage(error, 'Unable to add employment history.'), { cause: error })
+    } finally {
+      isSaving.value = false
+    }
+  }
+
   return {
     people,
     current,
     relationships,
+    profile,
+    families,
     isLoading,
     isSaving,
     byId,
@@ -119,5 +203,11 @@ export const usePeopleStore = defineStore('people', () => {
     fetchRelationships,
     createRelationship,
     endRelationship,
+    fetchProfile,
+    fetchFamilies,
+    addAddress,
+    addCommunicationOption,
+    addEducation,
+    addEmployment,
   }
 })
