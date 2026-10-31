@@ -16,6 +16,8 @@ migration and legacy feature parity are outside this release.
 - Aggregate service/email/push/payment checks and isolated release rehearsal.
 - Release workflow for Java, Vue Java mode and mobile; explicit dependency gates.
 - Ubuntu host-Nginx backend target with a loopback-only API and separate frontend origin.
+- Opt-in GitHub-to-VPS backend deployment with tested image archives, pinned SSH,
+  serialized activation, required backups and public HTTPS readiness checks.
 
 See [the Java runbook](java-production-runbook.md) for commands and limits. These
 files do not provision an external production environment or install host schedules.
@@ -62,9 +64,10 @@ files do not provision an external production environment or install host schedu
 - Package audits have no high/critical findings after the compatible frontend
   follow-redirects patch, Expo SDK 58.0.22/React Native 0.88.1 alignment and the
   permitted transitive Zod 4.6.7 update. Lower-severity findings remain for review.
-- Database and HTTPS proxy images retain vendor/Go findings, including entries
+- Database and bundled HTTPS proxy images retain vendor/Go findings, including entries
   without vendor fixes. These are raw scanner matches, not a completed
-  exploitability assessment. Both CI and the deployment command block on them.
+  exploitability assessment. Backend CI and deployment block on the database;
+  bundled deployments also block on the proxy. Host Nginx needs separate review.
 
 See [the security scan record](production-security-scan.md) for scope and counts.
 No production host, off-site schedule or external alert destination was activated.

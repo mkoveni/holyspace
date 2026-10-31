@@ -9,6 +9,7 @@ For an Ubuntu VPS already running Nginx, use the
 [host Nginx backend deployment](ubuntu-nginx-java-deployment.md). It publishes the
 API only on loopback and omits the bundled frontend/Caddy containers. The rest of
 this runbook describes the bundled topology unless stated otherwise.
+See [backend CI/CD](backend-cicd.md) for automatic deployment of tested images.
 
 ## Prerequisites and launch gates
 
@@ -234,9 +235,10 @@ acceptance remain explicit release gates.
 GitHub workflow `java-release.yml` runs Java verification, the isolated rehearsal,
 Vue Java-mode tests/build/audit, and mobile checks/exports/browser workflows.
 The existing PHP workflow is retained. A separate mobile audit job blocks release
-on high/critical issues without hiding other test results. The image gate uses a
-verified, digest-pinned Trivy scanner for the API, frontend, database, edge and
-backup tools, including OS and Java dependencies. Run it locally after the
+on high/critical issues without hiding other test results. The backend CI image
+gate uses a verified, digest-pinned Trivy scanner for the API, database and backup
+tools, including OS and Java dependencies. The default bundled-target scan also
+includes frontend and edge images. Run the full scan locally after the
 rehearsal with `scripts/java-production/security-scan.sh release-check /tmp/holyspace-image-security`.
 No unfixed finding is automatically ignored. The deployment command also runs
 this gate before starting or stopping production services. Current database/edge

@@ -1,11 +1,42 @@
 name: Java and member app release checks
-on: [push, pull_request]
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
 permissions:
   contents: read
 concurrency:
   group: java-release-${{ github.ref }}
-  cancel-in-progress: true
+  # A new commit must never interrupt a running production migration.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 jobs:
+  ubuntu22-compatibility:
+    runs-on: ubuntu-latest
+    container: ubuntu:22.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install the standard Ubuntu 22.04 Python
+        run: |
+          apt-get update -qq
+          DEBIAN_FRONTEND=noninteractive apt-get install -y -qq python3 ca-certificates
+      - name: Verify the maintained GitHub CLI on Ubuntu 22.04
+        run: |
+          python3 - <<'PY'
+          import os
+          import runpy
+          installer = runpy.run_path('scripts/java-production/setup-vps.py')
+          installer['install_github_cli']({**os.environ, 'DEBIAN_FRONTEND': 'noninteractive'})
+          assert installer['github_cli_ready']()
+          PY
+      - run: python3 -m unittest discover -s scripts/java-production/tests -v
+      - name: Check the standalone installer on Python 3.10
+        run: |
+          python3 scripts/java-production/setup-vps.py --bundle /tmp/holyspace-vps-setup.pyz
+          python3 /tmp/holyspace-vps-setup.pyz --plan \
+            --api-domain api.release-check.example --frontend-domain members.release-check.example \
+            --email release-check@example.org --repository example/holyspace \
+            --ssh-host vps.release-check.example
   java:
     runs-on: ubuntu-latest
     timeout-minutes: 60
@@ -27,7 +58,32 @@ jobs:
           retention-days: 7
       - run: scripts/java-production/verify.sh
       - run: python3 scripts/java-production/verify-nginx.py
-      - run: scripts/java-production/security-scan.sh release-check /tmp/holyspace-image-security
+      - run: python3 -m unittest discover -s scripts/java-production/tests -v
+      - name: Build single-file VPS installer
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        run: python3 scripts/java-production/setup-vps.py --bundle /tmp/holyspace-vps-setup.pyz
+      - uses: actions/upload-artifact@v4
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        with:
+          name: holyspace-vps-setup
+          path: /tmp/holyspace-vps-setup.pyz
+          retention-days: 7
+          if-no-files-found: error
+      - name: Scan backend deployment images
+        run: scripts/java-production/security-scan.sh release-check /tmp/holyspace-image-security
+        env:
+          JAVA_PRODUCTION_TARGET: nginx-api
+      - name: Package the verified backend release
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        run: python3 scripts/java-production/package-release.py "$GITHUB_SHA" dist/backend-deploy
+      - uses: actions/upload-artifact@v4
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        with:
+          name: backend-release-${{ github.sha }}
+          path: dist/backend-deploy/
+          compression-level: 0
+          retention-days: 7
+          if-no-files-found: error
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -42,6 +98,61 @@ jobs:
             /tmp/holyspace-java-verify.log
             frontend/test-results/
           retention-days: 7
+  deploy-backend:
+    needs: [java, ubuntu22-compatibility]
+    if: >-
+      github.ref == 'refs/heads/main' && github.event_name != 'pull_request' &&
+      vars.PRODUCTION_DEPLOY_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    environment:
+      name: production
+      url: ${{ vars.PRODUCTION_API_URL }}
+    concurrency:
+      group: holyspace-backend-production
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Reject a superseded commit and check the public API origin
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PRODUCTION_API_URL: ${{ vars.PRODUCTION_API_URL }}
+        run: |
+          latest=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq .object.sha)
+          [[ "$latest" == "$GITHUB_SHA" ]] || { echo 'A newer main commit exists; deploy the current release instead.' >&2; exit 1; }
+          python3 - <<'PY'
+          import os
+          from urllib.parse import urlsplit
+          origin = urlsplit(os.environ['PRODUCTION_API_URL'])
+          assert origin.scheme == 'https' and origin.hostname and not origin.username and not origin.password
+          assert origin.path in ('', '/') and not origin.query and not origin.fragment
+          PY
+      - uses: actions/download-artifact@v4
+        with:
+          name: backend-release-${{ github.sha }}
+          path: backend-release
+      - name: Transfer and deploy the same tested images
+        run: bash scripts/java-production/ci-deploy.sh backend-release
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+          VPS_SSH_PORT: ${{ secrets.VPS_SSH_PORT }}
+          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+          VPS_KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
+      - name: Check public HTTPS readiness through host Nginx
+        env:
+          PRODUCTION_API_URL: ${{ vars.PRODUCTION_API_URL }}
+        run: |
+          curl --fail --silent --show-error --proto '=https' --tlsv1.2 \
+            --connect-timeout 10 --max-time 20 --retry 5 --retry-delay 3 \
+            "${PRODUCTION_API_URL%/}/health/ready" > /tmp/backend-readiness.json
+          python3 - <<'PY'
+          import json
+          with open('/tmp/backend-readiness.json') as stream:
+              assert json.load(stream)['status'] == 'UP', 'Public backend readiness failed.'
+          PY
   frontend:
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -82,7 +193,7 @@ jobs:
       - name: Verify mobile browser workflows
         run: |
           CI=1 EXPO_NO_TELEMETRY=1 npm run web > /tmp/member-web.log 2>&1 &
-          for attempt in $(seq 1 60); do
+          for ((attempt = 0; attempt < 60; attempt++)); do
             if curl --fail --silent http://127.0.0.1:8081 >/dev/null; then break; fi
             sleep 1
           done

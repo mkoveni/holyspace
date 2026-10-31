@@ -23,8 +23,10 @@ Package findings can repeat an advisory across installed packages. These counts
 do not establish whether a vulnerability is reachable in this deployment.
 PostgreSQL findings include vendor OS packages and the bundled `gosu` binary;
 edge findings include Go runtime and module dependencies. Some matches have no
-vendor fix available. Both CI and the deployment command remain blocked by
-these findings. Upstream patches or a documented assessment are required;
+vendor fix available. Backend CI and deployment remain blocked by the database
+findings. The bundled deployment also gates its edge image; the host-Nginx target
+omits that unused image and requires host security review separately.
+Upstream patches or a documented assessment are required;
 this work introduces no waivers.
 
 The API uses jsoup 1.23.2 and excludes Temurin's unused `pebble` helper binary.

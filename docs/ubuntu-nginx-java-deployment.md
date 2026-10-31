@@ -1,5 +1,10 @@
 # Java API on Ubuntu with host Nginx
 
+For automatic deployments after successful GitHub checks, follow the
+[backend CI/CD setup](backend-cicd.md) after preparing the host below.
+Its single-script installer can perform that host preparation and GitHub setup
+for you; the steps below describe the manual alternative.
+
 Use this target when Nginx already runs on the VPS. Host Nginx owns ports 80/443
 and HTTPS; Docker runs the Java API, PostgreSQL and maintenance tools. The API
 publishes only `127.0.0.1:18082`, and PostgreSQL publishes no port. The bundled
