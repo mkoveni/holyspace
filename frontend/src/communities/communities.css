@@ -1,0 +1,88 @@
+.community-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr));
+  gap: 20px;
+}
+.community-card {
+  display: flex;
+  flex-direction: column;
+  padding: 26px;
+  gap: 16px;
+}
+.community-card h2 {
+  font-size: 1.3rem;
+}
+.community-card__description {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  flex: 1;
+}
+.community-section {
+  padding: clamp(20px, 3vw, 32px);
+  margin-bottom: 24px;
+}
+.community-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.community-summary > div {
+  padding: 18px 24px;
+  flex: 1;
+  min-width: 110px;
+}
+.community-summary strong {
+  display: block;
+  font-size: 1.8rem;
+}
+.community-navigation {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 20px 0;
+}
+.community-table {
+  overflow-x: auto;
+}
+.community-note {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.community-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+  gap: 16px;
+}
+.community-record {
+  padding: 18px 0;
+  border-bottom: 1px solid rgba(var(--v-theme-on-surface), 0.08);
+}
+.community-footer {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  margin-top: 16px;
+}
+@media (max-width: 600px) {
+  .community-roster table,
+  .community-roster tbody,
+  .community-roster tr,
+  .community-roster td {
+    display: block;
+    width: 100%;
+  }
+  .community-roster thead {
+    display: none;
+  }
+  .community-roster tr {
+    padding: 16px 0;
+    border-bottom: 1px solid rgba(var(--v-theme-on-surface), 0.1);
+  }
+  .community-roster td {
+    height: auto !important;
+    padding: 8px 12px !important;
+    border: 0 !important;
+  }
+}

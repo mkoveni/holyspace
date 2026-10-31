@@ -1,1 +1,42 @@
-<?php declare(strict_types=1); namespace App\People\Infrastructure\Persistence\DBAL; use App\People\Domain\Enum\FamilyRole; use App\People\Domain\Model\Family; use App\People\Domain\Model\FamilyMember; use App\People\Domain\ValueObject\FamilyId; use App\People\Domain\ValueObject\PersonId; use App\Shared\Domain\ValueObject\AuditTimestamps; final class FamilyMapper {public function toDomain(array $r,array $members=[]):Family{$m=[];foreach($members as $x)$m[]=FamilyMember::reconstitute(PersonId::fromString((string)$x['person_id']),FamilyRole::from((string)$x['role']),new \DateTimeImmutable((string)$x['created_at']));return Family::reconstitute(FamilyId::fromString((string)$r['id']),(string)$r['name'],new AuditTimestamps(new \DateTimeImmutable((string)$r['created_at']),new \DateTimeImmutable((string)$r['updated_at'])),$m);} public function toRow(Family $f):array{return ['id'=>$f->id()->toString(),'name'=>$f->name(),'created_at'=>$f->createdAt()->format('Y-m-d H:i:s'),'updated_at'=>$f->updatedAt()->format('Y-m-d H:i:s')];}}
+<?php
+
+declare(strict_types=1);
+
+namespace App\People\Infrastructure\Persistence\DBAL;
+
+use App\People\Domain\Enum\FamilyRole;
+use App\People\Domain\Model\Family;
+use App\People\Domain\Model\FamilyMember;
+use App\People\Domain\ValueObject\FamilyId;
+use App\People\Domain\ValueObject\PersonId;
+use App\Shared\Domain\ValueObject\AuditTimestamps;
+use DateTimeImmutable;
+
+final class FamilyMapper
+{
+    public function toDomain(array $row, array $members = []): Family
+    {
+        $mapped = array_map(static fn (array $member): FamilyMember => FamilyMember::reconstitute(
+            PersonId::fromString((string) $member['person_id']),
+            FamilyRole::from((string) $member['role']),
+            new DateTimeImmutable((string) $member['created_at']),
+        ), $members);
+
+        return Family::reconstitute(
+            FamilyId::fromString((string) $row['id']),
+            (string) $row['name'],
+            new AuditTimestamps(new DateTimeImmutable((string) $row['created_at']), new DateTimeImmutable((string) $row['updated_at'])),
+            $mapped,
+            isset($row['primary_contact_person_id']) ? PersonId::fromString($row['primary_contact_person_id']) : null,
+        );
+    }
+
+    public function toRow(Family $family): array
+    {
+        return [
+            'id' => $family->id()->toString(), 'name' => $family->name(),
+            'primary_contact_person_id' => $family->primaryContact()?->toString(),
+            'created_at' => $family->createdAt()->format('Y-m-d H:i:s'), 'updated_at' => $family->updatedAt()->format('Y-m-d H:i:s'),
+        ];
+    }
+}

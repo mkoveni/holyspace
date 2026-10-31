@@ -46,3 +46,32 @@ export interface AddFamilyAddressPayload {
   postalCode?: string | null
   country: string
 }
+
+export interface FamilyAddress {
+  id: string
+  type: string
+  line1: string
+  line2: string | null
+  city: string
+  province: string | null
+  postalCode: string | null
+  country: string
+}
+
+export interface FamilyUpcomingEvent {
+  id: string
+  type: string
+  eventDate: string
+  notes: string | null
+  status: string
+  memberIds: string[]
+  isAnniversary?: boolean
+  originalEventDate?: string | null
+}
+
+export interface FamilyOverview extends Family {
+  members: FamilyMember[]
+  addresses: FamilyAddress[]
+  primaryContact: FamilyMember | null
+  upcomingEvents: FamilyUpcomingEvent[]
+}

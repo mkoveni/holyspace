@@ -2,24 +2,20 @@
  * Person profile sub-resources: addresses, communication options, education
  * and employment history.
  *
- * Note: `GET /api/people/{personId}/profile` returns raw database rows (the
- * backend read model does not map these to camelCase like other endpoints),
- * so the response shapes below are intentionally snake_case to match reality.
- * The corresponding POST payloads (to create new entries) use camelCase, as
- * implemented by the controllers.
+ * Responses and creation payloads use camelCase properties.
  */
 
 export interface ProfileAddress {
   id: string
-  person_id: string
+  personId: string
   type: string
   line1: string
   line2: string | null
   city: string
   province: string | null
-  postal_code: string | null
+  postalCode: string | null
   country: string
-  created_at: string
+  createdAt: string
 }
 
 export interface AddAddressPayload {
@@ -34,11 +30,11 @@ export interface AddAddressPayload {
 
 export interface ProfileCommunicationOption {
   id: string
-  person_id: string
+  personId: string
   channel: string
   value: string
-  preferred: boolean | number
-  created_at: string
+  preferred: boolean
+  createdAt: string
 }
 
 export interface AddCommunicationOptionPayload {
@@ -49,14 +45,14 @@ export interface AddCommunicationOptionPayload {
 
 export interface ProfileEducationEntry {
   id: string
-  person_id: string
+  personId: string
   institution: string
   qualification: string
-  start_date: string | null
-  end_date: string | null
-  field_of_study: string | null
+  startDate: string | null
+  endDate: string | null
+  fieldOfStudy: string | null
   notes: string | null
-  created_at: string
+  createdAt: string
 }
 
 export interface AddEducationPayload {
@@ -70,16 +66,16 @@ export interface AddEducationPayload {
 
 export interface ProfileEmploymentEntry {
   id: string
-  person_id: string
+  personId: string
   employer: string
-  job_title: string
-  start_date: string | null
-  end_date: string | null
+  jobTitle: string
+  startDate: string | null
+  endDate: string | null
   industry: string | null
-  work_email: string | null
-  work_phone: string | null
+  workEmail: string | null
+  workPhone: string | null
   notes: string | null
-  created_at: string
+  createdAt: string
 }
 
 export interface AddEmploymentPayload {

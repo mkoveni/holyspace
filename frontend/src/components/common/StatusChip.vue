@@ -11,9 +11,9 @@
     status: string
   }>()
 
-  const positiveStatuses = new Set(['active', 'enabled', 'approved'])
+  const positiveStatuses = new Set(['active', 'enabled', 'approved', 'completed'])
   const negativeStatuses = new Set(['inactive', 'disabled', 'cancelled', 'rejected', 'deceased'])
-  const neutralStatuses = new Set(['visitor', 'pending'])
+  const neutralStatuses = new Set(['prospect', 'transferred'])
 
   const color = computed(() => {
     const value = props.status?.toLowerCase() ?? ''

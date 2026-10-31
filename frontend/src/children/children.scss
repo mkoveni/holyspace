@@ -1,0 +1,238 @@
+.children-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 26px;
+  border-bottom: 1px solid #e5e9e6;
+  overflow-x: auto;
+  padding-bottom: 12px;
+  a {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 11px 16px;
+    border-radius: 10px;
+    white-space: nowrap;
+    font-size: 13px;
+    font-weight: 700;
+    color: #74817f;
+  }
+  .is-active {
+    background: #eaf0e9;
+    color: #3b5c4b;
+  }
+}
+.children-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 20px;
+  margin: 22px 0;
+}
+.children-card {
+  padding: 26px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  .children-card__icon {
+    background: #eaf0e9;
+    border-radius: 15px;
+    width: 48px;
+    height: 48px;
+    display: grid;
+    place-items: center;
+    color: #64846f;
+  }
+  h2 {
+    font-size: 19px;
+  }
+  p {
+    font-size: 13px;
+    line-height: 1.8;
+    color: #74817f;
+  }
+  footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: auto;
+    padding-top: 16px;
+    border-top: 1px solid #e5e9e6;
+  }
+}
+.children-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 26px;
+  margin: 20px 0;
+  > div {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  strong {
+    font-size: 25px;
+    font-weight: 600;
+  }
+  small {
+    color: #74817f;
+    font-size: 12px;
+  }
+}
+.children-split {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(280px, 1fr);
+  gap: 24px;
+  align-items: start;
+}
+.children-section {
+  padding: 26px;
+  margin-bottom: 24px;
+  h2 {
+    font-size: 19px;
+    margin-bottom: 8px;
+  }
+  > p {
+    color: #74817f;
+    font-size: 13px;
+    line-height: 1.8;
+    margin-bottom: 20px;
+  }
+}
+.children-section__heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+.children-list-row {
+  padding: 17px 0;
+  border-bottom: 1px solid #e5e9e6;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  > div:first-child {
+    flex: 1;
+    min-width: 150px;
+  }
+  strong {
+    display: block;
+    font-size: 14px;
+  }
+  small {
+    display: block;
+    color: #74817f;
+    font-size: 12px;
+    margin-top: 6px;
+  }
+}
+.children-form-note {
+  padding: 16px 18px;
+  border-radius: 12px;
+  background: #f2f5f0;
+  color: #66776b;
+  font-size: 13px;
+  line-height: 1.8;
+  margin-bottom: 22px;
+}
+.children-capacity {
+  height: 5px;
+  border-radius: 8px;
+  background: #eaf0e9;
+  margin: 12px 0;
+  overflow: hidden;
+  > i {
+    display: block;
+    height: 100%;
+    background: #7e9984;
+  }
+}
+.children-label {
+  text-align: center;
+  padding: 30px;
+  border: 2px dashed #cbd7cd;
+  border-radius: 18px;
+  margin: 20px 0;
+  h2 {
+    font-size: 26px;
+  }
+  code {
+    display: block;
+    font-size: 21px;
+    letter-spacing: 2px;
+    word-break: break-all;
+    margin-top: 18px;
+  }
+  img {
+    width: 200px;
+    height: 200px;
+    margin: 14px auto;
+  }
+}
+.children-notice {
+  font-size: 12px;
+  color: #74817f;
+  line-height: 1.8;
+}
+@media (max-width: 1000px) {
+  .children-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .children-split {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+@media (max-width: 600px) {
+  .children-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .children-section {
+    padding: 20px;
+  }
+  .children-tabs a {
+    padding: 10px 12px;
+  }
+  .children-section__heading {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+  .children-label {
+    padding: 18px;
+  }
+}
+@media print {
+  body:has(.children-label) * {
+    visibility: hidden !important;
+  }
+  .children-label,
+  .children-label * {
+    visibility: visible !important;
+  }
+  .children-label {
+    position: absolute;
+    inset: 0 auto auto 0;
+    width: 95%;
+    margin: 0;
+  }
+}
+
+.children-split > * {
+  min-width: 0;
+}
+.children-split .directory-toolbar .v-tabs {
+  min-width: 0;
+  max-width: 100%;
+}
+
+@media (max-width: 600px) {
+  .children-roster .directory-table {
+    white-space: normal;
+    th, td { padding: 16px 12px; }
+    th:nth-child(2), td:nth-child(2) { display: none; }
+    td:last-child { min-width: 98px; max-width: 145px; }
+    .directory-identity { gap: 10px; }
+    .directory-identity strong { overflow-wrap: anywhere; }
+    .directory-avatar { width: 34px; height: 34px; border-radius: 11px; }
+    .v-btn { min-height: 36px; }
+  }
+}

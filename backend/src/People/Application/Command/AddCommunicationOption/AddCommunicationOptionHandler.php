@@ -1,1 +1,28 @@
-<?php declare(strict_types=1); namespace App\People\Application\Command\AddCommunicationOption; use App\People\Domain\Model\CommunicationOption; use App\People\Domain\Repository\CommunicationOptionRepository; use App\People\Domain\ValueObject\CommunicationOptionId; use App\People\Domain\ValueObject\PersonId; use App\People\Domain\Enum\CommunicationChannel; #[\Symfony\Component\Messenger\Attribute\AsMessageHandler] final readonly class AddCommunicationOptionHandler {public function __construct(private CommunicationOptionRepository $repo){} public function __invoke(AddCommunicationOptionCommand $c):CommunicationOptionId{$id=CommunicationOptionId::generate();$this->repo->save(PersonId::fromString($c->personId),CommunicationOption::create($id,CommunicationChannel::from($c->channel),$c->value,$c->preferred));return $id;}}
+<?php
+
+declare(strict_types=1);
+
+namespace App\People\Application\Command\AddCommunicationOption;
+
+use App\People\Domain\Enum\CommunicationChannel;
+use App\People\Domain\Model\CommunicationOption;
+use App\People\Domain\Repository\CommunicationOptionRepository;
+use App\People\Domain\ValueObject\CommunicationOptionId;
+use App\People\Domain\ValueObject\PersonId;
+use Symfony\Component\Messenger\Attribute\AsMessageHandler;
+
+#[AsMessageHandler]
+final readonly class AddCommunicationOptionHandler
+{
+    public function __construct(private CommunicationOptionRepository $repo)
+    {
+    }
+
+    public function __invoke(AddCommunicationOptionCommand $c): CommunicationOptionId
+    {
+        $id = CommunicationOptionId::generate();
+        $this->repo->save(PersonId::fromString($c->personId), CommunicationOption::create($id, CommunicationChannel::from($c->channel), $c->value, $c->preferred));
+
+        return $id;
+    }
+}

@@ -1,1 +1,23 @@
-<?php declare(strict_types=1); namespace App\People\Application\DTO; final readonly class FamilyView {public function __construct(public string $id,public string $name,public array $members,public array $addresses,public string $createdAt,public string $updatedAt){}}
+<?php
+
+declare(strict_types=1);
+
+namespace App\People\Application\DTO;
+
+final readonly class FamilyView
+{
+    /**
+     * @param list<FamilyMemberView>  $members
+     * @param list<FamilyAddressView> $addresses
+     */
+    public function __construct(
+        public string $id,
+        public string $name,
+        public array $members,
+        public array $addresses,
+        public string $createdAt,
+        public string $updatedAt,
+        public ?string $primaryContactPersonId,
+    ) {
+    }
+}

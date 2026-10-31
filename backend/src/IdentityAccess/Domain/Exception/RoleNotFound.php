@@ -1,5 +1,11 @@
 <?php
 
 declare(strict_types=1);
+
 namespace App\IdentityAccess\Domain\Exception;
-final class RoleNotFound extends \DomainException {}
+
+use DomainException;
+
+final class RoleNotFound extends DomainException
+{
+}

@@ -1,0 +1,14 @@
+**
+!frontend/
+!frontend/**
+!docker/
+!docker/java-production/
+!docker/java-production/nginx.conf
+frontend/node_modules
+frontend/dist
+frontend/.env*
+!frontend/.env.java
+!frontend/.env.production
+frontend/test-results
+frontend/playwright-report
+frontend/coverage

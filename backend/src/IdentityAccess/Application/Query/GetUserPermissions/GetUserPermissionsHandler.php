@@ -1,1 +1,19 @@
-<?php declare(strict_types=1); namespace App\IdentityAccess\Application\Query\GetUserPermissions; use App\IdentityAccess\Application\ReadModel\IdentityAccessReadRepository; final readonly class GetUserPermissionsHandler {public function __construct(private IdentityAccessReadRepository $read){} public function __invoke(GetUserPermissionsQuery $q):array{return $this->read->permissionCodesForUser($q->userId);}}
+<?php
+
+declare(strict_types=1);
+
+namespace App\IdentityAccess\Application\Query\GetUserPermissions;
+
+use App\IdentityAccess\Application\ReadModel\IdentityAccessReadRepository;
+
+final readonly class GetUserPermissionsHandler
+{
+    public function __construct(private IdentityAccessReadRepository $read)
+    {
+    }
+
+    public function __invoke(GetUserPermissionsQuery $q): array
+    {
+        return $this->read->permissionCodesForUser($q->userId);
+    }
+}

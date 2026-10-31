@@ -1,0 +1,6 @@
+when@prod:
+    framework:
+        trusted_proxies: 'REMOTE_ADDR'
+        trusted_headers: ['x-forwarded-for', 'x-forwarded-proto', 'x-forwarded-port']
+        php_errors:
+            log: true

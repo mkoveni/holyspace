@@ -15,5 +15,6 @@ final readonly class UserAccountView
         public array $roleIds,
         public string $createdAt,
         public string $updatedAt,
-    ) {}
+    ) {
+    }
 }

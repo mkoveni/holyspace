@@ -1,0 +1,133 @@
+name: holyspace-prod
+x-app: &app
+  image: holyspace-backend:${RELEASE_TAG:-local}
+  build:
+    context: .
+    dockerfile: docker/production/php.Dockerfile
+    target: production
+  restart: unless-stopped
+  environment: &app-environment
+    APP_ENV: prod
+    APP_DEBUG: '0'
+    APP_SECRET: ${APP_SECRET:?Set APP_SECRET}
+    DATABASE_URL: mysql://church:${DATABASE_PASSWORD_URLENCODED:?Set URL-encoded database password}@database:3306/church_portal?serverVersion=8.0&charset=utf8mb4
+    JWT_SECRET_KEY: /run/secrets/jwt_private
+    JWT_PUBLIC_KEY: /run/secrets/jwt_public
+    JWT_PASSPHRASE: ${JWT_PASSPHRASE:?Set JWT_PASSPHRASE}
+    CORS_ALLOW_ORIGIN: https://${CHURCH_DOMAIN:?Set CHURCH_DOMAIN}
+    LOCK_DSN: flock
+    MAILER_DSN: ${MAILER_DSN:-null://null}
+    MAILER_FROM: ${MAILER_FROM:-noreply@example.invalid}
+    SMS_API_URL: ${SMS_API_URL:-}
+    SMS_API_TOKEN: ${SMS_API_TOKEN:-}
+    PAYMENTS_PUBLIC_URL: ${PAYMENTS_PUBLIC_URL:-}
+    PAYFAST_MODE: ${PAYFAST_MODE:-test}
+    PAYFAST_MERCHANT_ID: ${PAYFAST_MERCHANT_ID:-}
+    PAYFAST_MERCHANT_KEY: ${PAYFAST_MERCHANT_KEY:-}
+    PAYFAST_PASSPHRASE: ${PAYFAST_PASSPHRASE:-}
+    PAYFAST_ITN_IP_RANGES: ${PAYFAST_ITN_IP_RANGES:-197.97.145.144/28,41.74.179.192/27,102.216.36.0/28,102.216.36.128/28,144.126.193.139/32}
+    YOCO_MODE: ${YOCO_MODE:-test}
+    YOCO_SECRET_KEY: ${YOCO_SECRET_KEY:-}
+    YOCO_WEBHOOK_SECRET: ${YOCO_WEBHOOK_SECRET:-}
+  secrets: [jwt_private, jwt_public]
+  depends_on:
+    database:
+      condition: service_healthy
+  logging: &logging
+    driver: json-file
+    options: {max-size: '10m', max-file: '5'}
+services:
+  database:
+    image: mysql:8.0
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: church_portal
+      MYSQL_USER: church
+      MYSQL_PASSWORD: ${DATABASE_PASSWORD:?Set DATABASE_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${DATABASE_ROOT_PASSWORD:?Set DATABASE_ROOT_PASSWORD}
+    volumes: [database:/var/lib/mysql]
+    healthcheck:
+      test: [CMD-SHELL, 'MYSQL_PWD="$$MYSQL_PASSWORD" mysql --protocol=TCP -h127.0.0.1 -u"$$MYSQL_USER" "$$MYSQL_DATABASE" -e "SELECT 1" >/dev/null 2>&1']
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
+    logging: *logging
+  php:
+    <<: *app
+    volumes: [locks:/tmp/church-locks]
+    environment:
+      <<: *app-environment
+      LOCK_DSN: flock:///tmp/church-locks
+  outbox:
+    <<: *app
+    command: [church-worker, outbox]
+    environment:
+      <<: *app-environment
+      LOCK_DSN: flock:///tmp/church-locks
+    volumes: [locks:/tmp/church-locks]
+    healthcheck: &worker-health
+      test: [CMD, php, '-r', 'exit(is_file("/tmp/church-worker-heartbeat") && time()-filemtime("/tmp/church-worker-heartbeat") < 90 ? 0 : 1);']
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+  communications:
+    <<: *app
+    command: [church-worker, communications]
+    environment:
+      <<: *app-environment
+      LOCK_DSN: flock:///tmp/church-locks
+    volumes: [locks:/tmp/church-locks]
+    healthcheck: *worker-health
+  followups:
+    <<: *app
+    command: [church-worker, followups]
+    environment:
+      <<: *app-environment
+      LOCK_DSN: flock:///tmp/church-locks
+    volumes: [locks:/tmp/church-locks]
+    healthcheck: *worker-health
+  payments:
+    <<: *app
+    command: [church-worker, payments]
+    environment:
+      <<: *app-environment
+      LOCK_DSN: flock:///tmp/church-locks
+    volumes: [locks:/tmp/church-locks]
+    healthcheck: *worker-health
+  web:
+    image: holyspace-web:${RELEASE_TAG:-local}
+    build: {context: ., dockerfile: docker/production/web.Dockerfile}
+    restart: unless-stopped
+    depends_on: [php]
+    healthcheck:
+      test: [CMD, wget, '--spider', '-q', 'http://127.0.0.1/health/ready']
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    logging: *logging
+  tools:
+    profiles: [operations]
+    image: holyspace-tools:${RELEASE_TAG:-local}
+    build: {context: ., dockerfile: docker/production/tools.Dockerfile}
+  edge:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports: ['80:80', '443:443', '443:443/udp']
+    environment:
+      CHURCH_DOMAIN: ${CHURCH_DOMAIN:?Set CHURCH_DOMAIN}
+    volumes: ['./docker/production/Caddyfile:/etc/caddy/Caddyfile:ro', 'caddy_data:/data', 'caddy_config:/config']
+    depends_on: [web]
+    logging: *logging
+volumes:
+  database:
+  locks:
+  caddy_data:
+  caddy_config:
+secrets:
+  jwt_private:
+    file: ${JWT_PRIVATE_KEY_FILE:?Set JWT_PRIVATE_KEY_FILE}
+  jwt_public:
+    file: ${JWT_PUBLIC_KEY_FILE:?Set JWT_PUBLIC_KEY_FILE}

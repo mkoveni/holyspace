@@ -7,11 +7,26 @@ security:
             id: App\IdentityAccess\Infrastructure\Security\UserProvider
 
     firewalls:
+        payment_webhooks:
+            pattern: ^/api/payments/webhooks/(payfast|yoco)$
+            security: false
+
+        account_recovery:
+            pattern: ^/api/account-recovery$
+            security: false
+
+        public_forms:
+            pattern: ^/api/public/forms/
+            security: false
+
         api_login:
             pattern: ^/api/login_check$
             stateless: true
             provider: app_user_provider
             user_checker: App\IdentityAccess\Infrastructure\Security\UserChecker
+            login_throttling:
+                max_attempts: 5
+                interval: '1 minute'
             json_login:
                 check_path: /api/login_check
                 username_path: username
@@ -27,6 +42,7 @@ security:
             jwt: ~
 
     access_control:
+        - { path: ^/api/account-recovery$, roles: PUBLIC_ACCESS }
         - { path: ^/api/login_check$, roles: PUBLIC_ACCESS }
         - { path: ^/api, roles: IS_AUTHENTICATED_FULLY }
 

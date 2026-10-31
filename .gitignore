@@ -1,0 +1,13 @@
+.vscode
+.env.production.local
+backups/
+*.age
+
+.env.*.local
+.env.java-production.local
+secrets/
+
+# Local provider request/response fixtures contain credentials.
+/yoco.http
+/yoco_webhook.json
+__pycache__/

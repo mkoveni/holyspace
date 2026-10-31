@@ -1,1 +1,16 @@
-<?php declare(strict_types=1); namespace App\People\Domain\Enum; enum RelationshipType:string {case SPOUSE='spouse';case PARENT='parent';case CHILD='child';case SIBLING='sibling';case GUARDIAN='guardian';case OTHER='other';}
+<?php
+
+declare(strict_types=1);
+
+namespace App\People\Domain\Enum;
+
+enum RelationshipType: string
+{
+    case SPOUSE = 'spouse';
+    case PARENT = 'parent';
+    case CHILD = 'child';
+    case SIBLING = 'sibling';
+    case GUARDIAN = 'guardian';
+    case WARD = 'ward';
+    case OTHER = 'other';
+}

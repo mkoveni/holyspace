@@ -22,10 +22,10 @@ final class UserAccountMapper
             UserId::fromString((string) $row['id']),
             Username::fromString((string) $row['username']),
             PasswordHash::fromString((string) $row['password_hash']),
-            $row['person_id'] !== null && $row['person_id'] !== '' ? (string) $row['person_id'] : null,
+            null !== $row['person_id'] && '' !== $row['person_id'] ? (string) $row['person_id'] : null,
             UserStatus::from((string) $row['status']),
             new AuditTimestamps($this->date($row['created_at']), $this->date($row['updated_at'])),
-            array_map(static fn(string $id): RoleId => RoleId::fromString($id), $roleIds),
+            array_map(static fn (string $id): RoleId => RoleId::fromString($id), $roleIds),
         );
     }
 

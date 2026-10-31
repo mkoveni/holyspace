@@ -2,9 +2,12 @@ export interface Relationship {
   id: string
   personId: string
   relatedPersonId: string
+  relatedFirstName: string
+  relatedLastName: string
   type: string
-  startDate: string | null
-  endDate: string | null
+  endedAt: string | null
+  createdAt: string
+  updatedAt: string
 }
 
 export interface CreateRelationshipPayload {

@@ -1,1 +1,22 @@
-<?php declare(strict_types=1); namespace App\People\Domain\ValueObject; final readonly class PhoneNumber { private function __construct(private string $value){} public static function fromString(string $value):self{return new self(trim($value));} public function value():string{return $this->value;} }
+<?php
+
+declare(strict_types=1);
+
+namespace App\People\Domain\ValueObject;
+
+final readonly class PhoneNumber
+{
+    private function __construct(private string $value)
+    {
+    }
+
+    public static function fromString(string $value): self
+    {
+        return new self(trim($value));
+    }
+
+    public function value(): string
+    {
+        return $this->value;
+    }
+}

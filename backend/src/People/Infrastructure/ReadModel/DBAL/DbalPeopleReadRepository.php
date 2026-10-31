@@ -9,12 +9,15 @@ use Doctrine\DBAL\Connection;
 
 final readonly class DbalPeopleReadRepository implements PeopleReadRepository
 {
-    public function __construct(private Connection $db) {}
+    public function __construct(private Connection $db)
+    {
+    }
 
     public function person(string $personId): ?array
     {
         $row = $this->db->createQueryBuilder()->select('p.*')->from('people_persons', 'p')->where('p.id = :id')->setParameter('id', $personId)->fetchAssociative();
-        return $row === false ? null : $row;
+
+        return false === $row ? null : $row;
     }
 
     public function people(): array
@@ -31,10 +34,13 @@ final readonly class DbalPeopleReadRepository implements PeopleReadRepository
             ->setParameter('id', $familyId)
             ->fetchAssociative();
 
-        if ($family === false) return null;
+        if (false === $family) {
+            return null;
+        }
 
         $family['members'] = $this->peopleInFamily($familyId);
         $family['addresses'] = $this->db->createQueryBuilder()->select('a.*')->from('people_family_addresses', 'a')->where('a.family_id = :id')->setParameter('id', $familyId)->orderBy('a.created_at', 'ASC')->fetchAllAssociative();
+
         return $family;
     }
 
@@ -67,10 +73,27 @@ final readonly class DbalPeopleReadRepository implements PeopleReadRepository
 
     public function relationshipsForPerson(string $personId): array
     {
-        return $this->db->createQueryBuilder()
+        $rows = $this->db->createQueryBuilder()
             ->select('r.*', 'rp.first_name AS related_first_name', 'rp.last_name AS related_last_name')
-            ->from('people_relationships', 'r')->innerJoin('r', 'people_persons', 'rp', 'rp.id = r.related_person_id')
-            ->where('r.person_id = :personId')->setParameter('personId', $personId)->orderBy('r.created_at', 'ASC')->fetchAllAssociative();
+            ->from('people_relationships', 'r')
+            ->innerJoin('r', 'people_persons', 'rp', 'rp.id = CASE WHEN r.person_id = :personId THEN r.related_person_id ELSE r.person_id END')
+            ->where('(r.person_id = :personId OR r.related_person_id = :personId)')
+            ->setParameter('personId', $personId)
+            ->orderBy('r.created_at', 'ASC')->fetchAllAssociative();
+        foreach ($rows as &$row) {
+            if ($row['person_id'] !== $personId) {
+                [$row['person_id'], $row['related_person_id']] = [$row['related_person_id'], $row['person_id']];
+                $row['type'] = match ($row['type']) {
+                    'parent' => 'child',
+                    'child' => 'parent',
+                    'guardian' => 'ward',
+                    'ward' => 'guardian',
+                    default => $row['type'],
+                };
+            }
+        }
+
+        return $rows;
     }
 
     public function profile(string $personId): array
@@ -80,6 +103,7 @@ final readonly class DbalPeopleReadRepository implements PeopleReadRepository
         $communications = $this->db->createQueryBuilder()->select('c.*')->from('people_communication_options', 'c')->where('c.person_id = :personId')->setParameters($id)->orderBy('c.preferred', 'DESC')->addOrderBy('c.created_at', 'ASC')->fetchAllAssociative();
         $education = $this->db->createQueryBuilder()->select('e.*')->from('people_education_history', 'e')->where('e.person_id = :personId')->setParameters($id)->orderBy('e.start_date', 'DESC')->addOrderBy('e.created_at', 'DESC')->fetchAllAssociative();
         $employment = $this->db->createQueryBuilder()->select('e.*')->from('people_employment_history', 'e')->where('e.person_id = :personId')->setParameters($id)->orderBy('e.start_date', 'DESC')->addOrderBy('e.created_at', 'DESC')->fetchAllAssociative();
+
         return compact('addresses', 'communications', 'education', 'employment');
     }
 }

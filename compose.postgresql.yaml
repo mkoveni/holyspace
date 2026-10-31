@@ -1,0 +1,3 @@
+# Compatibility override for existing development commands.
+# PostgreSQL is now configured directly in docker-compose.yaml.
+services: {}

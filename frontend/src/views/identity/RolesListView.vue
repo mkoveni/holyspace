@@ -1,6 +1,6 @@
 <template>
   <div>
-    <PageHeader subtitle="Define roles and attach permissions to them" title="Roles">
+    <PageHeader eyebrow="Accounts & access" subtitle="Define roles and attach permissions to them" title="Roles">
       <template #actions>
         <v-btn color="primary" prepend-icon="mdi-plus" variant="flat" @click="createDialog = true">
           Create Role
@@ -9,12 +9,15 @@
     </PageHeader>
 
     <v-alert class="mb-4" type="info" variant="tonal">
-      A role listing endpoint is not yet available on the backend, so roles created during this
-      session are shown below alongside permission management.
+      Available church roles appear here. Select a role to manage its permissions.
     </v-alert>
 
-    <v-card elevation="2">
+    <v-card>
       <v-data-table :headers="headers" item-value="id" :items="rolesStore.roles">
+        <template #item.name="{ item }">
+          <div class="table-identity"><span class="table-monogram"><v-icon icon="mdi-shield-account-outline" size="18" /></span><strong>{{ item.name }}</strong></div>
+        </template>
+
         <template #item.actions="{ item }">
           <v-btn size="small" variant="tonal" @click="openManageDialog(item)">Manage Permissions</v-btn>
         </template>
@@ -47,7 +50,7 @@
         <v-divider />
 
         <v-card-text>
-          <v-text-field v-model="permissionId" density="comfortable" label="Permission ID" />
+          <v-autocomplete v-model="permissionId" :items="permissionsStore.permissions" item-title="code" item-value="id" label="Permission" />
 
           <div class="d-flex ga-2">
             <v-btn color="primary" size="small" variant="tonal" @click="handleAddPermission">Add Permission</v-btn>
@@ -55,7 +58,7 @@
           </div>
 
           <v-alert class="mt-4" density="compact" type="info" variant="tonal">
-            Enter the ID of a permission created on the Permissions page.
+            Choose an existing permission. Give group leaders ministries.lead without church-wide management permissions.
           </v-alert>
         </v-card-text>
 
@@ -70,13 +73,16 @@
 
 <script lang="ts" setup>
   import type { Role } from '@/types/role'
-  import { reactive, ref } from 'vue'
+  import { onMounted, reactive, ref } from 'vue'
   import PageHeader from '@/components/common/PageHeader.vue'
+  import { usePermissionsStore } from '@/stores/permissions'
   import { useRolesStore } from '@/stores/roles'
   import { useUiStore } from '@/stores/ui'
 
+  const permissionsStore = usePermissionsStore()
   const rolesStore = useRolesStore()
   const ui = useUiStore()
+  onMounted(async () => {try {await Promise.all([rolesStore.fetchAll(), permissionsStore.fetchAll()])} catch (error) {ui.notifyError(error instanceof Error ? error.message : 'Unable to load access catalogue.')} })
 
   const createDialog = ref(false)
   const manageDialog = ref(false)

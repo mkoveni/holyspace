@@ -1,15 +1,22 @@
 <template>
   <div>
-    <PageHeader subtitle="Manage church members, visitors, and their membership status" title="People">
+    <PageHeader eyebrow="People & community" subtitle="Manage church members, visitors, and their membership status" title="People">
       <template #actions>
-        <v-btn color="primary" prepend-icon="mdi-plus" variant="flat" @click="openCreateDialog">
+        <v-btn v-if="access.hasPermission('people.manage')" color="primary" prepend-icon="mdi-plus" variant="flat" @click="openCreateDialog">
           Add Person
         </v-btn>
       </template>
     </PageHeader>
 
-    <v-card elevation="2">
-      <v-card-text>
+    <v-alert v-if="loadError" class="mb-4" type="error" variant="tonal">
+      {{ loadError }}
+      <v-btn :loading="peopleStore.isLoading" variant="text" @click="loadPeople">Retry</v-btn>
+    </v-alert>
+
+    <v-card>
+      <v-card-text class="workspace-filter-panel">
+        <div class="workspace-section-title">People directory</div>
+
         <v-row>
           <v-col cols="12" md="4">
             <v-text-field
@@ -17,7 +24,7 @@
               clearable
               density="comfortable"
               hide-details
-              label="Search by name or email"
+              placeholder="Search by name, email, or phone"
               prepend-inner-icon="mdi-magnify"
             />
           </v-col>
@@ -41,8 +48,9 @@
         :loading="peopleStore.isLoading"
       >
         <template #item.name="{ item }">
-          <router-link class="text-decoration-none text-primary-darken font-weight-medium" :to="`/people/${item.id}`">
-            {{ item.firstName }} {{ item.lastName }}
+          <router-link class="table-identity" :to="`/people/${item.id}`">
+            <span class="table-monogram">{{ item.firstName.charAt(0) }}{{ item.lastName.charAt(0) }}</span>
+            <span><strong>{{ item.firstName }} {{ item.lastName }}</strong><small>{{ item.email || 'No email recorded' }}</small></span>
           </router-link>
         </template>
 
@@ -56,29 +64,31 @@
 
         <template #item.actions="{ item }">
           <v-btn icon="mdi-eye-outline" size="small" :to="`/people/${item.id}`" variant="text" />
-          <v-btn icon="mdi-pencil-outline" size="small" variant="text" @click="openEditDialog(item)" />
+          <v-btn v-if="access.hasPermission('people.manage')" icon="mdi-pencil-outline" size="small" variant="text" @click="openEditDialog(item)" />
         </template>
       </v-data-table>
     </v-card>
 
-    <PersonFormDialog v-model="dialog" :person="editingPerson" @saved="peopleStore.fetchAll()" />
+    <PersonFormDialog v-model="dialog" :person="editingPerson" @saved="loadPeople" />
   </div>
 </template>
 
 <script lang="ts" setup>
-  import type { Person } from '@/types/person'
+import { useAuthStore } from '@/stores/auth'
+  import type { MembershipStatus, Person } from '@/types/person'
   import { computed, onMounted, ref } from 'vue'
   import PageHeader from '@/components/common/PageHeader.vue'
+  import { matchesPerson, personSearchItem } from '@/components/common/peopleSearch'
   import StatusChip from '@/components/common/StatusChip.vue'
   import { usePeopleStore } from '@/stores/people'
-  import { useUiStore } from '@/stores/ui'
+  import { membershipStatuses } from '@/types/person'
   import PersonFormDialog from './components/PersonFormDialog.vue'
 
   const peopleStore = usePeopleStore()
-  const ui = useUiStore()
 
+  const loadError = ref('')
   const search = ref('')
-  const statusFilter = ref<string | null>(null)
+  const statusFilter = ref<MembershipStatus | null>(null)
   const dialog = ref(false)
   const editingPerson = ref<Person | null>(null)
 
@@ -91,12 +101,11 @@
     { title: 'Actions', key: 'actions', sortable: false, align: 'end' },
   ] as const
 
-  const statusOptions = ['active', 'inactive', 'visitor', 'pending']
+  const statusOptions = membershipStatuses
 
   const filteredPeople = computed(() => peopleStore.people.filter(person => {
-    const matchesSearch = !search.value
-      || `${person.firstName} ${person.lastName}`.toLowerCase().includes(search.value.toLowerCase())
-      || person.email?.toLowerCase().includes(search.value.toLowerCase())
+    const item = personSearchItem(person)
+    const matchesSearch = matchesPerson(item.title, search.value ?? '', { raw: item })
     const matchesStatus = !statusFilter.value || person.status === statusFilter.value
     return matchesSearch && matchesStatus
   }))
@@ -115,11 +124,16 @@
     return new Date(value).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
   }
 
-  onMounted(async () => {
+  async function loadPeople () {
+    loadError.value = ''
     try {
       await peopleStore.fetchAll()
     } catch (error) {
-      ui.notifyError(error instanceof Error ? error.message : 'Unable to load people.')
+      loadError.value = error instanceof Error ? error.message : 'Unable to load people.'
     }
-  })
+  }
+
+  onMounted(loadPeople)
+
+const access = useAuthStore()
 </script>

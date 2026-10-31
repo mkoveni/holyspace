@@ -21,16 +21,18 @@ final class UserAccount
         private readonly UserId $id,
         private readonly Username $username,
         private PasswordHash $passwordHash,
-        private readonly ?string $personId,
+        private ?string $personId,
         private UserStatus $status,
         private readonly AuditTimestamps $auditTimestamps,
-    ) {}
+    ) {
+    }
 
     public static function create(
         UserId $id,
         Username $username,
         PasswordHash $passwordHash,
         ?string $personId,
+        ?DateTimeImmutable $at = null,
     ): self {
         return new self(
             $id,
@@ -38,7 +40,7 @@ final class UserAccount
             $passwordHash,
             $personId,
             UserStatus::ACTIVE,
-            AuditTimestamps::now(),
+            AuditTimestamps::now($at),
         );
     }
 
@@ -56,73 +58,115 @@ final class UserAccount
         foreach ($roleIds as $roleId) {
             $user->roleIds[$roleId->toString()] = $roleId;
         }
+
         return $user;
     }
 
-    public function id(): UserId { return $this->id; }
-    public function username(): Username { return $this->username; }
-    public function passwordHash(): PasswordHash { return $this->passwordHash; }
-    public function personId(): ?string { return $this->personId; }
-    public function status(): UserStatus { return $this->status; }
-    public function createdAt(): DateTimeImmutable { return $this->auditTimestamps->createdAt(); }
-    public function updatedAt(): DateTimeImmutable { return $this->auditTimestamps->updatedAt(); }
+    public function id(): UserId
+    {
+        return $this->id;
+    }
 
-    public function changePassword(PasswordHash $passwordHash): void
+    public function username(): Username
+    {
+        return $this->username;
+    }
+
+    public function linkPerson(string $personId, ?DateTimeImmutable $at = null): void
+    {
+        if ($this->personId !== $personId) {
+            $this->personId = $personId;
+            $this->auditTimestamps->touch($at);
+        }
+    }
+
+    public function passwordHash(): PasswordHash
+    {
+        return $this->passwordHash;
+    }
+
+    public function personId(): ?string
+    {
+        return $this->personId;
+    }
+
+    public function status(): UserStatus
+    {
+        return $this->status;
+    }
+
+    public function createdAt(): DateTimeImmutable
+    {
+        return $this->auditTimestamps->createdAt();
+    }
+
+    public function updatedAt(): DateTimeImmutable
+    {
+        return $this->auditTimestamps->updatedAt();
+    }
+
+    public function changePassword(PasswordHash $passwordHash, ?DateTimeImmutable $at = null): void
     {
         $this->passwordHash = $passwordHash;
-        $this->auditTimestamps->touch();
+        $this->auditTimestamps->touch($at);
     }
 
-    public function disable(): void
+    public function disable(?DateTimeImmutable $at = null): void
     {
-        if ($this->status !== UserStatus::DISABLED) {
+        if (UserStatus::DISABLED !== $this->status) {
             $this->status = UserStatus::DISABLED;
-            $this->auditTimestamps->touch();
+            $this->auditTimestamps->touch($at);
         }
     }
 
-    public function enable(): void
+    public function enable(?DateTimeImmutable $at = null): void
     {
-        if ($this->status !== UserStatus::ACTIVE) {
+        if (UserStatus::ACTIVE !== $this->status) {
             $this->status = UserStatus::ACTIVE;
-            $this->auditTimestamps->touch();
+            $this->auditTimestamps->touch($at);
         }
     }
 
-    public function lock(): void
+    public function lock(?DateTimeImmutable $at = null): void
     {
-        if ($this->status !== UserStatus::LOCKED) {
+        if (UserStatus::LOCKED !== $this->status) {
             $this->status = UserStatus::LOCKED;
-            $this->auditTimestamps->touch();
+            $this->auditTimestamps->touch($at);
         }
     }
 
-    public function unlock(): void
+    public function unlock(?DateTimeImmutable $at = null): void
     {
-        if ($this->status !== UserStatus::ACTIVE) {
+        if (UserStatus::ACTIVE !== $this->status) {
             $this->status = UserStatus::ACTIVE;
-            $this->auditTimestamps->touch();
+            $this->auditTimestamps->touch($at);
         }
     }
 
-    public function assignRole(RoleId $roleId): void
+    public function assignRole(RoleId $roleId, ?DateTimeImmutable $at = null): void
     {
         if (!$this->hasRole($roleId)) {
             $this->roleIds[$roleId->toString()] = $roleId;
-            $this->auditTimestamps->touch();
+            $this->auditTimestamps->touch($at);
         }
     }
 
-    public function removeRole(RoleId $roleId): void
+    public function removeRole(RoleId $roleId, ?DateTimeImmutable $at = null): void
     {
         if ($this->hasRole($roleId)) {
             unset($this->roleIds[$roleId->toString()]);
-            $this->auditTimestamps->touch();
+            $this->auditTimestamps->touch($at);
         }
     }
 
-    public function hasRole(RoleId $roleId): bool { return isset($this->roleIds[$roleId->toString()]); }
+    public function hasRole(RoleId $roleId): bool
+    {
+        return isset($this->roleIds[$roleId->toString()]);
+    }
 
     /** @return list<RoleId> */
-    public function roleIds(): array { return array_values($this->roleIds); }
+    public function roleIds(): array
+    {
+        return array_values($this->roleIds);
+    }
 }

@@ -6,6 +6,7 @@ namespace DoctrineMigrations;
 
 use Doctrine\DBAL\Schema\Schema;
 use Doctrine\Migrations\AbstractMigration;
+use RuntimeException;
 
 final class Version20260929000000 extends AbstractMigration
 {
@@ -13,6 +14,7 @@ final class Version20260929000000 extends AbstractMigration
     {
         return 'Refactor LifeEvents to participant-based events with typed details and migrate marriages/engagements from Membership.';
     }
+
     public function up(Schema $schema): void
     {
         $this->addSql('RENAME TABLE life_events TO life_events_legacy');
@@ -44,8 +46,9 @@ SQL);
         $this->addSql('DROP TABLE engagements');
         $this->addSql('DROP TABLE marriages');
     }
+
     public function down(Schema $schema): void
     {
-        throw new \RuntimeException('This migration is intentionally irreversible because it consolidates LifeEvents and Membership marriage/engagement data.');
+        throw new RuntimeException('This migration is intentionally irreversible because it consolidates LifeEvents and Membership marriage/engagement data.');
     }
 }

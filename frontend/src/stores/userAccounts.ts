@@ -4,11 +4,7 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { extractErrorMessage, useApi } from '@/composables/useApi'
 
-/**
- * The IdentityAccess bounded context does not yet expose a `GET /api/useraccounts`
- * list endpoint, so this store keeps a local, session-scoped cache of every
- * account that has been created or looked up, in addition to fetch-by-id.
- */
+/** Account directory and session-scoped management cache. */
 export const useUserAccountsStore = defineStore('userAccounts', () => {
   const accounts = ref<UserAccount[]>([])
   const current = ref<UserAccount | null>(null)
@@ -29,10 +25,27 @@ export const useUserAccountsStore = defineStore('userAccounts', () => {
     }
   }
 
+  async function fetchAll (search = '') {
+    isLoading.value = true
+    try {
+      const { data } = await useApi().get<{items:UserAccount[]}>('/api/users', {params:{search,limit:50}})
+      accounts.value = data.items
+    } catch (error) {
+      throw new Error(extractErrorMessage(error, 'Unable to load accounts.'), {cause:error})
+    } finally {isLoading.value = false}
+  }
+
+  async function enableMemberAccess (id:string, personId:string, expectedPersonId:string | null) {
+    isSaving.value = true
+    try {await useApi().post('/api/users/' + id + '/member-access', {personId,expectedPersonId})}
+    catch (error) {throw new Error(extractErrorMessage(error, 'Unable to enable member access.'), {cause:error})}
+    finally {isSaving.value = false}
+  }
+
   async function fetchOne (id: string) {
     isLoading.value = true
     try {
-      const { data } = await useApi().get<UserAccount>(`/api/useraccounts/${id}`)
+      const { data } = await useApi().get<UserAccount>(`/api/users/${id}`)
       current.value = data
       upsertLocal(data)
       return data
@@ -46,7 +59,7 @@ export const useUserAccountsStore = defineStore('userAccounts', () => {
   async function create (payload: CreateUserAccountPayload) {
     isSaving.value = true
     try {
-      const { data } = await useApi().post<CreatedId>('/api/useraccounts', payload)
+      const { data } = await useApi().post<CreatedId>('/api/users', payload)
       await fetchOne(data.id)
       return data.id
     } catch (error) {
@@ -58,7 +71,7 @@ export const useUserAccountsStore = defineStore('userAccounts', () => {
 
   async function fetchPermissions (id: string) {
     try {
-      const { data } = await useApi().get<string[]>(`/api/useraccounts/${id}/permissions`)
+      const { data } = await useApi().get<string[]>(`/api/users/${id}/permissions`)
       permissions.value = data
       return data
     } catch (error) {
@@ -68,7 +81,7 @@ export const useUserAccountsStore = defineStore('userAccounts', () => {
 
   async function changePassword (id: string, payload: ChangePasswordPayload) {
     try {
-      await useApi().put(`/api/useraccounts/${id}/password`, payload)
+      await useApi().put(`/api/users/${id}/password`, payload)
     } catch (error) {
       throw new Error(extractErrorMessage(error, 'Unable to change password.'), { cause: error })
     }
@@ -76,7 +89,7 @@ export const useUserAccountsStore = defineStore('userAccounts', () => {
 
   async function disable (id: string) {
     try {
-      await useApi().post(`/api/useraccounts/${id}/disable`)
+      await useApi().post(`/api/users/${id}/disable`)
       await fetchOne(id)
     } catch (error) {
       throw new Error(extractErrorMessage(error, 'Unable to disable account.'), { cause: error })
@@ -85,7 +98,7 @@ export const useUserAccountsStore = defineStore('userAccounts', () => {
 
   async function enable (id: string) {
     try {
-      await useApi().post(`/api/useraccounts/${id}/enable`)
+      await useApi().post(`/api/users/${id}/enable`)
       await fetchOne(id)
     } catch (error) {
       throw new Error(extractErrorMessage(error, 'Unable to enable account.'), { cause: error })
@@ -94,7 +107,7 @@ export const useUserAccountsStore = defineStore('userAccounts', () => {
 
   async function assignRole (id: string, roleId: string) {
     try {
-      await useApi().post(`/api/useraccounts/${id}/roles/${roleId}`)
+      await useApi().post(`/api/users/${id}/roles/${roleId}`)
     } catch (error) {
       throw new Error(extractErrorMessage(error, 'Unable to assign role.'), { cause: error })
     }
@@ -102,19 +115,28 @@ export const useUserAccountsStore = defineStore('userAccounts', () => {
 
   async function removeRole (id: string, roleId: string) {
     try {
-      await useApi().delete(`/api/useraccounts/${id}/roles/${roleId}`)
+      await useApi().delete(`/api/users/${id}/roles/${roleId}`)
     } catch (error) {
       throw new Error(extractErrorMessage(error, 'Unable to remove role.'), { cause: error })
     }
   }
 
+  function reset () {
+    accounts.value = []
+    current.value = null
+    permissions.value = []
+  }
+
   return {
+    reset,
     accounts,
     current,
     permissions,
     isLoading,
     isSaving,
     byId,
+    fetchAll,
+    enableMemberAccess,
     fetchOne,
     create,
     fetchPermissions,

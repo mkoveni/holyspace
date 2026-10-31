@@ -8,7 +8,9 @@ use Symfony\Component\Uid\Uuid;
 
 final readonly class PermissionId
 {
-    private function __construct(private Uuid $value) {}
+    private function __construct(private Uuid $value)
+    {
+    }
 
     public static function generate(): self
     {

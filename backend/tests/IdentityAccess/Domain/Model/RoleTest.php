@@ -18,15 +18,12 @@ final class RoleTest extends TestCase
         $updated = new DateTimeImmutable('2026-01-01 11:00:00');
         $role = Role::create(RoleId::generate(), 'Administrator', '', $created);
         $permission = PermissionId::generate();
-
         $role->addPermission($permission, $updated);
         $role->addPermission($permission, $updated);
-
         self::assertCount(1, $role->permissionIds());
         self::assertTrue($role->hasPermission($permission));
         self::assertEquals($created, $role->createdAt());
         self::assertEquals($updated, $role->updatedAt());
-
         $role->removePermission($permission, new DateTimeImmutable('2026-01-01 12:00:00'));
         self::assertFalse($role->hasPermission($permission));
     }

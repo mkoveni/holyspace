@@ -93,3 +93,116 @@ services:
 
     App\IdentityAccess\Domain\Service\PasswordHasher:
         alias: App\IdentityAccess\Infrastructure\Security\SymfonyPasswordHasher
+
+    # Events context services and attributed repository alias.
+    App\Events\Application\:
+        resource: "../src/Events/Application/"
+    App\Events\Infrastructure\:
+        resource: "../src/Events/Infrastructure/"
+    App\Events\Presentation\:
+        resource: "../src/Events/Presentation/"
+
+    App\Shared\Application\:
+        resource: "../src/Shared/Application/"
+
+    App\Shared\Infrastructure\:
+        resource: "../src/Shared/Infrastructure/"
+        exclude:
+            - ../src/Shared/Infrastructure/Persistence/WorkflowDocumentMapper.php
+            - ../src/Shared/Infrastructure/Persistence/WorkflowDocumentRepository.php
+
+    App\Volunteering\Application\:
+        resource: "../src/Volunteering/Application/"
+
+    App\Volunteering\Infrastructure\:
+        resource: "../src/Volunteering/Infrastructure/"
+
+    App\Volunteering\Presentation\:
+        resource: "../src/Volunteering/Presentation/"
+
+    App\ChildrenMinistry\Application\:
+        resource: "../src/ChildrenMinistry/Application/"
+
+    App\ChildrenMinistry\Infrastructure\:
+        resource: "../src/ChildrenMinistry/Infrastructure/"
+
+    App\ChildrenMinistry\Presentation\:
+        resource: "../src/ChildrenMinistry/Presentation/"
+
+    App\Giving\Application\:
+        resource: "../src/Giving/Application/"
+
+    App\Giving\Infrastructure\:
+        resource: "../src/Giving/Infrastructure/"
+
+    App\Giving\Presentation\:
+        resource: "../src/Giving/Presentation/"
+
+    App\Attendance\Application\:
+        resource: "../src/Attendance/Application/"
+
+    App\Attendance\Infrastructure\:
+        resource: "../src/Attendance/Infrastructure/"
+
+    App\Attendance\Presentation\:
+        resource: "../src/Attendance/Presentation/"
+
+    App\Ministries\Application\:
+        resource: "../src/Ministries/Application/"
+
+    App\Ministries\Infrastructure\:
+        resource: "../src/Ministries/Infrastructure/"
+
+    App\Ministries\Presentation\:
+        resource: "../src/Ministries/Presentation/"
+
+    App\Communications\Application\:
+        resource: "../src/Communications/Application/"
+
+    App\Communications\Infrastructure\:
+        resource: "../src/Communications/Infrastructure/"
+
+    App\Communications\Presentation\:
+        resource: "../src/Communications/Presentation/"
+
+    App\Shared\Presentation\Http\WorkflowAuditController: ~
+
+    App\Forms\Application\:
+        resource: "../src/Forms/Application/"
+
+    App\Forms\Infrastructure\:
+        resource: "../src/Forms/Infrastructure/"
+
+    App\Forms\Presentation\:
+        resource: "../src/Forms/Presentation/"
+
+    App\ServicePlanning\Application\:
+        resource: "../src/ServicePlanning/Application/"
+
+    App\ServicePlanning\Infrastructure\:
+        resource: "../src/ServicePlanning/Infrastructure/"
+
+    App\ServicePlanning\Presentation\:
+        resource: "../src/ServicePlanning/Presentation/"
+
+    App\MemberPortal\:
+        resource: "../src/MemberPortal/"
+
+    App\Reporting\:
+        resource: "../src/Reporting/"
+
+    App\Payments\:
+        resource: "../src/Payments/"
+        exclude: ../src/Payments/Domain/
+
+    App\Media\:
+        resource: "../src/Media/"
+        exclude: ../src/Media/Domain/
+
+    # Compose optional delivery policies at the adapter boundary.
+    App\Communications\Application\Command\QueueCampaign\QueueCampaignHandler:
+        arguments:
+            $guards: !tagged_iterator onechurch.delivery_guard
+    App\Communications\Application\Command\DeliverNextMessage\DeliverNextMessageHandler:
+        arguments:
+            $guards: !tagged_iterator onechurch.delivery_guard

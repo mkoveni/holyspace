@@ -1,2 +1,26 @@
-<?php declare(strict_types=1); namespace App\People\Application\Command\CreateFamily; use App\People\Domain\Model\Family; use App\People\Domain\Repository\FamilyRepository; use App\People\Domain\ValueObject\FamilyId; #[\Symfony\Component\Messenger\Attribute\AsMessageHandler]
-final readonly class CreateFamilyHandler {public function __construct(private FamilyRepository $families){} public function __invoke(CreateFamilyCommand $c):FamilyId{$id=FamilyId::generate();$this->families->save(Family::create($id,$c->name));return $id;}}
+<?php
+
+declare(strict_types=1);
+
+namespace App\People\Application\Command\CreateFamily;
+
+use App\People\Domain\Model\Family;
+use App\People\Domain\Repository\FamilyRepository;
+use App\People\Domain\ValueObject\FamilyId;
+use Symfony\Component\Messenger\Attribute\AsMessageHandler;
+
+#[AsMessageHandler]
+final readonly class CreateFamilyHandler
+{
+    public function __construct(private FamilyRepository $families)
+    {
+    }
+
+    public function __invoke(CreateFamilyCommand $c): FamilyId
+    {
+        $id = FamilyId::generate();
+        $this->families->save(Family::create($id, $c->name));
+
+        return $id;
+    }
+}

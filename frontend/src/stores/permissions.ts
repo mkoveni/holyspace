@@ -4,15 +4,16 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { extractErrorMessage, useApi } from '@/composables/useApi'
 
-/**
- * No `GET /api/permissions` list endpoint exists yet on the backend, so
- * permissions created during the session are cached locally here.
- */
+
 export const usePermissionsStore = defineStore('permissions', () => {
   const permissions = ref<Permission[]>([])
   const isSaving = ref(false)
 
-  async function create (payload: CreatePermissionPayload) {
+  async function fetchAll () {
+    try { permissions.value = (await useApi().get<Permission[]>('/api/permissions')).data }
+    catch (error) { throw new Error(extractErrorMessage(error, 'Unable to load permissions.'), {cause:error}) }
+  }
+  async function create(payload: CreatePermissionPayload) {
     isSaving.value = true
     try {
       const { data } = await useApi().post<CreatedId>('/api/permissions', payload)
@@ -26,7 +27,13 @@ export const usePermissionsStore = defineStore('permissions', () => {
     }
   }
 
+  function reset() {
+    permissions.value = []
+  }
+
   return {
+    fetchAll,
+    reset,
     permissions,
     isSaving,
     create,

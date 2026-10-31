@@ -1,5 +1,7 @@
 export interface UserAccount {
   id: string
+  email?: string
+  displayName?: string
   username: string
   personId: string | null
   status: string
@@ -8,6 +10,8 @@ export interface UserAccount {
 }
 
 export interface CreateUserAccountPayload {
+  email?: string
+  displayName?: string
   username: string
   password: string
   personId?: string

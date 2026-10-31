@@ -42,7 +42,7 @@
     set: value => emit('update:model-value', value),
   })
 
-  const typeOptions = ['residential', 'postal', 'other']
+  const typeOptions = ['residential', 'postal', 'work', 'other']
 
   const form = reactive({
     type: 'residential',
@@ -61,6 +61,7 @@
   }
 
   async function handleSubmit () {
+    if (familiesStore.isSaving) return
     const { valid } = await formRef.value.validate()
     if (!valid) return
 

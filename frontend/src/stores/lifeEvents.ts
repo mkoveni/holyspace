@@ -14,11 +14,11 @@ export const useLifeEventsStore = defineStore('lifeEvents', () => {
     return lifeEvents.value.find(event => event.id === id)
   }
 
-  async function fetchAll (type?: string) {
+  async function fetchAll (type?: string, filters: { month?: number, year?: number, anniversaries?: boolean } = {}) {
     isLoading.value = true
     try {
       const { data } = await useApi().get<LifeEvent[]>('/api/life-events', {
-        params: type ? { type } : undefined,
+        params: { type, ...filters },
       })
       lifeEvents.value = data
       return data
@@ -43,6 +43,10 @@ export const useLifeEventsStore = defineStore('lifeEvents', () => {
     try {
       const { data } = await useApi().get<LifeEvent>(`/api/life-events/${id}`)
       current.value = data
+      const index = lifeEvents.value.findIndex(event => event.id === id)
+      if (index !== -1) {
+        lifeEvents.value[index] = data
+      }
       return data
     } catch (error) {
       throw new Error(extractErrorMessage(error, 'Life event not found.'), { cause: error })
@@ -103,7 +107,13 @@ export const useLifeEventsStore = defineStore('lifeEvents', () => {
     }
   }
 
+  function reset () {
+    lifeEvents.value = []
+    current.value = null
+  }
+
   return {
+    reset,
     lifeEvents,
     current,
     isLoading,

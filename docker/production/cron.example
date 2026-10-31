@@ -1,0 +1,5 @@
+# Install on the deployment host, replacing paths and the public age recipient.
+# Send failures/nonzero exit codes to your monitoring system; logs alone do not notify anyone.
+# Keep the private age identity off this host where practical.
+15 2 * * * cd /srv/onechurch && scripts/production/backup.sh age1REPLACE_WITH_PUBLIC_RECIPIENT /secure/church-backups >> /var/log/church-backups.log 2>&1
+* * * * * cd /srv/onechurch && scripts/production/check.sh >> /var/log/church-health.log 2>&1

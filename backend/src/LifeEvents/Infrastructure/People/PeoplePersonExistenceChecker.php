@@ -1,1 +1,21 @@
-<?php declare(strict_types=1); namespace App\LifeEvents\Infrastructure\People; use App\LifeEvents\Application\Port\PersonExistenceChecker; use App\LifeEvents\Domain\ValueObject\PersonId; use Doctrine\DBAL\Connection; final readonly class PeoplePersonExistenceChecker implements PersonExistenceChecker {public function __construct(private Connection $connection){} public function exists(PersonId $personId):bool{return $this->connection->createQueryBuilder()->select('1')->from('people_persons')->where('id = :id')->setParameter('id',$personId->toString())->setMaxResults(1)->fetchOne()!==false;}}
+<?php
+
+declare(strict_types=1);
+
+namespace App\LifeEvents\Infrastructure\People;
+
+use App\LifeEvents\Application\Port\PersonExistenceChecker;
+use App\LifeEvents\Domain\ValueObject\PersonId;
+use Doctrine\DBAL\Connection;
+
+final readonly class PeoplePersonExistenceChecker implements PersonExistenceChecker
+{
+    public function __construct(private Connection $connection)
+    {
+    }
+
+    public function exists(PersonId $personId): bool
+    {
+        return false !== $this->connection->createQueryBuilder()->select('1')->from('people_persons')->where('id = :id')->setParameter('id', $personId->toString())->setMaxResults(1)->fetchOne();
+    }
+}

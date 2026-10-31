@@ -1,33 +1,15 @@
 <template>
   <div>
-    <PageHeader subtitle="Configure integrations used across the portal" title="Settings" />
+    <PageHeader eyebrow="Workspace settings" subtitle="The services that help your church stay in touch." title="Settings" />
 
     <v-row>
-      <v-col cols="12" md="6">
-        <v-card elevation="2">
-          <v-card-title><v-icon class="mr-2" icon="mdi-email-outline" />Email (SMTP / API)</v-card-title>
-          <v-divider />
-
+      <v-col v-for="integration in integrations" :key="integration.title" cols="12" md="6">
+        <v-card class="integration-card">
           <v-card-text>
-            <v-alert type="info" variant="tonal">
-              Email provider configuration is planned for an upcoming bounded context and is not
-              yet exposed by the API. This section will let administrators configure SMTP
-              credentials or transactional email API providers (e.g. SendGrid, Mailgun, SES).
-            </v-alert>
-          </v-card-text>
-        </v-card>
-      </v-col>
-
-      <v-col cols="12" md="6">
-        <v-card elevation="2">
-          <v-card-title><v-icon class="mr-2" icon="mdi-message-text-outline" />SMS Providers</v-card-title>
-          <v-divider />
-
-          <v-card-text>
-            <v-alert type="info" variant="tonal">
-              SMS provider configuration (e.g. Twilio, Vonage) is planned for an upcoming bounded
-              context and is not yet exposed by the API.
-            </v-alert>
+            <div class="d-flex justify-space-between align-center mb-6"><span class="stat-icon-badge integration-icon"><v-icon :icon="integration.icon" /></span><v-chip size="small" variant="tonal">Coming soon</v-chip></div>
+            <h2>{{ integration.title }}</h2>
+            <p>{{ integration.description }}</p>
+            <div class="integration-footer"><v-icon icon="mdi-clock-outline" size="16" /> Configuration will be available in a future release.</div>
           </v-card-text>
         </v-card>
       </v-col>
@@ -37,4 +19,16 @@
 
 <script lang="ts" setup>
   import PageHeader from '@/components/common/PageHeader.vue'
+
+  const integrations = [
+    { title: 'Email delivery', icon: 'mdi-email-outline', description: 'Connect an email provider to reach your community with updates, reminders, and thoughtful messages.' },
+    { title: 'SMS delivery', icon: 'mdi-message-text-outline', description: 'Keep important messages close at hand with text notifications for your members and families.' },
+  ]
 </script>
+
+<style scoped>
+.integration-icon { background: #eef2fa; color: #2c4d94; }
+.integration-card h2 { font: 700 20px 'Plus Jakarta Sans', sans-serif; color: var(--workspace-ink); margin-bottom: 12px; }
+.integration-card p { color: var(--workspace-muted); max-width: 420px; }
+.integration-footer { display: flex; align-items: center; gap: 9px; border-top: 1px solid var(--workspace-border); padding-top: 20px; margin-top: 28px; color: var(--workspace-muted); font-size: 11px; }
+</style>

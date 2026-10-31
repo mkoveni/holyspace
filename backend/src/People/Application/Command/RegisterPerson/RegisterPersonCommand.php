@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\People\Application\Command\RegisterPerson;
 
-final readonly class RegisterPersonCommand
+use App\Shared\Application\CQRS\Command;
+
+final readonly class RegisterPersonCommand implements Command
 {
     public function __construct(
         public string $firstName,
@@ -12,6 +14,7 @@ final readonly class RegisterPersonCommand
         public ?string $dateOfBirth = null,
         public string $gender = 'unspecified',
         public ?string $email = null,
-        public ?string $phone = null
-    ) {}
+        public ?string $phone = null,
+    ) {
+    }
 }

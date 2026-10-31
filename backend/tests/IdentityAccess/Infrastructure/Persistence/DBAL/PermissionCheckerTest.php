@@ -29,14 +29,12 @@ final class PermissionCheckerTest extends TestCase
         $permission = Permission::create(PermissionId::generate(), 'member.view', 'View', $now);
         $user->assignRole($role->id(), $now);
         $role->addPermission($permission->id(), $now);
-
-        $users = $this->createMock(UserAccountRepository::class);
-        $roles = $this->createMock(RoleRepository::class);
-        $permissions = $this->createMock(PermissionRepository::class);
+        $users = $this->createStub(UserAccountRepository::class);
+        $roles = $this->createStub(RoleRepository::class);
+        $permissions = $this->createStub(PermissionRepository::class);
         $users->method('findById')->willReturn($user);
         $roles->method('findById')->willReturn($role);
         $permissions->method('findByCode')->willReturn($permission);
-
         self::assertTrue((new RolePermissionChecker($users, $roles, $permissions))->isGranted($user->id(), 'member.view'));
     }
 }

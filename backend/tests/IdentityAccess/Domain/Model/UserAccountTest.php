@@ -32,15 +32,12 @@ final class UserAccountTest extends TestCase
         $updated = new DateTimeImmutable('2026-01-01 11:00:00');
         $user = UserAccount::create(UserId::generate(), Username::fromString('admin'), PasswordHash::fromString('hash'), null, $created);
         $role = RoleId::generate();
-
         $user->assignRole($role, $updated);
         $user->assignRole($role, $updated);
-
         self::assertCount(1, $user->roleIds());
         self::assertTrue($user->hasRole($role));
         self::assertEquals($created, $user->createdAt());
         self::assertEquals($updated, $user->updatedAt());
-
         $removed = new DateTimeImmutable('2026-01-01 12:00:00');
         $user->removeRole($role, $removed);
         self::assertFalse($user->hasRole($role));
@@ -66,14 +63,7 @@ final class UserAccountTest extends TestCase
     {
         $created = new DateTimeImmutable('2025-05-01 09:00:00');
         $updated = new DateTimeImmutable('2025-06-01 09:00:00');
-        $user = UserAccount::reconstitute(
-            UserId::generate(),
-            Username::fromString('admin'),
-            PasswordHash::fromString('hash'),
-            null,
-            UserStatus::ACTIVE,
-            new \App\Shared\Domain\ValueObject\AuditTimestamps($created, $updated),
-        );
+        $user = UserAccount::reconstitute(UserId::generate(), Username::fromString('admin'), PasswordHash::fromString('hash'), null, UserStatus::ACTIVE, new \App\Shared\Domain\ValueObject\AuditTimestamps($created, $updated));
         self::assertEquals($created, $user->createdAt());
         self::assertEquals($updated, $user->updatedAt());
     }

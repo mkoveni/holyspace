@@ -1,1 +1,58 @@
-<?php declare(strict_types=1); namespace App\IdentityAccess\Infrastructure\Persistence\DBAL; use App\IdentityAccess\Domain\Model\Permission; use App\IdentityAccess\Domain\Repository\PermissionRepository; use App\IdentityAccess\Domain\ValueObject\PermissionId; use App\IdentityAccess\Domain\ValueObject\RoleId; use Doctrine\DBAL\Connection; final readonly class DbalPermissionRepository implements PermissionRepository {public function __construct(private Connection $connection,private PermissionMapper $mapper){} public function save(Permission $p):void{$d=$this->mapper->toRow($p);$exists=$this->connection->createQueryBuilder()->select('1')->from('permissions')->where('id = :id')->setParameter('id',$p->id()->toString())->setMaxResults(1)->fetchOne();if($exists!==false){unset($d['id']);$this->connection->update('permissions',$d,['id'=>$p->id()->toString()]);}else{$this->connection->insert('permissions',$d);}} public function findById(PermissionId $id):?Permission{$r=$this->connection->createQueryBuilder()->select('p.*')->from('permissions','p')->where('p.id = :id')->setParameter('id',$id->toString())->fetchAssociative();return $r===false?null:$this->mapper->toDomain($r);} public function findByCode(string $code):?Permission{$r=$this->connection->createQueryBuilder()->select('p.*')->from('permissions','p')->where('p.code = :code')->setParameter('code',trim($code))->fetchAssociative();return $r===false?null:$this->mapper->toDomain($r);} public function findForRole(RoleId $roleId):array{$rows=$this->connection->createQueryBuilder()->select('p.*')->from('role_permissions','rp')->innerJoin('rp','permissions','p','p.id = rp.permission_id')->where('rp.role_id = :roleId')->setParameter('roleId',$roleId->toString())->orderBy('p.code','ASC')->fetchAllAssociative();return array_map(fn(array $r):Permission=>$this->mapper->toDomain($r),$rows);} public function findAll():array{$rows=$this->connection->createQueryBuilder()->select('p.*')->from('permissions','p')->orderBy('p.code','ASC')->fetchAllAssociative();return array_map(fn(array $r):Permission=>$this->mapper->toDomain($r),$rows);}}
+<?php
+
+declare(strict_types=1);
+
+namespace App\IdentityAccess\Infrastructure\Persistence\DBAL;
+
+use App\IdentityAccess\Domain\Model\Permission;
+use App\IdentityAccess\Domain\Repository\PermissionRepository;
+use App\IdentityAccess\Domain\ValueObject\PermissionId;
+use App\IdentityAccess\Domain\ValueObject\RoleId;
+use Doctrine\DBAL\Connection;
+
+final readonly class DbalPermissionRepository implements PermissionRepository
+{
+    public function __construct(private Connection $connection, private PermissionMapper $mapper)
+    {
+    }
+
+    public function save(Permission $p): void
+    {
+        $d = $this->mapper->toRow($p);
+        $exists = $this->connection->createQueryBuilder()->select('1')->from('permissions')->where('id = :id')->setParameter('id', $p->id()->toString())->setMaxResults(1)->fetchOne();
+        if (false !== $exists) {
+            unset($d['id']);
+            $this->connection->update('permissions', $d, ['id' => $p->id()->toString()]);
+        } else {
+            $this->connection->insert('permissions', $d);
+        }
+    }
+
+    public function findById(PermissionId $id): ?Permission
+    {
+        $r = $this->connection->createQueryBuilder()->select('p.*')->from('permissions', 'p')->where('p.id = :id')->setParameter('id', $id->toString())->fetchAssociative();
+
+        return false === $r ? null : $this->mapper->toDomain($r);
+    }
+
+    public function findByCode(string $code): ?Permission
+    {
+        $r = $this->connection->createQueryBuilder()->select('p.*')->from('permissions', 'p')->where('p.code = :code')->setParameter('code', trim($code))->fetchAssociative();
+
+        return false === $r ? null : $this->mapper->toDomain($r);
+    }
+
+    public function findForRole(RoleId $roleId): array
+    {
+        $rows = $this->connection->createQueryBuilder()->select('p.*')->from('role_permissions', 'rp')->innerJoin('rp', 'permissions', 'p', 'p.id = rp.permission_id')->where('rp.role_id = :roleId')->setParameter('roleId', $roleId->toString())->orderBy('p.code', 'ASC')->fetchAllAssociative();
+
+        return array_map(fn (array $r): Permission => $this->mapper->toDomain($r), $rows);
+    }
+
+    public function findAll(): array
+    {
+        $rows = $this->connection->createQueryBuilder()->select('p.*')->from('permissions', 'p')->orderBy('p.code', 'ASC')->fetchAllAssociative();
+
+        return array_map(fn (array $r): Permission => $this->mapper->toDomain($r), $rows);
+    }
+}

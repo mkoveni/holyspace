@@ -15,17 +15,26 @@ final readonly class RolePermissionChecker implements PermissionChecker
         private UserAccountRepository $users,
         private RoleRepository $roles,
         private PermissionRepository $permissions,
-    ) {}
+    ) {
+    }
+
     public function isGranted(UserId $userId, string $permissionCode): bool
     {
         $user = $this->users->findById($userId);
-        if ($user === null || $user->status()->value !== 'active') return false;
+        if (null === $user || 'active' !== $user->status()->value) {
+            return false;
+        }
         $permission = $this->permissions->findByCode($permissionCode);
-        if ($permission === null) return false;
+        if (null === $permission) {
+            return false;
+        }
         foreach ($user->roleIds() as $roleId) {
             $role = $this->roles->findById($roleId);
-            if ($role?->hasPermission($permission->id())) return true;
+            if ($role?->hasPermission($permission->id())) {
+                return true;
+            }
         }
+
         return false;
     }
 }

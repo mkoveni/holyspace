@@ -1,1 +1,28 @@
-<?php declare(strict_types=1); namespace App\People\Application\Command\AddEmployment; use App\People\Domain\Model\Employment; use App\People\Domain\Repository\PersonProfileRepository; use App\People\Domain\ValueObject\EmploymentId; use App\People\Domain\ValueObject\PersonId; #[\Symfony\Component\Messenger\Attribute\AsMessageHandler] final readonly class AddEmploymentHandler {public function __construct(private PersonProfileRepository $repo){} public function __invoke(AddEmploymentCommand $c):EmploymentId{$id=EmploymentId::generate();$this->repo->addEmployment(PersonId::fromString($c->personId),Employment::create($id,$c->employer,$c->jobTitle,$c->startDate?new \DateTimeImmutable($c->startDate):null,$c->endDate?new \DateTimeImmutable($c->endDate):null,$c->industry,$c->workEmail,$c->workPhone,$c->notes));return $id;}}
+<?php
+
+declare(strict_types=1);
+
+namespace App\People\Application\Command\AddEmployment;
+
+use App\People\Domain\Model\Employment;
+use App\People\Domain\Repository\PersonProfileRepository;
+use App\People\Domain\ValueObject\EmploymentId;
+use App\People\Domain\ValueObject\PersonId;
+use DateTimeImmutable;
+use Symfony\Component\Messenger\Attribute\AsMessageHandler;
+
+#[AsMessageHandler]
+final readonly class AddEmploymentHandler
+{
+    public function __construct(private PersonProfileRepository $repo)
+    {
+    }
+
+    public function __invoke(AddEmploymentCommand $c): EmploymentId
+    {
+        $id = EmploymentId::generate();
+        $this->repo->addEmployment(PersonId::fromString($c->personId), Employment::create($id, $c->employer, $c->jobTitle, $c->startDate ? new DateTimeImmutable($c->startDate) : null, $c->endDate ? new DateTimeImmutable($c->endDate) : null, $c->industry, $c->workEmail, $c->workPhone, $c->notes));
+
+        return $id;
+    }
+}

@@ -1,13 +1,110 @@
-<?php declare(strict_types=1); namespace App\LifeEvents\Infrastructure\Persistence\DBAL;
-use App\LifeEvents\Domain\Enum\LifeEventType; use App\LifeEvents\Domain\Model\LifeEvent; use App\LifeEvents\Domain\Repository\LifeEventRepository; use App\LifeEvents\Domain\ValueObject\LifeEventId; use App\LifeEvents\Domain\ValueObject\PersonId; use DateTimeImmutable; use Doctrine\DBAL\ArrayParameterType; use Doctrine\DBAL\Connection;
-final readonly class DbalLifeEventRepository implements LifeEventRepository {public function __construct(private Connection $connection,private LifeEventMapper $mapper){}
-public function save(LifeEvent $event):void{$data=$this->mapper->toRow($event);$this->connection->transactional(function()use($event,$data):void{$exists=$this->connection->createQueryBuilder()->select('1')->from('life_events')->where('id = :id')->setParameter('id',$event->id()->toString())->setMaxResults(1)->fetchOne();if($exists!==false){$row=$data;unset($row['id']);$this->connection->update('life_events',$row,['id'=>$event->id()->toString()]);}else{$this->connection->insert('life_events',$data);}$this->connection->delete('life_event_participants',['life_event_id'=>$event->id()->toString()]);foreach($event->participants() as $p)$this->connection->insert('life_event_participants',['life_event_id'=>$event->id()->toString(),'person_id'=>$p->personId()->toString(),'role'=>$p->role()->value]);});}
-public function delete(LifeEventId $id):void{$this->connection->delete('life_events',['id'=>$id->toString()]);}
-public function findById(LifeEventId $id):?LifeEvent{$row=$this->connection->createQueryBuilder()->select('e.*')->from('life_events','e')->where('e.id = :id')->setParameter('id',$id->toString())->fetchAssociative();if($row===false)return null;$parts=$this->participants([$id->toString()]);return $this->mapper->toDomain($row,$parts[$id->toString()]??[]);}
-public function findForPerson(PersonId $id):array{$rows=$this->connection->createQueryBuilder()->select('e.*')->from('life_event_participants','p')->innerJoin('p','life_events','e','e.id = p.life_event_id')->where('p.person_id = :id')->setParameter('id',$id->toString())->groupBy('e.id')->orderBy('e.event_date','DESC')->addOrderBy('e.id','DESC')->fetchAllAssociative();return $this->hydrateMany($rows);}
-public function findByType(LifeEventType $type):array{return $this->hydrateMany($this->connection->createQueryBuilder()->select('e.*')->from('life_events','e')->where('e.type = :type')->setParameter('type',$type->value)->orderBy('e.event_date','DESC')->addOrderBy('e.id','DESC')->fetchAllAssociative());}
-public function findUpcoming(DateTimeImmutable $from,DateTimeImmutable $to):array{return $this->hydrateMany($this->connection->createQueryBuilder()->select('e.*')->from('life_events','e')->where('e.event_date >= :from')->andWhere('e.event_date <= :to')->andWhere('e.status <> :cancelled')->setParameter('from',$from->format('Y-m-d'))->setParameter('to',$to->format('Y-m-d'))->setParameter('cancelled','cancelled')->orderBy('e.event_date','ASC')->addOrderBy('e.id','ASC')->fetchAllAssociative());}
-public function findAll():array{return $this->hydrateMany($this->connection->createQueryBuilder()->select('e.*')->from('life_events','e')->orderBy('e.event_date','DESC')->addOrderBy('e.id','DESC')->fetchAllAssociative());}
-public function existsForParticipantsTypeOnDate(array $personIds,LifeEventType $type,DateTimeImmutable $date,?LifeEventId $ignoreId=null):bool{if($personIds===[])return false;$ids=array_map(static fn(PersonId $p):string=>$p->toString(),$personIds);$qb=$this->connection->createQueryBuilder()->select('e.id')->from('life_events','e')->innerJoin('e','life_event_participants','p','p.life_event_id = e.id')->where('e.type = :type')->andWhere('e.event_date = :date')->andWhere('p.person_id IN (:ids)')->setParameter('type',$type->value)->setParameter('date',$date->format('Y-m-d'))->setParameter('ids',$ids,ArrayParameterType::STRING)->groupBy('e.id')->having('COUNT(DISTINCT p.person_id) = :count')->andHaving('(SELECT COUNT(*) FROM life_event_participants pp WHERE pp.life_event_id = e.id) = :count')->setParameter('count',count($ids))->setMaxResults(1);if($ignoreId)$qb->andWhere('e.id <> :ignore')->setParameter('ignore',$ignoreId->toString());return $qb->fetchOne()!==false;}
-private function hydrateMany(array $rows):array{if($rows===[])return [];$ids=array_column($rows,'id');$parts=$this->participants($ids);return array_map(fn(array $r):LifeEvent=>$this->mapper->toDomain($r,$parts[$r['id']]??[]),$rows);}
-private function participants(array $eventIds):array{if($eventIds===[])return [];$rows=$this->connection->createQueryBuilder()->select('p.life_event_id','p.person_id','p.role')->from('life_event_participants','p')->where('p.life_event_id IN (:ids)')->setParameter('ids',$eventIds,ArrayParameterType::STRING)->orderBy('p.person_id','ASC')->fetchAllAssociative();$out=[];foreach($rows as $r)$out[$r['life_event_id']][]=['person_id'=>$r['person_id'],'role'=>$r['role']];return $out;}}
+<?php
+
+declare(strict_types=1);
+
+namespace App\LifeEvents\Infrastructure\Persistence\DBAL;
+
+use App\LifeEvents\Domain\Enum\LifeEventType;
+use App\LifeEvents\Domain\Model\LifeEvent;
+use App\LifeEvents\Domain\Repository\LifeEventRepository;
+use App\LifeEvents\Domain\ValueObject\LifeEventId;
+use App\LifeEvents\Domain\ValueObject\PersonId;
+use App\Shared\Infrastructure\Persistence\AssociationSynchronizer;
+use DateTimeImmutable;
+use Doctrine\DBAL\ArrayParameterType;
+use Doctrine\DBAL\Connection;
+
+final readonly class DbalLifeEventRepository implements LifeEventRepository
+{
+    public function __construct(private Connection $connection, private LifeEventMapper $mapper)
+    {
+    }
+
+    public function save(LifeEvent $event): void
+    {
+        $data = $this->mapper->toRow($event);
+        $this->connection->transactional(function () use ($event, $data): void {
+            $exists = $this->connection->createQueryBuilder()->select('1')->from('life_events')->where('id = :id')->setParameter('id', $event->id()->toString())->setMaxResults(1)->fetchOne();
+            if (false !== $exists) {
+                $row = $data;
+                unset($row['id']);
+                $this->connection->update('life_events', $row, ['id' => $event->id()->toString()]);
+            } else {
+                $this->connection->insert('life_events', $data);
+            }(new AssociationSynchronizer())->sync($this->connection, 'life_event_participants', ['life_event_id' => $event->id()->toString()], 'person_id', array_map(static fn ($participant) => ['person_id' => $participant->personId()->toString(), 'role' => $participant->role()->value], $event->participants()));
+        });
+    }
+
+    public function delete(LifeEventId $id): void
+    {
+        $this->connection->delete('life_events', ['id' => $id->toString()]);
+    }
+
+    public function findById(LifeEventId $id): ?LifeEvent
+    {
+        $row = $this->connection->createQueryBuilder()->select('e.*')->from('life_events', 'e')->where('e.id = :id')->setParameter('id', $id->toString())->fetchAssociative();
+        if (false === $row) {
+            return null;
+        }$parts = $this->participants([$id->toString()]);
+
+        return $this->mapper->toDomain($row, $parts[$id->toString()] ?? []);
+    }
+
+    public function findForPerson(PersonId $id): array
+    {
+        $rows = $this->connection->createQueryBuilder()->select('e.*')->from('life_event_participants', 'p')->innerJoin('p', 'life_events', 'e', 'e.id = p.life_event_id')->where('p.person_id = :id')->setParameter('id', $id->toString())->groupBy('e.id')->orderBy('e.event_date', 'DESC')->addOrderBy('e.id', 'DESC')->fetchAllAssociative();
+
+        return $this->hydrateMany($rows);
+    }
+
+    public function findByType(LifeEventType $type): array
+    {
+        return $this->hydrateMany($this->connection->createQueryBuilder()->select('e.*')->from('life_events', 'e')->where('e.type = :type')->setParameter('type', $type->value)->orderBy('e.event_date', 'DESC')->addOrderBy('e.id', 'DESC')->fetchAllAssociative());
+    }
+
+    public function findUpcoming(DateTimeImmutable $from, DateTimeImmutable $to): array
+    {
+        return $this->hydrateMany($this->connection->createQueryBuilder()->select('e.*')->from('life_events', 'e')->where('e.event_date >= :from')->andWhere('e.event_date <= :to')->andWhere('e.status <> :cancelled')->setParameter('from', $from->format('Y-m-d'))->setParameter('to', $to->format('Y-m-d'))->setParameter('cancelled', 'cancelled')->orderBy('e.event_date', 'ASC')->addOrderBy('e.id', 'ASC')->fetchAllAssociative());
+    }
+
+    public function findAll(): array
+    {
+        return $this->hydrateMany($this->connection->createQueryBuilder()->select('e.*')->from('life_events', 'e')->orderBy('e.event_date', 'DESC')->addOrderBy('e.id', 'DESC')->fetchAllAssociative());
+    }
+
+    public function existsForParticipantsTypeOnDate(array $personIds, LifeEventType $type, DateTimeImmutable $date, ?LifeEventId $ignoreId = null): bool
+    {
+        if ([] === $personIds) {
+            return false;
+        }$ids = array_map(static fn (PersonId $p): string => $p->toString(), $personIds);
+        $qb = $this->connection->createQueryBuilder()->select('e.id')->from('life_events', 'e')->innerJoin('e', 'life_event_participants', 'p', 'p.life_event_id = e.id')->where('e.type = :type')->andWhere('e.event_date = :date')->andWhere('p.person_id IN (:ids)')->setParameter('type', $type->value)->setParameter('date', $date->format('Y-m-d'))->setParameter('ids', $ids, ArrayParameterType::STRING)->groupBy('e.id')->having('COUNT(DISTINCT p.person_id) = :count')->andHaving('(SELECT COUNT(*) FROM life_event_participants pp WHERE pp.life_event_id = e.id) = :count')->setParameter('count', count($ids))->setMaxResults(1);
+        if ($ignoreId) {
+            $qb->andWhere('e.id <> :ignore')->setParameter('ignore', $ignoreId->toString());
+        }
+
+        return false !== $qb->fetchOne();
+    }
+
+    private function hydrateMany(array $rows): array
+    {
+        if ([] === $rows) {
+            return [];
+        }$ids = array_column($rows, 'id');
+        $parts = $this->participants($ids);
+
+        return array_map(fn (array $r): LifeEvent => $this->mapper->toDomain($r, $parts[$r['id']] ?? []), $rows);
+    }
+
+    private function participants(array $eventIds): array
+    {
+        if ([] === $eventIds) {
+            return [];
+        }$rows = $this->connection->createQueryBuilder()->select('p.life_event_id', 'p.person_id', 'p.role')->from('life_event_participants', 'p')->where('p.life_event_id IN (:ids)')->setParameter('ids', $eventIds, ArrayParameterType::STRING)->orderBy('p.person_id', 'ASC')->fetchAllAssociative();
+        $out = [];
+        foreach ($rows as $r) {
+            $out[$r['life_event_id']][] = ['person_id' => $r['person_id'], 'role' => $r['role']];
+        }
+
+        return $out;
+    }
+}

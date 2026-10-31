@@ -18,3 +18,76 @@ life_events_api:
 
 api_login_check:
     path: /api/login_check
+events_api:
+    resource:
+        path: ../src/Events/Presentation/Http/Controller/
+        namespace: App\Events\Presentation\Http\Controller
+    type: attribute
+
+volunteering_api:
+    resource:
+        path: ../src/Volunteering/Presentation/Http/Controller/
+        namespace: App\Volunteering\Presentation\Http\Controller
+    type: attribute
+
+childrenministry_api:
+    resource:
+        path: ../src/ChildrenMinistry/Presentation/Http/Controller/
+        namespace: App\ChildrenMinistry\Presentation\Http\Controller
+    type: attribute
+
+giving_api:
+    resource:
+        path: ../src/Giving/Presentation/Http/Controller/
+        namespace: App\Giving\Presentation\Http\Controller
+    type: attribute
+
+attendance_api:
+    resource:
+        path: ../src/Attendance/Presentation/Http/Controller/
+        namespace: App\Attendance\Presentation\Http\Controller
+    type: attribute
+
+ministries_api:
+    resource:
+        path: ../src/Ministries/Presentation/Http/Controller/
+        namespace: App\Ministries\Presentation\Http\Controller
+    type: attribute
+
+communications_api:
+    resource:
+        path: ../src/Communications/Presentation/Http/Controller/
+        namespace: App\Communications\Presentation\Http\Controller
+    type: attribute
+
+workflow_audit_api:
+    resource: ../src/Shared/Presentation/Http/WorkflowAuditController.php
+    type: attribute
+
+forms_api:
+    resource:
+        path: ../src/Forms/Presentation/Http/Controller/
+        namespace: App\Forms\Presentation\Http\Controller
+    type: attribute
+
+service_planning_api:
+    resource:
+        path: ../src/ServicePlanning/Presentation/Http/Controller/
+        namespace: App\ServicePlanning\Presentation\Http\Controller
+    type: attribute
+
+member_portal_api:
+    resource: ../src/MemberPortal/Presentation/Http/
+    type: attribute
+
+reporting_api:
+    resource: ../src/Reporting/Presentation/Http/
+    type: attribute
+
+payments_api:
+    resource: ../src/Payments/Presentation/Http/
+    type: attribute
+
+media_api:
+    resource: ../src/Media/Presentation/Http/
+    type: attribute

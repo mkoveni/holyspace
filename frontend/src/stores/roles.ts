@@ -5,13 +5,16 @@ import { ref } from 'vue'
 import { extractErrorMessage, useApi } from '@/composables/useApi'
 
 /**
- * No `GET /api/roles` list endpoint exists yet on the backend, so roles
- * created (or referenced) during the session are cached locally here.
+ * Roles are loaded from the privileged backend catalogue.
  */
 export const useRolesStore = defineStore('roles', () => {
   const roles = ref<Role[]>([])
   const isSaving = ref(false)
 
+  async function fetchAll () {
+    try { roles.value = (await useApi().get<Role[]>('/api/roles')).data }
+    catch (error) { throw new Error(extractErrorMessage(error, 'Unable to load roles.'), {cause:error}) }
+  }
   async function create (payload: CreateRolePayload) {
     isSaving.value = true
     try {
@@ -42,7 +45,13 @@ export const useRolesStore = defineStore('roles', () => {
     }
   }
 
+  function reset () {
+    roles.value = []
+  }
+
   return {
+    fetchAll,
+    reset,
     roles,
     isSaving,
     create,

@@ -1,1 +1,28 @@
-<?php declare(strict_types=1); namespace App\People\Application\Command\AddEducation; use App\People\Domain\Model\EducationHistory; use App\People\Domain\Repository\PersonProfileRepository; use App\People\Domain\ValueObject\EducationHistoryId; use App\People\Domain\ValueObject\PersonId; #[\Symfony\Component\Messenger\Attribute\AsMessageHandler] final readonly class AddEducationHandler {public function __construct(private PersonProfileRepository $repo){} public function __invoke(AddEducationCommand $c):EducationHistoryId{$id=EducationHistoryId::generate();$this->repo->addEducation(PersonId::fromString($c->personId),EducationHistory::create($id,$c->institution,$c->qualification,$c->startDate?new \DateTimeImmutable($c->startDate):null,$c->endDate?new \DateTimeImmutable($c->endDate):null,$c->fieldOfStudy,$c->notes));return $id;}}
+<?php
+
+declare(strict_types=1);
+
+namespace App\People\Application\Command\AddEducation;
+
+use App\People\Domain\Model\EducationHistory;
+use App\People\Domain\Repository\PersonProfileRepository;
+use App\People\Domain\ValueObject\EducationHistoryId;
+use App\People\Domain\ValueObject\PersonId;
+use DateTimeImmutable;
+use Symfony\Component\Messenger\Attribute\AsMessageHandler;
+
+#[AsMessageHandler]
+final readonly class AddEducationHandler
+{
+    public function __construct(private PersonProfileRepository $repo)
+    {
+    }
+
+    public function __invoke(AddEducationCommand $c): EducationHistoryId
+    {
+        $id = EducationHistoryId::generate();
+        $this->repo->addEducation(PersonId::fromString($c->personId), EducationHistory::create($id, $c->institution, $c->qualification, $c->startDate ? new DateTimeImmutable($c->startDate) : null, $c->endDate ? new DateTimeImmutable($c->endDate) : null, $c->fieldOfStudy, $c->notes));
+
+        return $id;
+    }
+}

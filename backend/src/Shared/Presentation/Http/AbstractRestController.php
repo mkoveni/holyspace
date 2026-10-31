@@ -7,11 +7,14 @@ use Symfony\Component\Messenger\Stamp\HandledStamp;
 
 abstract class AbstractRestController
 {
-    public function __construct(protected MessageBusInterface $bus) {}
+    public function __construct(protected MessageBusInterface $bus)
+    {
+    }
 
     protected function result(object $message): mixed
     {
         $envelope = $this->bus->dispatch($message);
+
         return $envelope->last(HandledStamp::class)?->getResult();
     }
 }

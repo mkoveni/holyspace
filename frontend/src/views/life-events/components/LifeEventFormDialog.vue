@@ -8,7 +8,7 @@
         <v-card-text>
           <v-row>
             <v-col cols="12" sm="6">
-              <v-combobox v-model="form.type" :items="eventTypes" label="Event type" :rules="[required]" />
+              <v-select v-model="form.type" :items="eventTypes" label="Event type" :rules="[required]" />
             </v-col>
 
             <v-col cols="12" sm="6">
@@ -16,16 +16,20 @@
             </v-col>
 
             <v-col cols="12">
-              <v-select
+              <PeopleSearch
                 v-model="form.participants"
-                chips
-                closable-chips
-                item-title="label"
-                item-value="id"
-                :items="peopleOptions"
                 label="Participants"
                 multiple
                 :rules="[minOne]"
+              />
+            </v-col>
+
+            <v-col v-for="(personId, index) in form.participants" :key="personId" cols="12" sm="6">
+              <v-select
+                :items="participantRoles"
+                :label="`${peopleStore.byId(personId) ? `${peopleStore.byId(personId)?.firstName} ${peopleStore.byId(personId)?.lastName}` : 'Participant'} role`"
+                :model-value="form.roles[personId] ?? defaultRole(index)"
+                @update:model-value="form.roles[personId] = $event"
               />
             </v-col>
 
@@ -49,11 +53,13 @@
 </template>
 
 <script lang="ts" setup>
-  import type { LifeEvent } from '@/types/lifeEvent'
-  import { computed, onMounted, reactive, ref, watch } from 'vue'
+  import type { LifeEvent, LifeEventType, ParticipantRole } from '@/types/lifeEvent'
+  import { computed, reactive, ref, watch } from 'vue'
+  import PeopleSearch from '@/components/common/PeopleSearch.vue'
   import { useLifeEventsStore } from '@/stores/lifeEvents'
   import { usePeopleStore } from '@/stores/people'
   import { useUiStore } from '@/stores/ui'
+  import { lifeEventTypes, participantRoles } from '@/types/lifeEvent'
 
   const props = defineProps<{
     modelValue: boolean
@@ -74,15 +80,13 @@
 
   const isEdit = computed(() => Boolean(props.lifeEvent))
 
-  const eventTypes = ['marriage', 'engagement', 'baptism', 'dedication', 'funeral']
-
-  const peopleOptions = computed(() => peopleStore.people
-    .map(person => ({ id: person.id, label: `${person.firstName} ${person.lastName}` })))
+  const eventTypes = lifeEventTypes
 
   const form = reactive({
-    type: '',
+    type: 'other' as LifeEventType,
     eventDate: '',
     participants: [] as string[],
+    roles: {} as Record<string, ParticipantRole>,
     notes: '',
   })
 
@@ -91,9 +95,10 @@
 
   watch(() => props.modelValue, value => {
     if (value) {
-      form.type = props.lifeEvent?.type ?? ''
+      form.type = props.lifeEvent?.type ?? 'other'
       form.eventDate = props.lifeEvent?.eventDate ? toLocalDateTimeInput(props.lifeEvent.eventDate) : ''
-      form.participants = props.lifeEvent?.participants ?? []
+      form.participants = (props.lifeEvent?.participants ?? []).map(participant => participant.personId)
+      form.roles = Object.fromEntries((props.lifeEvent?.participants ?? []).map(participant => [participant.personId, participant.role]))
       form.notes = props.lifeEvent?.notes ?? ''
     }
   })
@@ -104,18 +109,33 @@
     return new Date(date.getTime() - offset * 60_000).toISOString().slice(0, 16)
   }
 
+  function defaultRole (index: number): ParticipantRole {
+    if (form.type === 'marriage') return 'spouse'
+    if (form.type === 'engagement') return index === 0 ? 'proposer' : 'recipient'
+    return 'subject'
+  }
+
+  watch(() => form.type, () => {
+    form.roles = {}
+  }, { flush: 'sync' })
+
   function close () {
     model.value = false
   }
 
   async function handleSubmit () {
+    if (lifeEventsStore.isSaving) return
     const { valid } = await formRef.value.validate()
     if (!valid) return
 
     const payload = {
-      type: typeof form.type === 'string' ? form.type : String(form.type),
+      type: form.type,
+      details: props.lifeEvent?.details ?? {},
       eventDate: new Date(form.eventDate).toISOString(),
-      participants: form.participants,
+      participants: form.participants.map((personId, index) => ({
+        personId,
+        role: form.roles[personId] ?? defaultRole(index),
+      })),
       notes: form.notes || undefined,
     }
 
@@ -134,9 +154,4 @@
     }
   }
 
-  onMounted(async () => {
-    if (peopleStore.people.length === 0) {
-      await peopleStore.fetchAll()
-    }
-  })
 </script>

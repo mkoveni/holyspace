@@ -12,10 +12,13 @@
       <p class="text-overline text-primary font-weight-bold mb-1">Welcome back</p>
       <h2 class="font-heading text-h4 font-weight-bold mb-2">Sign in to your account</h2>
 
-      <p class="text-body-2 text-medium-emphasis">
-        Enter your credentials to access the administration console.
-      </p>
+      <p class="text-body-2 text-medium-emphasis">Enter your credentials to access your church account.</p>
     </div>
+
+    <v-alert v-if="authStore.sessionError" class="mb-4" type="warning" variant="tonal">
+      {{ authStore.sessionError }}
+      <v-btn :loading="authStore.isBootstrapping" variant="text" @click="retrySession">Retry session</v-btn>
+    </v-alert>
 
     <v-form @submit.prevent="handleSubmit">
       <div class="mb-1 text-caption font-weight-medium text-medium-emphasis">Username</div>
@@ -69,8 +72,8 @@
       </v-btn>
     </v-form>
 
-    <p class="text-caption text-medium-emphasis text-center mt-8">
-      Protected administration area · Authorized personnel only
+    <p v-if="!isJavaApi" class="text-caption text-medium-emphasis text-center mt-8">
+      <router-link to="/recover">Recover your account</router-link>
     </p>
   </div>
 </template>
@@ -78,6 +81,7 @@
 <script lang="ts" setup>
   import { reactive, ref } from 'vue'
   import { useRoute, useRouter } from 'vue-router'
+  import { isJavaApi } from '@/directory/backend'
   import { useAuthStore } from '@/stores/auth'
 
   const router = useRouter()
@@ -91,7 +95,17 @@
 
   const required = (value: string) => Boolean(value) || 'This field is required.'
 
+  async function retrySession () {
+    await authStore.bootstrap()
+    if (authStore.user) await router.push('/')
+  }
+
   async function handleSubmit () {
+    if (isSubmitting.value) return
+    if (!form.username.trim() || !form.password) {
+      errorMessage.value = 'Enter your username and password.'
+      return
+    }
     errorMessage.value = ''
     isSubmitting.value = true
     try {

@@ -4,29 +4,28 @@ declare(strict_types=1);
 
 namespace App\People\Application\Command\RegisterPerson;
 
+use App\People\Domain\Enum\Gender;
 use App\People\Domain\Model\Person;
 use App\People\Domain\Repository\PersonRepository;
 use App\People\Domain\ValueObject\EmailAddress;
 use App\People\Domain\ValueObject\PersonId;
 use App\People\Domain\ValueObject\PersonName;
 use App\People\Domain\ValueObject\PhoneNumber;
-use App\People\Domain\Enum\Gender;
+use DateTimeImmutable;
+use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
-#[\Symfony\Component\Messenger\Attribute\AsMessageHandler]
+#[AsMessageHandler]
 final readonly class RegisterPersonHandler
 {
-    public function __construct(private PersonRepository $people) {}
+    public function __construct(private PersonRepository $people)
+    {
+    }
+
     public function __invoke(RegisterPersonCommand $c): PersonId
     {
         $id = PersonId::generate();
-        $this->people->save(Person::register(
-            $id,
-            PersonName::fromStrings($c->firstName, $c->lastName),
-            $c->dateOfBirth ? new \DateTimeImmutable($c->dateOfBirth) : null,
-            Gender::from($c->gender),
-            $c->email ? EmailAddress::fromString($c->email) : null,
-            $c->phone ? PhoneNumber::fromString($c->phone) : null
-        ));
+        $this->people->save(Person::register($id, PersonName::fromStrings($c->firstName, $c->lastName), $c->dateOfBirth ? new DateTimeImmutable($c->dateOfBirth) : null, Gender::from($c->gender), $c->email ? EmailAddress::fromString($c->email) : null, $c->phone ? PhoneNumber::fromString($c->phone) : null));
+
         return $id;
     }
 }

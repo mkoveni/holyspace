@@ -1,5 +1,11 @@
 <?php
 
 declare(strict_types=1);
+
 namespace App\IdentityAccess\Domain\Exception;
-final class UserAccountAlreadyExists extends \DomainException {}
+
+use DomainException;
+
+final class UserAccountAlreadyExists extends DomainException
+{
+}

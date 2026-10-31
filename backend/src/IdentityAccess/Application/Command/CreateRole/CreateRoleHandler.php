@@ -1,3 +1,31 @@
 <?php
-declare(strict_types=1); namespace App\IdentityAccess\Application\Command\CreateRole; use App\IdentityAccess\Domain\Model\Role; use App\IdentityAccess\Domain\Repository\RoleRepository; use App\IdentityAccess\Domain\ValueObject\RoleId; #[\Symfony\Component\Messenger\Attribute\AsMessageHandler]
-final readonly class CreateRoleHandler { public function __construct(private RoleRepository $roles){} public function __invoke(CreateRoleCommand $c):RoleId{$existing=$this->roles->findByName($c->name);if($existing)throw new \InvalidArgumentException('Role already exists.');$id=RoleId::generate();$this->roles->save(Role::create($id,$c->name,$c->description));return $id;} }
+
+declare(strict_types=1);
+
+namespace App\IdentityAccess\Application\Command\CreateRole;
+
+use App\IdentityAccess\Domain\Model\Role;
+use App\IdentityAccess\Domain\Repository\RoleRepository;
+use App\IdentityAccess\Domain\ValueObject\RoleId;
+use InvalidArgumentException;
+use Symfony\Component\Messenger\Attribute\AsMessageHandler;
+
+#[AsMessageHandler]
+final readonly class CreateRoleHandler
+{
+    public function __construct(private RoleRepository $roles)
+    {
+    }
+
+    public function __invoke(CreateRoleCommand $c): RoleId
+    {
+        $existing = $this->roles->findByName($c->name);
+        if ($existing) {
+            throw new InvalidArgumentException('Role already exists.');
+        }
+        $id = RoleId::generate();
+        $this->roles->save(Role::create($id, $c->name, $c->description));
+
+        return $id;
+    }
+}

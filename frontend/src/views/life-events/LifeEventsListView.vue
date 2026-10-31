@@ -1,15 +1,22 @@
 <template>
   <div>
-    <PageHeader subtitle="Track marriages, baptisms, and other milestones" title="Life Events">
+    <PageHeader eyebrow="Milestones & moments" subtitle="Track marriages, baptisms, and other milestones" title="Life Events">
       <template #actions>
-        <v-btn color="primary" prepend-icon="mdi-plus" variant="flat" @click="openCreateDialog">
+        <v-btn v-if="access.hasPermission('life_events.manage')" color="primary" prepend-icon="mdi-plus" variant="flat" @click="openCreateDialog">
           Record Event
         </v-btn>
       </template>
     </PageHeader>
 
-    <v-card elevation="2">
-      <v-card-text>
+    <v-alert v-if="loadError" class="mb-4" type="error" variant="tonal">
+      {{ loadError }}
+      <v-btn :loading="lifeEventsStore.isLoading" variant="text" @click="loadEvents">Retry</v-btn>
+    </v-alert>
+
+    <v-card>
+      <v-card-text class="workspace-filter-panel">
+        <div class="workspace-section-title">Life events</div>
+
         <v-row>
           <v-col cols="12" md="4">
             <v-select
@@ -21,13 +28,50 @@
               @update:model-value="loadEvents"
             />
           </v-col>
+
+          <v-col cols="12" md="3">
+            <v-select
+              v-model="monthFilter"
+              clearable
+              hide-details
+              :items="months"
+              label="Month"
+              @update:model-value="loadEvents"
+            />
+          </v-col>
+
+          <v-col cols="12" md="2">
+            <v-text-field
+              v-model.number="yearFilter"
+              clearable
+              hide-details
+              label="Year"
+              max="9999"
+              min="1"
+              type="number"
+              @update:model-value="loadEvents"
+            />
+          </v-col>
+
+          <v-col cols="12" md="3">
+            <v-switch
+              v-model="anniversaries"
+              color="primary"
+              hide-details
+              label="Annual recurrences"
+              @update:model-value="loadEvents"
+            />
+          </v-col>
         </v-row>
+
+        <p class="text-caption mt-3">Annual recurrences includes earlier events in the selected month, up to the selected year. Choose Birth for birthdays or Marriage for wedding anniversaries.</p>
       </v-card-text>
 
       <v-data-table :headers="headers" item-value="id" :items="lifeEventsStore.lifeEvents" :loading="lifeEventsStore.isLoading">
         <template #item.type="{ item }">
-          <router-link class="text-decoration-none text-primary-darken font-weight-medium" :to="`/life-events/${item.id}`">
-            {{ item.type }}
+          <router-link class="table-identity" :to="`/life-events/${item.id}`">
+            <span class="table-monogram"><v-icon icon="mdi-calendar-heart" size="18" /></span>
+            <span><strong class="text-capitalize">{{ item.type }}</strong><small>View milestone</small></span>
           </router-link>
         </template>
 
@@ -54,20 +98,29 @@
 </template>
 
 <script lang="ts" setup>
+import { useAuthStore } from '@/stores/auth'
   import { onMounted, ref } from 'vue'
   import PageHeader from '@/components/common/PageHeader.vue'
   import StatusChip from '@/components/common/StatusChip.vue'
   import { useLifeEventsStore } from '@/stores/lifeEvents'
-  import { useUiStore } from '@/stores/ui'
+  import { type LifeEventType, lifeEventTypes } from '@/types/lifeEvent'
   import LifeEventFormDialog from './components/LifeEventFormDialog.vue'
 
   const lifeEventsStore = useLifeEventsStore()
-  const ui = useUiStore()
 
+  const loadError = ref('')
   const dialog = ref(false)
-  const typeFilter = ref<string | null>(null)
+  const typeFilter = ref<LifeEventType | null>(null)
 
-  const eventTypes = ['marriage', 'engagement', 'baptism', 'dedication', 'funeral']
+  const monthFilter = ref<number | null>(null)
+  const yearFilter = ref<number | null>(null)
+  const anniversaries = ref(false)
+  const months = Array.from({ length: 12 }, (_, index) => ({
+    title: new Date(2000, index, 1).toLocaleDateString(undefined, { month: 'long' }),
+    value: index + 1,
+  }))
+
+  const eventTypes = lifeEventTypes
 
   const headers = [
     { title: 'Type', key: 'type', sortable: false },
@@ -86,12 +139,19 @@
   }
 
   async function loadEvents () {
+    loadError.value = ''
     try {
-      await lifeEventsStore.fetchAll(typeFilter.value ?? undefined)
+      await lifeEventsStore.fetchAll(typeFilter.value ?? undefined, {
+        month: monthFilter.value ?? undefined,
+        year: yearFilter.value || undefined,
+        anniversaries: anniversaries.value,
+      })
     } catch (error) {
-      ui.notifyError(error instanceof Error ? error.message : 'Unable to load life events.')
+      loadError.value = error instanceof Error ? error.message : 'Unable to load life events.'
     }
   }
 
   onMounted(loadEvents)
+
+const access = useAuthStore()
 </script>

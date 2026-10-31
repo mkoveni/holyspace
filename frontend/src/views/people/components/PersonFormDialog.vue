@@ -77,6 +77,7 @@
     { title: 'Unspecified', value: 'unspecified' },
     { title: 'Male', value: 'male' },
     { title: 'Female', value: 'female' },
+    { title: 'Other', value: 'other' },
   ]
 
   const form = reactive({
@@ -106,6 +107,7 @@
   }
 
   async function handleSubmit () {
+    if (peopleStore.isSaving) return
     const { valid } = await formRef.value.validate()
     if (!valid) return
 

@@ -21,8 +21,14 @@ shell-php:
 	docker compose exec php bash
 shell-db:
 	docker compose exec database bash
+# Shell into frontend container
+shell-fe:
+	docker compose exec frontend sh
+
 dump-autoload:
 	docker exec -i church-php composer dump-autoload -o
+migrate:
+	docker exec -i church-php php bin/console doctrine:migrations:migrate
 
 # Full setup: build, start, install deps, migrate, seed
 setup: build up

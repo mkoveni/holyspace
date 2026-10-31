@@ -9,5 +9,6 @@ use App\IdentityAccess\Domain\ValueObject\PasswordHash;
 interface PasswordHasher
 {
     public function hash(string $plainPassword): PasswordHash;
+
     public function verify(string $plainPassword, PasswordHash $hash): bool;
 }

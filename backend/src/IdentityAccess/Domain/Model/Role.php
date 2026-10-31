@@ -20,14 +20,16 @@ final class Role
         private string $name,
         private string $description,
         private readonly AuditTimestamps $auditTimestamps,
-    ) {}
+    ) {
+    }
 
-    public static function create(RoleId $id, string $name, string $description): self
+    public static function create(RoleId $id, string $name, string $description, ?DateTimeImmutable $at = null): self
     {
-        if (trim($name) === '') {
+        if ('' === trim($name)) {
             throw new InvalidArgumentException('Role name cannot be empty.');
         }
-        return new self($id, trim($name), trim($description), AuditTimestamps::now());
+
+        return new self($id, trim($name), trim($description), AuditTimestamps::now($at));
     }
 
     /** @param list<PermissionId> $permissionIds */
@@ -42,51 +44,80 @@ final class Role
         foreach ($permissionIds as $permissionId) {
             $role->permissionIds[$permissionId->toString()] = $permissionId;
         }
+
         return $role;
     }
 
-    public function id(): RoleId { return $this->id; }
-    public function name(): string { return $this->name; }
-    public function description(): string { return $this->description; }
-    public function createdAt(): DateTimeImmutable { return $this->auditTimestamps->createdAt(); }
-    public function updatedAt(): DateTimeImmutable { return $this->auditTimestamps->updatedAt(); }
+    public function id(): RoleId
+    {
+        return $this->id;
+    }
 
-    public function rename(string $name): void
+    public function name(): string
+    {
+        return $this->name;
+    }
+
+    public function description(): string
+    {
+        return $this->description;
+    }
+
+    public function createdAt(): DateTimeImmutable
+    {
+        return $this->auditTimestamps->createdAt();
+    }
+
+    public function updatedAt(): DateTimeImmutable
+    {
+        return $this->auditTimestamps->updatedAt();
+    }
+
+    public function rename(string $name, ?DateTimeImmutable $at = null): void
     {
         $name = trim($name);
-        if ($name === '') throw new InvalidArgumentException('Role name cannot be empty.');
+        if ('' === $name) {
+            throw new InvalidArgumentException('Role name cannot be empty.');
+        }
         if ($this->name !== $name) {
             $this->name = $name;
-            $this->auditTimestamps->touch();
+            $this->auditTimestamps->touch($at);
         }
     }
 
-    public function changeDescription(string $description): void
+    public function changeDescription(string $description, ?DateTimeImmutable $at = null): void
     {
         $description = trim($description);
         if ($this->description !== $description) {
             $this->description = $description;
-            $this->auditTimestamps->touch();
+            $this->auditTimestamps->touch($at);
         }
     }
 
-    public function addPermission(PermissionId $permissionId): void
+    public function addPermission(PermissionId $permissionId, ?DateTimeImmutable $at = null): void
     {
         if (!$this->hasPermission($permissionId)) {
             $this->permissionIds[$permissionId->toString()] = $permissionId;
-            $this->auditTimestamps->touch();
+            $this->auditTimestamps->touch($at);
         }
     }
 
-    public function removePermission(PermissionId $permissionId): void
+    public function removePermission(PermissionId $permissionId, ?DateTimeImmutable $at = null): void
     {
         if ($this->hasPermission($permissionId)) {
             unset($this->permissionIds[$permissionId->toString()]);
-            $this->auditTimestamps->touch();
+            $this->auditTimestamps->touch($at);
         }
     }
 
     /** @return list<PermissionId> */
-    public function permissionIds(): array { return array_values($this->permissionIds); }
-    public function hasPermission(PermissionId $permissionId): bool { return isset($this->permissionIds[$permissionId->toString()]); }
+    public function permissionIds(): array
+    {
+        return array_values($this->permissionIds);
+    }
+
+    public function hasPermission(PermissionId $permissionId): bool
+    {
+        return isset($this->permissionIds[$permissionId->toString()]);
+    }
 }

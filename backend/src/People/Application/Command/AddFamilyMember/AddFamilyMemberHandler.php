@@ -1,2 +1,35 @@
-<?php declare(strict_types=1); namespace App\People\Application\Command\AddFamilyMember; use App\People\Domain\Repository\FamilyRepository; use App\People\Domain\Repository\PersonRepository; use App\People\Domain\ValueObject\FamilyId; use App\People\Domain\ValueObject\PersonId; use App\People\Domain\Enum\FamilyRole; #[\Symfony\Component\Messenger\Attribute\AsMessageHandler]
-final readonly class AddFamilyMemberHandler {public function __construct(private FamilyRepository $families,private PersonRepository $people){} public function __invoke(AddFamilyMemberCommand $c):void{$f=$this->families->findById(FamilyId::fromString($c->familyId));if(!$f)throw new \RuntimeException('Family not found.');$p=PersonId::fromString($c->personId);if(!$this->people->exists($p))throw new \RuntimeException('Person not found.');$f->addMember($p,FamilyRole::from($c->role));$this->families->save($f);}}
+<?php
+
+declare(strict_types=1);
+
+namespace App\People\Application\Command\AddFamilyMember;
+
+use App\People\Domain\Enum\FamilyRole;
+use App\People\Domain\Repository\FamilyRepository;
+use App\People\Domain\Repository\PersonRepository;
+use App\People\Domain\ValueObject\FamilyId;
+use App\People\Domain\ValueObject\PersonId;
+use RuntimeException;
+use Symfony\Component\Messenger\Attribute\AsMessageHandler;
+
+#[AsMessageHandler]
+final readonly class AddFamilyMemberHandler
+{
+    public function __construct(private FamilyRepository $families, private PersonRepository $people)
+    {
+    }
+
+    public function __invoke(AddFamilyMemberCommand $c): void
+    {
+        $f = $this->families->findById(FamilyId::fromString($c->familyId));
+        if (!$f) {
+            throw new RuntimeException('Family not found.');
+        }
+        $p = PersonId::fromString($c->personId);
+        if (!$this->people->exists($p)) {
+            throw new RuntimeException('Person not found.');
+        }
+        $f->addMember($p, FamilyRole::from($c->role));
+        $this->families->save($f);
+    }
+}

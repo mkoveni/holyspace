@@ -20,7 +20,7 @@ final class RoleMapper
             (string) $row['name'],
             (string) $row['description'],
             new AuditTimestamps($this->date($row['created_at']), $this->date($row['updated_at'])),
-            array_map(static fn(string $id): PermissionId => PermissionId::fromString($id), $permissionIds),
+            array_map(static fn (string $id): PermissionId => PermissionId::fromString($id), $permissionIds),
         );
     }
 

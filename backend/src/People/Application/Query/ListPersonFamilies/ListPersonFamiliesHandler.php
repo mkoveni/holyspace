@@ -4,20 +4,18 @@ declare(strict_types=1);
 
 namespace App\People\Application\Query\ListPersonFamilies;
 
+use App\People\Application\DTO\PersonFamilyView;
 use App\People\Application\ReadModel\PeopleReadRepository;
 
 final readonly class ListPersonFamiliesHandler
 {
-    public function __construct(private PeopleReadRepository $read) {}
+    public function __construct(private PeopleReadRepository $read)
+    {
+    }
+
+    /** @return list<PersonFamilyView> */
     public function __invoke(ListPersonFamiliesQuery $q): array
     {
-        return array_map(static fn(array $r): array => [
-            'id' => $r['id'],
-            'name' => $r['name'],
-            'role' => $r['role'],
-            'membershipCreatedAt' => $r['membership_created_at'],
-            'createdAt' => $r['created_at'],
-            'updatedAt' => $r['updated_at']
-        ], $this->read->familiesForPerson($q->personId));
+        return array_map(PersonFamilyView::fromRow(...), $this->read->familiesForPerson($q->personId));
     }
 }

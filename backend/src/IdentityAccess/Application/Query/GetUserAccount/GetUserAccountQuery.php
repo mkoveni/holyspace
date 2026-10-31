@@ -1,5 +1,14 @@
 <?php
 
 declare(strict_types=1);
+
 namespace App\IdentityAccess\Application\Query\GetUserAccount;
-final readonly class GetUserAccountQuery { public function __construct(public string $userId) {} }
+
+use App\Shared\Application\CQRS\Query;
+
+final readonly class GetUserAccountQuery implements Query
+{
+    public function __construct(public string $userId)
+    {
+    }
+}

@@ -1,1 +1,81 @@
-<?php declare(strict_types=1); namespace App\People\Infrastructure\Persistence\DBAL; use App\People\Domain\Model\Family; use App\People\Domain\Repository\FamilyRepository; use App\People\Domain\ValueObject\FamilyId; use App\People\Domain\ValueObject\PersonId; use Doctrine\DBAL\ArrayParameterType; use Doctrine\DBAL\Connection; final readonly class DbalFamilyRepository implements FamilyRepository {public function __construct(private Connection $connection,private FamilyMapper $mapper){} public function save(Family $f):void{$this->connection->beginTransaction();try{$d=$this->mapper->toRow($f);$exists=$this->connection->createQueryBuilder()->select('1')->from('people_families')->where('id = :id')->setParameter('id',$f->id()->toString())->setMaxResults(1)->fetchOne();if($exists!==false){unset($d['id']);$this->connection->update('people_families',$d,['id'=>$f->id()->toString()]);}else{$this->connection->insert('people_families',$d);}$this->connection->delete('people_family_memberships',['family_id'=>$f->id()->toString()]);foreach($f->members() as $m)$this->connection->insert('people_family_memberships',['id'=>\Symfony\Component\Uid\Uuid::v7()->toRfc4122(),'family_id'=>$f->id()->toString(),'person_id'=>$m->personId()->toString(),'role'=>$m->role()->value,'created_at'=>$m->createdAt()->format('Y-m-d H:i:s')]);$this->connection->commit();}catch(\Throwable $e){$this->connection->rollBack();throw $e;}} public function findById(FamilyId $id):?Family{$r=$this->connection->createQueryBuilder()->select('f.*')->from('people_families','f')->where('f.id = :id')->setParameter('id',$id->toString())->fetchAssociative();if($r===false)return null;return $this->mapper->toDomain($r,$this->findMembers($id));} public function findForPerson(PersonId $personId):array{$rows=$this->connection->createQueryBuilder()->select('f.*')->from('people_family_memberships','m')->innerJoin('m','people_families','f','f.id = m.family_id')->where('m.person_id = :id')->setParameter('id',$personId->toString())->orderBy('f.name','ASC')->fetchAllAssociative();return $this->hydrateMany($rows);} public function findMembers(FamilyId $familyId):array{return $this->connection->createQueryBuilder()->select('m.person_id','m.role','m.created_at')->from('people_family_memberships','m')->where('m.family_id = :id')->setParameter('id',$familyId->toString())->orderBy('m.created_at','ASC')->fetchAllAssociative();} public function findAll():array{return $this->hydrateMany($this->connection->createQueryBuilder()->select('f.*')->from('people_families','f')->orderBy('f.name','ASC')->fetchAllAssociative());} private function hydrateMany(array $rows):array{if($rows===[])return [];$ids=array_column($rows,'id');$members=$this->connection->createQueryBuilder()->select('m.family_id','m.person_id','m.role','m.created_at')->from('people_family_memberships','m')->where('m.family_id IN (:ids)')->setParameter('ids',$ids,ArrayParameterType::STRING)->orderBy('m.created_at','ASC')->fetchAllAssociative();$by=[];foreach($members as $m)$by[$m['family_id']][]=$m;return array_map(fn(array $r):Family=>$this->mapper->toDomain($r,$by[$r['id']]??[]),$rows);}}
+<?php
+
+declare(strict_types=1);
+
+namespace App\People\Infrastructure\Persistence\DBAL;
+
+use App\People\Domain\Model\Family;
+use App\People\Domain\Repository\FamilyRepository;
+use App\People\Domain\ValueObject\FamilyId;
+use App\People\Domain\ValueObject\PersonId;
+use App\Shared\Infrastructure\Persistence\AssociationSynchronizer;
+use Doctrine\DBAL\ArrayParameterType;
+use Doctrine\DBAL\Connection;
+use Throwable;
+
+final readonly class DbalFamilyRepository implements FamilyRepository
+{
+    public function __construct(private Connection $connection, private FamilyMapper $mapper)
+    {
+    }
+
+    public function save(Family $f): void
+    {
+        $this->connection->beginTransaction();
+        try {
+            $d = $this->mapper->toRow($f);
+            $exists = $this->connection->createQueryBuilder()->select('1')->from('people_families')->where('id = :id')->setParameter('id', $f->id()->toString())->setMaxResults(1)->fetchOne();
+            if (false !== $exists) {
+                unset($d['id']);
+                $this->connection->update('people_families', $d, ['id' => $f->id()->toString()]);
+            } else {
+                $this->connection->insert('people_families', $d);
+            }(new AssociationSynchronizer())->sync($this->connection, 'people_family_memberships', ['family_id' => $f->id()->toString()], 'person_id', array_map(static fn ($member) => ['person_id' => $member->personId()->toString(), 'role' => $member->role()->value, 'created_at' => $member->createdAt()->format('Y-m-d H:i:s')], $f->members()), true);
+            $this->connection->commit();
+        } catch (Throwable $e) {
+            $this->connection->rollBack();
+            throw $e;
+        }
+    }
+
+    public function findById(FamilyId $id): ?Family
+    {
+        $r = $this->connection->createQueryBuilder()->select('f.*')->from('people_families', 'f')->where('f.id = :id')->setParameter('id', $id->toString())->fetchAssociative();
+        if (false === $r) {
+            return null;
+        }
+
+        return $this->mapper->toDomain($r, $this->findMembers($id));
+    }
+
+    public function findForPerson(PersonId $personId): array
+    {
+        $rows = $this->connection->createQueryBuilder()->select('f.*')->from('people_family_memberships', 'm')->innerJoin('m', 'people_families', 'f', 'f.id = m.family_id')->where('m.person_id = :id')->setParameter('id', $personId->toString())->orderBy('f.name', 'ASC')->fetchAllAssociative();
+
+        return $this->hydrateMany($rows);
+    }
+
+    public function findMembers(FamilyId $familyId): array
+    {
+        return $this->connection->createQueryBuilder()->select('m.person_id', 'm.role', 'm.created_at')->from('people_family_memberships', 'm')->where('m.family_id = :id')->setParameter('id', $familyId->toString())->orderBy('m.created_at', 'ASC')->fetchAllAssociative();
+    }
+
+    public function findAll(): array
+    {
+        return $this->hydrateMany($this->connection->createQueryBuilder()->select('f.*')->from('people_families', 'f')->orderBy('f.name', 'ASC')->fetchAllAssociative());
+    }
+
+    private function hydrateMany(array $rows): array
+    {
+        if ([] === $rows) {
+            return [];
+        }$ids = array_column($rows, 'id');
+        $members = $this->connection->createQueryBuilder()->select('m.family_id', 'm.person_id', 'm.role', 'm.created_at')->from('people_family_memberships', 'm')->where('m.family_id IN (:ids)')->setParameter('ids', $ids, ArrayParameterType::STRING)->orderBy('m.created_at', 'ASC')->fetchAllAssociative();
+        $by = [];
+        foreach ($members as $m) {
+            $by[$m['family_id']][] = $m;
+        }
+
+        return array_map(fn (array $r): Family => $this->mapper->toDomain($r, $by[$r['id']] ?? []), $rows);
+    }
+}

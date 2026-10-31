@@ -1,77 +1,78 @@
 <template>
   <div>
-    <PageHeader subtitle="Organize households and track family membership" title="Families">
+    <PageHeader eyebrow="People & community" subtitle="A clear view of your households, contacts, and shared milestones." title="Family directory">
       <template #actions>
-        <v-btn color="primary" prepend-icon="mdi-plus" variant="flat" @click="dialog = true">
-          Add Family
-        </v-btn>
+        <v-btn v-if="access.hasPermission('families.manage')" color="primary" prepend-icon="mdi-plus" variant="flat" @click="createDialog = true">Add family</v-btn>
       </template>
     </PageHeader>
 
-    <v-card elevation="2">
-      <v-card-text>
+    <StatStrip :items="stats" />
+
+    <v-alert v-if="loadError" class="mb-5" type="error" variant="tonal">
+      {{ loadError }}
+      <v-btn :loading="familiesStore.isLoadingOverviews" variant="text" @click="load">Retry</v-btn>
+    </v-alert>
+
+    <v-card>
+      <div class="workspace-toolbar">
+        <div><h2>Households</h2><p>{{ filteredFamilies.length }} {{ filteredFamilies.length === 1 ? 'family' : 'families' }}{{ search ? ' matching your search' : ' in the directory' }}</p></div>
+
         <v-text-field
           v-model="search"
+          aria-label="Search families, members, or addresses"
+          class="workspace-search"
           clearable
-          density="comfortable"
           hide-details
-          label="Search by family name"
+          placeholder="Search families, people, or places"
           prepend-inner-icon="mdi-magnify"
         />
-      </v-card-text>
+      </div>
 
-      <v-data-table :headers="headers" item-value="id" :items="filteredFamilies" :loading="familiesStore.isLoading">
-        <template #item.name="{ item }">
-          <router-link class="text-decoration-none text-primary-darken font-weight-medium" :to="`/families/${item.id}`">
-            {{ item.name }}
-          </router-link>
-        </template>
-
-        <template #item.createdAt="{ item }">
-          {{ formatDate(item.createdAt) }}
-        </template>
-
-        <template #item.actions="{ item }">
-          <v-btn icon="mdi-eye-outline" size="small" :to="`/families/${item.id}`" variant="text" />
-        </template>
-      </v-data-table>
+      <FamilyDirectoryTable :families="filteredFamilies" :loading="familiesStore.isLoadingOverviews" />
     </v-card>
 
-    <FamilyFormDialog v-model="dialog" @saved="familiesStore.fetchAll()" />
+    <FamilyFormDialog v-model="createDialog" @saved="load" />
   </div>
 </template>
 
 <script lang="ts" setup>
+import { useAuthStore } from '@/stores/auth'
   import { computed, onMounted, ref } from 'vue'
   import PageHeader from '@/components/common/PageHeader.vue'
+  import StatStrip from '@/components/common/StatStrip.vue'
   import { useFamiliesStore } from '@/stores/families'
-  import { useUiStore } from '@/stores/ui'
+  import FamilyDirectoryTable from './components/FamilyDirectoryTable.vue'
   import FamilyFormDialog from './components/FamilyFormDialog.vue'
 
   const familiesStore = useFamiliesStore()
-  const ui = useUiStore()
-
   const search = ref('')
-  const dialog = ref(false)
-
-  const headers = [
-    { title: 'Family Name', key: 'name', sortable: false },
-    { title: 'Created', key: 'createdAt' },
-    { title: 'Actions', key: 'actions', sortable: false, align: 'end' },
-  ] as const
-
-  const filteredFamilies = computed(() => familiesStore.families.filter(family =>
-    !search.value || family.name.toLowerCase().includes(search.value.toLowerCase())))
-
-  function formatDate (value: string) {
-    return new Date(value).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
-  }
-
-  onMounted(async () => {
-    try {
-      await familiesStore.fetchAll()
-    } catch (error) {
-      ui.notifyError(error instanceof Error ? error.message : 'Unable to load families.')
-    }
+  const createDialog = ref(false)
+  const loadError = ref('')
+  const loaded = ref(false)
+  const stats = computed(() => [
+    { label: 'Households', value: loaded.value ? familiesStore.overviews.length : '—' },
+    { label: 'Memberships', value: loaded.value ? familiesStore.overviews.reduce((total, family) => total + family.members.length, 0) : '—' },
+    { label: 'Upcoming events', value: loaded.value ? new Set(familiesStore.overviews.flatMap(family => family.upcomingEvents.map(event => event.id))).size : '—' },
+  ])
+  const filteredFamilies = computed(() => {
+    const term = search.value?.trim().toLowerCase() ?? ''
+    return familiesStore.overviews.filter(family => !term || [
+      family.name,
+      ...family.members.map(member => `${member.firstName} ${member.lastName}`),
+      ...family.addresses.map(address => [address.line1, address.line2, address.city, address.province, address.postalCode, address.country].filter(Boolean).join(' ')),
+    ].some(value => value.toLowerCase().includes(term)))
   })
+
+  async function load () {
+    loadError.value = ''
+    try {
+      await familiesStore.fetchOverviews()
+      loaded.value = true
+    } catch (error) {
+      loadError.value = error instanceof Error ? error.message : 'Unable to load families.'
+    }
+  }
+  onMounted(load)
+
+const access = useAuthStore()
 </script>

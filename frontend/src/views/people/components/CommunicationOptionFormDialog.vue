@@ -53,6 +53,7 @@
   }
 
   async function handleSubmit () {
+    if (peopleStore.isSaving) return
     const { valid } = await formRef.value.validate()
     if (!valid) return
 

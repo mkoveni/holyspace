@@ -11,3 +11,6 @@ This project will be done using the symfony framework
 Follow the patterns on the AuditAccess Context and then implement the same patters for mappers as well as audit timestamps. This must be done on the backend/src/People context.
 
 You can find and example of reconstitute, and audittimestamp from backend/src/IdentityAccess/Domain/Model/UserAccount.php. An example of a mapper can b found on backend/src/IdentityAccess/Infrastructure/Persistence/DBAL/UserAccountMapper.php
+## Operational contexts
+
+See [the bounded-context roadmap](docs/bounded-context-roadmap.md) for the implemented Events, Volunteering, Children's Ministry, Giving, Attendance, Ministries, and Communications workflows, their integration boundaries, deployment requirements, and future extensions.

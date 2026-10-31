@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Shared\Domain\Event;
 
+use DateTimeImmutable;
+
 interface DomainEvent
 {
-    public function occurredAt(): \DateTimeImmutable;
+    public function occurredAt(): DateTimeImmutable;
 }

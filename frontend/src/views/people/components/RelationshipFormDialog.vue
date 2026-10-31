@@ -13,11 +13,9 @@
             :rules="[required]"
           />
 
-          <v-select
+          <PeopleSearch
             v-model="form.relatedPersonId"
-            item-title="label"
-            item-value="id"
-            :items="peopleOptions"
+            :exclude-ids="[personId]"
             label="Related person"
             :rules="[required]"
           />
@@ -35,6 +33,7 @@
 
 <script lang="ts" setup>
   import { computed, reactive, ref } from 'vue'
+  import PeopleSearch from '@/components/common/PeopleSearch.vue'
   import { usePeopleStore } from '@/stores/people'
   import { useUiStore } from '@/stores/ui'
 
@@ -58,11 +57,7 @@
     set: value => emit('update:model-value', value),
   })
 
-  const relationshipTypes = ['spouse', 'parent', 'child', 'sibling', 'guardian', 'other']
-
-  const peopleOptions = computed(() => peopleStore.people
-    .filter(person => person.id !== props.personId)
-    .map(person => ({ id: person.id, label: `${person.firstName} ${person.lastName}` })))
+  const relationshipTypes = ['spouse', 'parent', 'child', 'sibling', 'guardian', 'ward', 'other']
 
   const form = reactive({
     type: '',

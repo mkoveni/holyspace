@@ -15,55 +15,89 @@ use App\LifeEvents\Application\Query\GetPersonLifeEvents\GetPersonLifeEventsHand
 use App\LifeEvents\Application\Query\GetPersonLifeEvents\GetPersonLifeEventsQuery;
 use App\LifeEvents\Application\Query\ListLifeEvents\ListLifeEventsHandler;
 use App\LifeEvents\Application\Query\ListLifeEvents\ListLifeEventsQuery;
+use App\Shared\Presentation\Http\DTO\CreatedResponse;
+use InvalidArgumentException;
+use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Messenger\Stamp\HandledStamp;
+use Symfony\Component\Routing\Attribute\Route;
+use ValueError;
 
-final readonly class LifeEventController
+final class LifeEventController extends AbstractController
 {
-    public function __construct(private MessageBusInterface $bus, private GetLifeEventHandler $getLifeEvent, private GetPersonLifeEventsHandler $getPersonLifeEvents, private ListLifeEventsHandler $listLifeEvents) {}
-    #[Route('/api/life-events', methods: ['POST'])] public function create(Request $request): JsonResponse
+    public function __construct(private readonly MessageBusInterface $bus, private readonly GetLifeEventHandler $getLifeEvent, private readonly GetPersonLifeEventsHandler $getPersonLifeEvents, private readonly ListLifeEventsHandler $listLifeEvents)
+    {
+    }
+
+    #[Route('/api/life-events', methods: ['POST'])]
+    public function create(Request $request): JsonResponse
     {
         $d = $request->toArray();
-        $e = $this->bus->dispatch(new RecordLifeEventCommand((string)$d['type'], (array)$d['participants'], (string)$d['eventDate'], (array)($d['details'] ?? []), $d['notes'] ?? null));
+        $command = new RecordLifeEventCommand((string) $d['type'], (array) $d['participants'], (string) $d['eventDate'], (array) ($d['details'] ?? []), $d['notes'] ?? null);
+        $e = $this->bus->dispatch($command);
         $handled = $e->last(HandledStamp::class);
-        return new JsonResponse(['id' => $handled?->getResult()?->toString()], Response::HTTP_CREATED);
+
+        return $this->json(new CreatedResponse($handled?->getResult()?->toString()), Response::HTTP_CREATED);
     }
-    #[Route('/api/life-events/{id}', methods: ['GET'])] public function get(string $id): JsonResponse
+
+    #[Route('/api/life-events/{id}', methods: ['GET'])]
+    public function get(string $id): JsonResponse
     {
-        return new JsonResponse(get_object_vars(($this->getLifeEvent)(new GetLifeEventQuery($id))));
+        return $this->json(($this->getLifeEvent)(new GetLifeEventQuery($id)));
     }
-    #[Route('/api/life-events', methods: ['GET'])] public function list(Request $request): JsonResponse
+
+    #[Route('/api/life-events', methods: ['GET'])]
+    public function list(Request $request): JsonResponse
     {
         $type = $request->query->get('type');
-        return new JsonResponse(array_map(static fn($v) => get_object_vars($v), ($this->listLifeEvents)(new ListLifeEventsQuery($type === null ? null : (string)$type))));
+        try {
+            $query = new ListLifeEventsQuery(null === $type ? null : (string) $type, $request->query->has('month') ? $request->query->getInt('month') : null, $request->query->has('year') ? $request->query->getInt('year') : null, $request->query->getBoolean('anniversaries'));
+
+            return $this->json(($this->listLifeEvents)($query));
+        } catch (InvalidArgumentException|ValueError $error) {
+            return $this->json(['message' => $error->getMessage()], Response::HTTP_BAD_REQUEST);
+        }
     }
-    #[Route('/api/people/{personId}/life-events', methods: ['GET'])] public function forPerson(string $personId): JsonResponse
+
+    #[Route('/api/people/{personId}/life-events', methods: ['GET'])]
+    public function forPerson(string $personId): JsonResponse
     {
-        return new JsonResponse(array_map(static fn($v) => get_object_vars($v), ($this->getPersonLifeEvents)(new GetPersonLifeEventsQuery($personId))));
+        return $this->json(($this->getPersonLifeEvents)(new GetPersonLifeEventsQuery($personId)));
     }
-    #[Route('/api/life-events/{id}', methods: ['PUT'])] public function update(string $id, Request $request): JsonResponse
+
+    #[Route('/api/life-events/{id}', methods: ['PUT'])]
+    public function update(string $id, Request $request): JsonResponse
     {
         $d = $request->toArray();
-        $this->bus->dispatch(new UpdateLifeEventCommand($id, (string)$d['type'], (array)$d['participants'], (string)$d['eventDate'], (array)($d['details'] ?? []), $d['notes'] ?? null));
+        $this->bus->dispatch(new UpdateLifeEventCommand($id, (string) $d['type'], (array) $d['participants'], (string) $d['eventDate'], (array) ($d['details'] ?? []), $d['notes'] ?? null));
+
         return new JsonResponse(null, Response::HTTP_NO_CONTENT);
     }
-    #[Route('/api/life-events/{id}/cancel', methods: ['POST'])] public function cancel(string $id): JsonResponse
+
+    #[Route('/api/life-events/{id}/cancel', methods: ['POST'])]
+    public function cancel(string $id): JsonResponse
     {
         $this->bus->dispatch(new CancelLifeEventCommand($id));
+
         return new JsonResponse(null, Response::HTTP_NO_CONTENT);
     }
-    #[Route('/api/life-events/{id}/restore', methods: ['POST'])] public function restore(string $id): JsonResponse
+
+    #[Route('/api/life-events/{id}/restore', methods: ['POST'])]
+    public function restore(string $id): JsonResponse
     {
         $this->bus->dispatch(new RestoreLifeEventCommand($id));
+
         return new JsonResponse(null, Response::HTTP_NO_CONTENT);
     }
-    #[Route('/api/life-events/{id}', methods: ['DELETE'])] public function delete(string $id): JsonResponse
+
+    #[Route('/api/life-events/{id}', methods: ['DELETE'])]
+    public function delete(string $id): JsonResponse
     {
         $this->bus->dispatch(new DeleteLifeEventCommand($id));
+
         return new JsonResponse(null, Response::HTTP_NO_CONTENT);
     }
 }

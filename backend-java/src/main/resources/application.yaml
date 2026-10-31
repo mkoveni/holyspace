@@ -1,0 +1,78 @@
+spring:
+  mail:
+    host: ${SMTP_HOST:}
+    port: ${SMTP_PORT:587}
+    username: ${SMTP_USERNAME:}
+    password: ${SMTP_PASSWORD:}
+    properties:
+      "[mail.smtp.auth]": ${SMTP_AUTH:true}
+      "[mail.smtp.starttls.enable]": ${SMTP_STARTTLS:true}
+      "[mail.smtp.starttls.required]": ${SMTP_STARTTLS:true}
+      "[mail.smtp.connectiontimeout]": 5000
+      "[mail.smtp.timeout]": 5000
+      "[mail.smtp.writetimeout]": 5000
+  application:
+    name: onechurch-api
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5433/onechurch_java}
+    username: ${DB_USERNAME:onechurch}
+    password: ${DB_PASSWORD:development-only}
+  jooq:
+    sql-dialect: POSTGRES
+  flyway:
+    locations: classpath:db/migration
+    clean-disabled: true
+    baseline-on-migrate: false
+
+server:
+  port: ${SERVER_PORT:8082}
+
+management:
+  health:
+    mail:
+      enabled: ${EMAIL_ENABLED:false}
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: never
+
+onechurch:
+  email:
+    enabled: ${EMAIL_ENABLED:false}
+    capture: ${EMAIL_CAPTURE:false}
+    from: ${EMAIL_FROM:}
+    poll-ms: ${EMAIL_POLL_MS:15000}
+  people:
+    time-zone: ${PEOPLE_TIME_ZONE:Africa/Johannesburg}
+  security:
+    session-lifetime: ${SESSION_LIFETIME:8h}
+    cors:
+      allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173,http://127.0.0.1:5173,http://localhost:8081,http://127.0.0.1:8081}
+  bootstrap:
+    enabled: ${ONECHURCH_BOOTSTRAP_ENABLED:false}
+    username: ${ONECHURCH_BOOTSTRAP_USERNAME:}
+    email: ${ONECHURCH_BOOTSTRAP_EMAIL:}
+    display-name: ${ONECHURCH_BOOTSTRAP_DISPLAY_NAME:}
+    password-file: ${ONECHURCH_BOOTSTRAP_PASSWORD_FILE:}
+
+springdoc:
+  api-docs:
+    enabled: ${API_DOCS_ENABLED:true}
+    version: OPENAPI_3_1
+  paths-to-match: /api/**
+  default-produces-media-type: application/json
+  default-consumes-media-type: application/json
+  override-with-generic-response: false
+
+scalar:
+  enabled: ${API_DOCS_ENABLED:true}
+  path: /docs
+  url: /v3/api-docs
+  page-title: OneChurch API Reference
+  show-developer-tools: NEVER
+  persist-auth: false
+  agent:
+    disabled: true

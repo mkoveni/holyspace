@@ -1,6 +1,6 @@
 <template>
   <div>
-    <PageHeader subtitle="Define the granular permissions assignable to roles" title="Permissions">
+    <PageHeader eyebrow="Accounts & access" subtitle="Define the granular permissions assignable to roles" title="Permissions">
       <template #actions>
         <v-btn color="primary" prepend-icon="mdi-plus" variant="flat" @click="dialog = true">
           Create Permission
@@ -9,12 +9,13 @@
     </PageHeader>
 
     <v-alert class="mb-4" type="info" variant="tonal">
-      A permission listing endpoint is not yet available on the backend, so permissions created
-      during this session are shown below. Use the Roles page to attach a permission ID to a role.
+      Available church permissions appear here. Use the Roles page to attach a permission to a role.
     </v-alert>
 
-    <v-card elevation="2">
-      <v-data-table :headers="headers" item-value="id" :items="permissionsStore.permissions" />
+    <v-card>
+      <v-data-table :headers="headers" item-value="id" :items="permissionsStore.permissions">
+        <template #item.code="{ item }"><v-chip color="primary" size="small" variant="tonal">{{ item.code }}</v-chip></template>
+      </v-data-table>
     </v-card>
 
     <v-dialog v-model="dialog" max-width="480" persistent>
@@ -40,13 +41,14 @@
 </template>
 
 <script lang="ts" setup>
-  import { reactive, ref } from 'vue'
+  import { onMounted, reactive, ref } from 'vue'
   import PageHeader from '@/components/common/PageHeader.vue'
   import { usePermissionsStore } from '@/stores/permissions'
   import { useUiStore } from '@/stores/ui'
 
   const permissionsStore = usePermissionsStore()
   const ui = useUiStore()
+  onMounted(async () => {try {await permissionsStore.fetchAll()} catch (error) {ui.notifyError(error instanceof Error ? error.message : 'Unable to load permissions.')} })
 
   const dialog = ref(false)
   const formRef = ref()

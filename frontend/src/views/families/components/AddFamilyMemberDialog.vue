@@ -6,11 +6,8 @@
 
       <v-form ref="formRef" @submit.prevent="handleSubmit">
         <v-card-text>
-          <v-select
+          <PeopleSearch
             v-model="form.personId"
-            item-title="label"
-            item-value="id"
-            :items="peopleOptions"
             label="Person"
             :rules="[required]"
           />
@@ -33,16 +30,15 @@
 </template>
 
 <script lang="ts" setup>
-  import { computed, onMounted, reactive, ref } from 'vue'
+  import { computed, reactive, ref } from 'vue'
+  import PeopleSearch from '@/components/common/PeopleSearch.vue'
   import { useFamiliesStore } from '@/stores/families'
-  import { usePeopleStore } from '@/stores/people'
   import { useUiStore } from '@/stores/ui'
 
   const props = defineProps<{ modelValue: boolean, familyId: string }>()
   const emit = defineEmits<{ 'update:model-value': [value: boolean], 'saved': [] }>()
 
   const familiesStore = useFamiliesStore()
-  const peopleStore = usePeopleStore()
   const ui = useUiStore()
   const formRef = ref()
 
@@ -51,15 +47,12 @@
     set: value => emit('update:model-value', value),
   })
 
-  const roleOptions = ['head', 'spouse', 'child', 'dependent', 'member']
+  const roleOptions = ['head', 'spouse', 'child', 'parent', 'other']
 
   const form = reactive({
     personId: '',
-    role: 'member',
+    role: 'other',
   })
-
-  const peopleOptions = computed(() => peopleStore.people
-    .map(person => ({ id: person.id, label: `${person.firstName} ${person.lastName}` })))
 
   const required = (value: string) => Boolean(value) || 'This field is required.'
 
@@ -68,6 +61,7 @@
   }
 
   async function handleSubmit () {
+    if (familiesStore.isSaving) return
     const { valid } = await formRef.value.validate()
     if (!valid) return
 
@@ -81,9 +75,4 @@
     }
   }
 
-  onMounted(async () => {
-    if (peopleStore.people.length === 0) {
-      await peopleStore.fetchAll()
-    }
-  })
 </script>

@@ -1,0 +1,30 @@
+package org.onechurch.childrenministry.incidents.application.command.accessincident;
+import static org.onechurch.shared.infrastructure.jooq.Tables.PERMISSIONS;
+import static org.onechurch.shared.infrastructure.jooq.Tables.ROLE_PERMISSIONS;
+
+import org.junit.jupiter.api.Test;
+import org.onechurch.identityaccess.domain.IdentityException;
+import org.onechurch.shared.infrastructure.ChildrenIntegrationTestSupport;
+import org.springframework.beans.factory.annotation.Autowired;
+
+import java.util.UUID;
+class AccessIncidentHandlerIntegrationTest extends ChildrenIntegrationTestSupport {
+    @Autowired private AccessIncidentHandler handler;
+    @Test
+    void directCallsRequireTrustedCurrentPermissions() {
+        AccessIncidentCommand request = new AccessIncidentCommand(adminId, UUID.randomUUID(), 25, 0);
+        assertIdentityFailure(() -> handler.handle(request), IdentityException.Kind.UNAUTHENTICATED);
+        asActor(admin, () -> {
+            assertIdentityFailure(
+                () -> handler.handle(new AccessIncidentCommand(UUID.randomUUID(), UUID.randomUUID(), 25, 0)),
+                IdentityException.Kind.FORBIDDEN);
+            db.deleteFrom(ROLE_PERMISSIONS)
+                .where(ROLE_PERMISSIONS.PERMISSION_ID.in(db.select(PERMISSIONS.ID)
+                    .from(PERMISSIONS)
+                    .where(PERMISSIONS.CODE.in("children.incidents.manage"))))
+                .execute();
+            assertIdentityFailure(() -> handler.handle(request), IdentityException.Kind.FORBIDDEN);
+            return null;
+        });
+    }
+}

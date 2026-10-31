@@ -13,6 +13,7 @@ final class SymfonyPasswordHasher implements PasswordHasher
     {
         return PasswordHash::fromString(password_hash($plainPassword, PASSWORD_ARGON2ID));
     }
+
     public function verify(string $plainPassword, PasswordHash $hash): bool
     {
         return password_verify($plainPassword, $hash->value());

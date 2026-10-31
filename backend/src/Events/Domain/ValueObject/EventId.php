@@ -1,0 +1,29 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Events\Domain\ValueObject;
+
+use Symfony\Component\Uid\Uuid;
+
+final readonly class EventId
+{
+    private function __construct(private Uuid $value)
+    {
+    }
+
+    public static function generate(): self
+    {
+        return new self(Uuid::v7());
+    }
+
+    public static function fromString(string $value): self
+    {
+        return new self(Uuid::fromString($value));
+    }
+
+    public function toString(): string
+    {
+        return $this->value->toRfc4122();
+    }
+}

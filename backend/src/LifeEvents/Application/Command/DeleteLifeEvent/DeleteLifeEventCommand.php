@@ -4,7 +4,11 @@ declare(strict_types=1);
 
 namespace App\LifeEvents\Application\Command\DeleteLifeEvent;
 
-final readonly class DeleteLifeEventCommand
+use App\Shared\Application\CQRS\Command;
+
+final readonly class DeleteLifeEventCommand implements Command
 {
-    public function __construct(public string $lifeEventId) {}
+    public function __construct(public string $lifeEventId)
+    {
+    }
 }

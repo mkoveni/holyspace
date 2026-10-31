@@ -48,6 +48,7 @@
   }
 
   async function handleSubmit () {
+    if (familiesStore.isSaving) return
     const { valid } = await formRef.value.validate()
     if (!valid) return
 

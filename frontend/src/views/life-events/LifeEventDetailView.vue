@@ -1,12 +1,12 @@
 <template>
   <div v-if="event">
-    <PageHeader :subtitle="formatDate(event.eventDate)" :title="event.type">
+    <PageHeader eyebrow="Milestones & moments" :subtitle="formatDate(event.eventDate)" :title="event.type">
       <template #actions>
         <v-btn prepend-icon="mdi-arrow-left" variant="text" @click="$router.push('/life-events')">Back</v-btn>
-        <v-btn prepend-icon="mdi-pencil-outline" variant="tonal" @click="editDialog = true">Edit</v-btn>
+        <v-btn v-if="access.hasPermission('life_events.manage')" prepend-icon="mdi-pencil-outline" variant="tonal" @click="editDialog = true">Edit</v-btn>
 
         <v-btn
-          v-if="event.status !== 'cancelled'"
+          v-if="access.hasPermission('life_events.manage') && (event.status !== 'cancelled')"
           color="error"
           prepend-icon="mdi-cancel"
           variant="tonal"
@@ -16,7 +16,7 @@
         </v-btn>
 
         <v-btn
-          v-else
+          v-else-if="access.hasPermission('life_events.manage')"
           color="success"
           prepend-icon="mdi-restore"
           variant="tonal"
@@ -25,13 +25,13 @@
           Restore Event
         </v-btn>
 
-        <v-btn color="error" icon="mdi-delete-outline" variant="text" @click="handleDelete" />
+        <v-btn v-if="access.hasPermission('life_events.manage')" color="error" icon="mdi-delete-outline" variant="text" @click="handleDelete" />
       </template>
     </PageHeader>
 
     <v-row>
       <v-col cols="12" md="7">
-        <v-card elevation="2">
+        <v-card>
           <v-card-title class="d-flex align-center justify-space-between">
             Details
             <StatusChip :status="event.status" />
@@ -39,33 +39,37 @@
 
           <v-divider />
 
-          <v-list density="comfortable">
-            <v-list-item prepend-icon="mdi-tag-outline" subtitle="Type" :title="event.type" />
-            <v-list-item prepend-icon="mdi-calendar-outline" subtitle="Event Date" :title="formatDate(event.eventDate)" />
-            <v-list-item prepend-icon="mdi-note-text-outline" subtitle="Notes" :title="event.notes || '—'" />
-          </v-list>
+          <v-card-text>
+            <dl class="detail-grid">
+              <div class="detail-field"><dt>Event type</dt><dd class="text-capitalize">{{ event.type }}</dd></div>
+              <div class="detail-field"><dt>Event date</dt><dd>{{ formatDate(event.eventDate) }}</dd></div>
+            </dl>
 
-          <v-card-text v-if="event.details && Object.keys(event.details).length > 0">
-            <div class="text-subtitle-2 mb-2">Additional Details</div>
+            <div class="detail-note"><span class="detail-label">Notes</span><p>{{ event.notes || 'No notes recorded for this event.' }}</p></div>
 
-            <v-sheet class="pa-3" color="background" rounded="sm">
-              <pre class="text-caption">{{ JSON.stringify(event.details, null, 2) }}</pre>
-            </v-sheet>
+            <template v-if="detailFields.length > 0">
+              <h3 class="workspace-section-title">Additional details</h3>
+
+              <dl class="detail-grid">
+                <div v-for="field in detailFields" :key="field.label" class="detail-field"><dt>{{ field.label }}</dt><dd>{{ field.value }}</dd></div>
+              </dl>
+            </template>
           </v-card-text>
         </v-card>
       </v-col>
 
       <v-col cols="12" md="5">
-        <v-card elevation="2">
+        <v-card>
           <v-card-title>Participants</v-card-title>
           <v-divider />
 
           <v-list v-if="event.participants.length > 0">
             <v-list-item
-              v-for="participantId in event.participants"
-              :key="participantId"
-              :title="personName(participantId)"
-              :to="`/people/${participantId}`"
+              v-for="participant in event.participants"
+              :key="participant.personId"
+              :subtitle="participant.role"
+              :title="personName(participant.personId)"
+              :to="`/people/${participant.personId}`"
             >
               <template #prepend>
                 <v-icon color="primary" icon="mdi-account-outline" />
@@ -87,6 +91,7 @@
 </template>
 
 <script lang="ts" setup>
+import { useAuthStore } from '@/stores/auth'
   import { computed, onMounted, ref, watch } from 'vue'
   import { useRouter } from 'vue-router'
   import PageHeader from '@/components/common/PageHeader.vue'
@@ -106,6 +111,25 @@
   const editDialog = ref(false)
 
   const event = computed(() => lifeEventsStore.current)
+  const detailFields = computed(() => {
+    const fields: { label: string, value: string }[] = []
+    function visit (value: unknown, path: string[]) {
+      if (value && typeof value === 'object' && !Array.isArray(value)) {
+        for (const [key, child] of Object.entries(value)) visit(child, [...path, key.replace(/([a-z])([A-Z])/g, '$1 $2').replaceAll('_', ' ')])
+      } else {
+        const format = (entry: unknown): string => {
+          if (entry === null || entry === undefined) return 'Not recorded'
+          if (typeof entry === 'boolean') return entry ? 'Yes' : 'No'
+          if (Array.isArray(entry)) return entry.map(child => format(child)).join(', ')
+          if (typeof entry === 'object') return Object.entries(entry).map(([key, child]) => `${key}: ${format(child)}`).join(' · ')
+          return String(entry)
+        }
+        fields.push({ label: path.join(' · '), value: format(value) })
+      }
+    }
+    visit(event.value?.details ?? {}, [])
+    return fields
+  })
 
   function personName (id: string) {
     const person = peopleStore.byId(id)
@@ -119,7 +143,7 @@
   async function load () {
     try {
       await lifeEventsStore.fetchOne(props.id)
-      if (peopleStore.people.length === 0) {
+      if (access.hasPermission('people.read') && peopleStore.people.length === 0) {
         await peopleStore.fetchAll()
       }
     } catch (error) {
@@ -172,4 +196,11 @@
   watch(() => props.id, load)
 
   onMounted(load)
+
+const access = useAuthStore()
 </script>
+
+<style scoped>
+.detail-note { margin: 24px 0; padding: 20px; border-left: 3px solid var(--workspace-gold); border-radius: 0 12px 12px 0; background: #f8f7f3; }
+.detail-note p { margin-top: 9px; font-size: 13px; line-height: 1.8; color: var(--workspace-ink); white-space: pre-wrap; }
+</style>

@@ -106,3 +106,17 @@ things up in the project instead of relying on memory:
 - Read the installed source and docblocks under `vendor/`.
 - Docs: https://symfony.com/doc/current/ (switch to the version matching
   `composer.json` if it differs).
+
+## Mandatory context architecture
+
+Follow `../docs/clean-architecture-cqrs.md` in every existing and new context.
+Every use case has one typed `__invoke` handler and a readonly Command/Query
+message. Queries depend only on read capabilities and never perform maintenance
+or process the outbox. Commands own writes and transactions. Application/domain
+code must not import infrastructure, presentation, DBAL or HTTP/security/container
+services. Controllers invoke application use cases and never repositories or
+infrastructure adapters. Compose adapters and tagged services outside application
+code. Use exported application ports for cross-context dependencies.
+
+Run `composer architecture:check`, the relevant functional tests, container lint
+and the formatter before completion. Architecture checks are enforced in CI.
