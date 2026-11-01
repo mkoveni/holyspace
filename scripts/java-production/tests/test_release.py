@@ -126,11 +126,15 @@ class PrebuiltDeploymentTests(unittest.TestCase):
         config = {"services": {component: {"image": f"holyspace-java-{component}:{COMMIT}"}
                                for component in receiver.COMPONENTS},
                   "volumes": {"database": {"name": "holyspace-java-prod_database"}}}
+        default_config = {**config, "services": {name: service for name, service in config["services"].items()
+                                                if name != "tools"}}
         docker.write_text('#!/bin/bash\necho "docker $*" >> "$TEST_LOG"\n'
                           'if [[ " $* " == *" image inspect "* && "${FAIL_AT:-}" == image-inspect ]]; then exit 23; fi\n'
                           'if [[ " $* " == *" postgres --version "* && "${FAIL_AT:-}" == runtime-check ]]; then exit 1; fi\n'
                           'if [[ " $* " == *" config "* ]]; then\n'
-                          "cat <<'JSON'\n" + json.dumps(config) + '\nJSON\nfi\n')
+                          'if [[ " $* " == *" --profile operations "* ]]; then\n'
+                          "cat <<'JSON'\n" + json.dumps(config) + '\nJSON\nelse\n'
+                          "cat <<'JSON'\n" + json.dumps(default_config) + '\nJSON\nfi\nfi\n')
         docker.chmod(0o700)
         env = {key: value for key, value in os.environ.items() if not key.startswith("JAVA_PRODUCTION_")}
         env.update(PATH=str(binary) + os.pathsep + os.environ["PATH"], TEST_LOG=str(root / "calls"),
@@ -149,6 +153,15 @@ class PrebuiltDeploymentTests(unittest.TestCase):
             self.assertLess(calls.index("backup\n"), calls.index(" stop api"))
             self.assertLess(calls.index(" stop api"), calls.index("run --rm -T --no-deps migrate"))
             self.assertIn("Deployment: completed successfully", result.stdout)
+
+    def test_operations_profile_is_included_when_verifying_tools_image(self):
+        with tempfile.TemporaryDirectory() as directory:
+            result, calls = self.deploy(directory)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn("--profile operations config --format json", calls)
+            self.assertIn(f"docker image inspect holyspace-java-tools:{COMMIT}\n", calls)
+            self.assertIn("Deployment: verifying loaded tools image", result.stdout)
+            self.assertNotIn("KeyError", result.stderr)
 
     def test_silent_image_failure_reports_stage_and_preserves_exit_status(self):
         with tempfile.TemporaryDirectory() as directory:

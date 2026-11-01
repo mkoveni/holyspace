@@ -19,7 +19,8 @@ python3 "$production_root/scripts/java-production/preflight.py"
 if [[ "${JAVA_PRODUCTION_PREBUILT:-false}" == true ]]; then
   for service in "${production_images[@]}"; do
     stage "verifying loaded $service image"
-    image=$(dc config --format json | python3 -c 'import json,sys;print(json.load(sys.stdin)["services"][sys.argv[1]]["image"])' "$service")
+    # Include operations services such as tools when resolving image metadata.
+    image=$(dc --profile operations config --format json | python3 -c 'import json,sys;print(json.load(sys.stdin)["services"][sys.argv[1]]["image"])' "$service")
     docker image inspect "$image" >/dev/null
   done
 else
