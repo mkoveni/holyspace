@@ -14,6 +14,7 @@ RUN addgroup -g 10001 holyspace-secrets \
     && gosu postgres sh -ec 'id -G | grep -Eq "(^| )10001( |$)"' \
     && apk upgrade --no-cache
 COPY --chmod=755 docker/java-production/database-entrypoint.sh /usr/local/bin/holyspace-database-entrypoint
+COPY --chmod=755 docker/java-production/database-ready.sh /usr/local/bin/holyspace-database-ready
 COPY --chmod=755 docker/java-production/database-runtime.sh /docker-entrypoint-initdb.d/00-holyspace-runtime.sh
 ENTRYPOINT ["holyspace-database-entrypoint"]
 CMD ["postgres"]

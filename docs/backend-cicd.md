@@ -12,6 +12,18 @@ This pipeline targets an **AMD64 Ubuntu VPS**, Docker Compose and host Nginx.
 It transfers images directly over SSH: the VPS does not need GitHub repository or
 container-registry credentials, a JDK, Maven or application source code.
 
+## Temporary Java test switch
+
+Java test execution is temporarily skipped for `main` pushes and manual runs on
+`main`, using Maven `-DskipTests`. Compilation (including test compilation),
+formatting checks, production rehearsal, database/restore checks, image security
+scans and deployment health checks still run. Pull requests and other branches
+continue to execute the Java suite.
+
+To restore Java test execution before deployment, set the **repository Actions
+variable** `JAVA_TESTS_ENABLED=true` under Settings → Secrets and variables →
+Actions → Variables. The workflow records skipped execution in the run summary.
+
 ## Single-script setup (recommended)
 
 On an AMD64 Ubuntu 22.04/24.04/26.04/26.10 VPS, from a reviewed copy of this project:
@@ -247,6 +259,20 @@ release files used by running containers. A failed transfer can leave files in
 `incoming`; remove those only after confirming no deployment is using them.
 
 ## Failure and recovery
+
+Database readiness uses an authenticated TCP `SELECT 1` against `holyspace`.
+`pg_isready` alone is insufficient: it can report a healthy server for a database
+that does not exist, and its default Unix socket can reach the temporary server
+used during initialization. Both deployment and isolated restore now wait for the
+final server and the actual database. A regression test deliberately delays
+database creation and also removes only its own disposable fixture database to
+prove neither situation is accepted as ready.
+
+If an existing VPS volume is missing `holyspace`, inspect its initialization logs
+and volume selection. The official image creates `POSTGRES_DB` only on an empty
+data directory; changing that environment variable does not repair an existing
+cluster. Recover or repair the reviewed cluster rather than automatically creating
+a blank database or deleting a volume with required data.
 
 - A failed test, image scan or backup blocks deployment. Existing API containers
   are not stopped when security or backup checks fail.

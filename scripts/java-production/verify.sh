@@ -65,6 +65,8 @@ if JAVA_PRODUCTION_OVERRIDE_FILE= JAVA_PRODUCTION_ENV_FILE="$verify_directory/in
   echo 'Preflight accepted an insecure public origin.' >&2; exit 1
 fi
 if [[ "${JAVA_VERIFY_SKIP_BUILD:-0}" != 1 ]]; then dc build --pull api web tools database edge; fi
+python3 "$production_root/scripts/java-production/verify-database-readiness.py" \
+  --image "holyspace-java-database:${JAVA_VERIFY_RELEASE_TAG:-release-check}"
 # The new runtime must refuse an older unmarked cluster without modifying it.
 mkdir "$verify_directory/unmarked-database"
 printf '18\n' > "$verify_directory/unmarked-database/PG_VERSION"
