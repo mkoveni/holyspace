@@ -9,7 +9,22 @@ password_file=$(realpath "${4:?Provide a private password file readable by group
 [[ -f "$password_file" ]] || { echo 'Password file does not exist.' >&2; exit 1; }
 bootstrap_name="holyspace-java-bootstrap-$(date +%s)-$RANDOM"
 bootstrap_id=''
+original_api_id=''
 resume_api=false
+# Called by the EXIT cleanup below.
+# shellcheck disable=SC2329
+wait_for_original_api() {
+  local state attempt
+  for ((attempt = 0; attempt < 240; attempt++)); do
+    state=$(docker inspect --format '{{.State.Status}} {{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' "$original_api_id") || return 1
+    case "$state" in
+      'running healthy'|'running none') return 0 ;;
+      'created '*|'exited '*|'dead '*|'removing '*) return 1 ;;
+    esac
+    sleep 1
+  done
+  return 1
+}
 # The EXIT trap invokes this function on every exit path.
 # shellcheck disable=SC2329
 cleanup() {
@@ -21,18 +36,22 @@ cleanup() {
   fi
   if [[ "$resume_api" == true ]]; then
     echo 'Restarting the regular API after administrator setup...'
-    if ! dc start --wait --wait-timeout 240 api; then
+    # Restart exactly the container we stopped; Compose service selection can
+    # also encounter the one-off API container used by bootstrap.
+    if ! docker start "$original_api_id" >/dev/null || ! wait_for_original_api; then
       echo 'The regular API could not restart. Check its container health and memory usage.' >&2
+      docker inspect --format 'API state={{.State.Status}} health={{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}} OOMKilled={{.State.OOMKilled}} exit={{.State.ExitCode}}' "$original_api_id" >&2 || true
       return 1
     fi
   fi
   return "$result"
 }
 trap 'cleanup' EXIT
-if [[ -n "$(dc ps --status running -q api)" ]]; then
+original_api_id=$(dc ps --status running -q api)
+if [[ -n "$original_api_id" ]]; then
   resume_api=true
   echo 'Temporarily stopping the API so administrator setup runs only one Java instance.'
-  dc stop api
+  docker stop "$original_api_id" >/dev/null
 fi
 bootstrap_id=$(dc run -d --no-deps --name "$bootstrap_name" \
   -e 'JAVA_TOOL_OPTIONS=-Xms32m -Xmx256m -XX:ActiveProcessorCount=1 -XX:+UseSerialGC -XX:+ExitOnOutOfMemoryError' \
@@ -49,7 +68,12 @@ for ((attempt = 0; attempt < 120; attempt++)); do
     exit 0
   fi
   if [[ "$(docker inspect --format '{{.State.Running}}' "$bootstrap_id")" != true ]]; then
-    echo 'Bootstrap failed. Check file permissions and whether an account already exists.' >&2
+    if docker logs "$bootstrap_id" 2>&1 | grep -F 'Administrator bootstrap is only allowed before the first account exists.' >/dev/null; then
+      echo 'Administrator bootstrap refused: an account already exists.' >&2
+    else
+      echo 'Bootstrap failed. Check file permissions and whether an account already exists.' >&2
+      docker inspect --format 'Bootstrap state={{.State.Status}} OOMKilled={{.State.OOMKilled}} exit={{.State.ExitCode}}' "$bootstrap_id" >&2 || true
+    fi
     exit 1
   fi
   sleep 1

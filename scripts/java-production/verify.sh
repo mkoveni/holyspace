@@ -13,7 +13,16 @@ paused_database_id=''
 cleanup() {
   local result=$?
   if [[ -n "$paused_database_id" ]]; then docker unpause "$paused_database_id" >/dev/null 2>&1 || true; fi
-  if (( result != 0 )); then dc logs --no-color --tail 80 api web database edge > /tmp/holyspace-java-verify.log 2>&1 || true; fi
+  if (( result != 0 )); then
+    dc logs --no-color --tail 80 api web database edge > /tmp/holyspace-java-verify.log 2>&1 || true
+    if [[ -f "$verify_directory/repeated-bootstrap.log" ]]; then
+      cat "$verify_directory/repeated-bootstrap.log" >> /tmp/holyspace-java-verify.log
+    fi
+    mapfile -t failed_containers < <(dc ps --all --quiet)
+    if (( ${#failed_containers[@]} > 0 )); then
+      docker inspect --format '{{.Name}}: state={{.State.Status}} OOMKilled={{.State.OOMKilled}} exit={{.State.ExitCode}} restarts={{.RestartCount}}' "${failed_containers[@]}" >> /tmp/holyspace-java-verify.log 2>&1 || true
+    fi
+  fi
   dc down --volumes --remove-orphans >/dev/null 2>&1 || true
   rm -rf "$verify_directory"
   return "$result"
@@ -104,12 +113,18 @@ docker run --rm --network host --ipc=host -e HOME=/tmp \
 "$production_root/scripts/java-production/check.sh"
 # Bootstrap on a running deployment must stop its regular JVM, reject the
 # existing account, remove its temporary JVM and restore the healthy API.
+echo 'Verifying existing-account bootstrap rejection and API recovery...'
 if "$production_root/scripts/java-production/bootstrap.sh" release-verification release-verification@church.invalid \
   'Release Verification' "$verify_directory/secrets/fixture_password" > "$verify_directory/repeated-bootstrap.log" 2>&1; then
   echo 'Administrator bootstrap accepted an existing account store.' >&2; exit 1
 fi
-grep -F 'Restarting the regular API after administrator setup' "$verify_directory/repeated-bootstrap.log" >/dev/null
-dc exec -T api curl --fail --silent --max-time 5 http://127.0.0.1:8082/actuator/health/readiness >/dev/null
+if ! grep -F 'Administrator bootstrap refused: an account already exists.' "$verify_directory/repeated-bootstrap.log" >/dev/null \
+  || ! dc exec -T api curl --fail --silent --max-time 5 http://127.0.0.1:8082/actuator/health/readiness >/dev/null; then
+  cat "$verify_directory/repeated-bootstrap.log" >&2
+  echo 'Repeated administrator bootstrap failed to reject the existing account and restore a healthy API.' >&2
+  exit 1
+fi
+echo 'Existing-account bootstrap rejection and API recovery passed.'
 # Render the actual HTTPS edge configuration as well; this never requests a certificate.
 docker run --rm --network none \
   -e CHURCH_DOMAIN=verify.church.invalid -e API_DOMAIN=api.verify.church.invalid \

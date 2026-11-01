@@ -312,6 +312,17 @@ release files used by running containers. A failed transfer can leave files in
 
 ## Failure and recovery
 
+The repeated-administrator-bootstrap rehearsal must reject the existing account
+and restore a healthy API. Bootstrap restarts the original container by its
+captured ID and checks its running/health state before returning. A generic
+nonzero bootstrap result is not sufficient for this check: container startup,
+permissions or memory failures must still fail the rehearsal.
+
+If CI reports `service "api" is not running`, the `production-check-log` artifact
+includes the bootstrap output and container state, exit code, OOM flag and restart
+count alongside application logs. These diagnostics do not dump secret files or
+container environments. This error during the Java rehearsal skips VPS deployment.
+
 Database readiness uses an authenticated TCP `SELECT 1` against `holyspace`.
 `pg_isready` alone is insufficient: it can report a healthy server for a database
 that does not exist, and its default Unix socket can reach the temporary server
