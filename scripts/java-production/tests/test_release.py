@@ -127,6 +127,7 @@ class PrebuiltDeploymentTests(unittest.TestCase):
                                for component in receiver.COMPONENTS},
                   "volumes": {"database": {"name": "holyspace-java-prod_database"}}}
         docker.write_text('#!/bin/bash\necho "docker $*" >> "$TEST_LOG"\n'
+                          'if [[ " $* " == *" image inspect "* && "${FAIL_AT:-}" == image-inspect ]]; then exit 23; fi\n'
                           'if [[ " $* " == *" postgres --version "* && "${FAIL_AT:-}" == runtime-check ]]; then exit 1; fi\n'
                           'if [[ " $* " == *" config "* ]]; then\n'
                           "cat <<'JSON'\n" + json.dumps(config) + '\nJSON\nfi\n')
@@ -147,12 +148,24 @@ class PrebuiltDeploymentTests(unittest.TestCase):
             self.assertLess(calls.index("security-scan\n"), calls.index("backup\n"))
             self.assertLess(calls.index("backup\n"), calls.index(" stop api"))
             self.assertLess(calls.index(" stop api"), calls.index("run --rm -T --no-deps migrate"))
+            self.assertIn("Deployment: completed successfully", result.stdout)
+
+    def test_silent_image_failure_reports_stage_and_preserves_exit_status(self):
+        with tempfile.TemporaryDirectory() as directory:
+            result, calls = self.deploy(directory, fail_at="image-inspect")
+            self.assertEqual(result.returncode, 23)
+            self.assertIn("Deployment: verifying loaded api image", result.stdout)
+            self.assertIn("Deployment failed during verifying loaded api image (exit code 23).", result.stderr)
+            self.assertNotIn("completed successfully", result.stdout)
+            self.assertNotIn(" stop api", calls)
+            self.assertNotIn("security-scan\n", calls)
 
     def test_security_or_backup_failure_cannot_stop_the_running_api(self):
         for failure in ("security-scan", "backup", "runtime-check"):
             with self.subTest(failure=failure), tempfile.TemporaryDirectory() as directory:
                 result, calls = self.deploy(directory, fail_at=failure)
                 self.assertNotEqual(result.returncode, 0)
+                self.assertIn("Deployment failed during", result.stderr)
                 self.assertNotIn(" stop api", calls)
                 self.assertNotIn("run --rm -T --no-deps migrate", calls)
                 if failure == "runtime-check":
@@ -189,6 +202,8 @@ class SshTransferTests(unittest.TestCase):
                 self.assertIn("IdentitiesOnly=yes", call)
                 self.assertNotIn("fixture-key", call)
             self.assertIn(f"receive-release.py {COMMIT}-123-2", calls[-1])
+            self.assertIn("/usr/bin/python3 -u ", calls[-1])
+            self.assertIn("VPS release completed successfully", result.stdout)
             (root / "calls").unlink()
             env["VPS_HOST"] = "host;exit 0"
             self.assertNotEqual(subprocess.run(["bash", str(script), str(root)], env=env,

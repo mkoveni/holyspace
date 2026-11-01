@@ -16,7 +16,15 @@ release_id="$GITHUB_SHA-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
 artifact_directory=${1:?Provide the downloaded artifact directory}
 (cd "$artifact_directory" && sha256sum --check --status holyspace-release.tar.sha256)
 ssh_directory=$(mktemp -d)
-trap 'rm -rf "$ssh_directory"' EXIT
+transfer_stage='preparing SSH credentials'
+finish_transfer() {
+  local status=$?
+  rm -rf "$ssh_directory"
+  if (( status != 0 )); then
+    printf 'Release transfer/deployment failed during %s (exit code %s).\n' "$transfer_stage" "$status" >&2
+  fi
+}
+trap finish_transfer EXIT
 chmod 700 "$ssh_directory"
 printf '%s\n' "$VPS_SSH_KEY" > "$ssh_directory/key"
 printf '%s\n' "$VPS_KNOWN_HOSTS" > "$ssh_directory/known_hosts"
@@ -25,9 +33,16 @@ options=(-i "$ssh_directory/key" -o "UserKnownHostsFile=$ssh_directory/known_hos
   -o StrictHostKeyChecking=yes -o IdentitiesOnly=yes -o BatchMode=yes
   -o ConnectTimeout=15 -o ServerAliveInterval=15 -o ServerAliveCountMax=4)
 # Do not discover/trust host keys during a deployment or disable host checking.
+transfer_stage='uploading release archive'
+printf 'Deployment: %s\n' "$transfer_stage"
 scp "${options[@]}" -P "$VPS_SSH_PORT" "$artifact_directory/holyspace-release.tar" \
   "$VPS_USER@$VPS_HOST:/srv/holyspace/incoming/$release_id.tar"
+transfer_stage='uploading release checksum'
+printf 'Deployment: %s\n' "$transfer_stage"
 scp "${options[@]}" -P "$VPS_SSH_PORT" "$artifact_directory/holyspace-release.tar.sha256" \
   "$VPS_USER@$VPS_HOST:/srv/holyspace/incoming/$release_id.tar.sha256"
+transfer_stage='running deployment on VPS'
+printf 'Deployment: %s\n' "$transfer_stage"
 ssh "${options[@]}" -p "$VPS_SSH_PORT" "$VPS_USER@$VPS_HOST" \
-  "/usr/bin/python3 /srv/holyspace/bin/receive-release.py $release_id"
+  "/usr/bin/python3 -u /srv/holyspace/bin/receive-release.py $release_id"
+printf 'Deployment: VPS release completed successfully\n'

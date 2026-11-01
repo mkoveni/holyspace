@@ -24,6 +24,17 @@ To restore Java test execution before deployment, set the **repository Actions
 variable** `JAVA_TESTS_ENABLED=true` under Settings → Secrets and variables →
 Actions → Variables. The workflow records skipped execution in the run summary.
 
+## Deployment progress and failures
+
+`Production preflight passed` confirms configuration validation only. The VPS
+still needs to verify images, scan them, prepare and back up the database, run
+migrations and pass application checks. In the `deploy-backend` job, expand
+`Transfer and deploy the same tested images` to see these stages. Each stage
+prints a progress message; failures include the stage and exit code without
+printing credentials or the full failing command. Remote receiver output is
+unbuffered. A successful VPS deployment ends with `VPS release completed
+successfully`, followed by the workflow's public HTTPS health check.
+
 ## Single-script setup (recommended)
 
 On an AMD64 Ubuntu 22.04/24.04/26.04/26.10 VPS, from a reviewed copy of this project:
