@@ -10,7 +10,7 @@ import tarfile
 import tempfile
 
 ROOT = Path(__file__).resolve().parents[2]
-COMPONENTS = ("api", "database", "tools")
+COMPONENTS = ("api", "database", "tools", "web")
 
 
 def digest(path):
@@ -22,7 +22,8 @@ def digest(path):
 
 
 def release_files():
-    files = [ROOT / "compose.java-production.yaml", ROOT / "compose.java-production-nginx.yaml"]
+    files = [ROOT / name for name in ("compose.java-production.yaml", "compose.java-production-nginx.yaml",
+                                     "compose.java-production-nginx-app.yaml")]
     files += sorted((ROOT / "scripts/java-production").glob("*.sh"))
     files += sorted((ROOT / "scripts/java-production").glob("*.py"))
     files += sorted((ROOT / "docker/java-production").glob("*"))

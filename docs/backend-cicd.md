@@ -1,16 +1,49 @@
-# Backend CI/CD to the Ubuntu VPS
+# Java backend and frontend CI/CD to the Ubuntu VPS
 
 The GitHub workflow `.github/workflows/java-release.yml` tests Java 25 with real
 PostgreSQL integration tests, rehearses migrations and recovery, checks the host
-Nginx boundary and scans the three backend runtime images. A successful trusted
+Nginx boundary and scans the API, database, tools and Java frontend runtime images. A successful trusted
 `main` run packages those exact images and deployment files, then deploys over
 SSH when explicitly enabled. Pull requests never receive deployment credentials.
-Frontend/mobile jobs remain separate; their results are not dependencies of the
-backend deployment. The existing rehearsal also exercises the bundled web relay.
+Deployment requires Java, frontend and Ubuntu compatibility checks. Mobile checks
+remain separate. The existing rehearsal also exercises the bundled web relay.
 
 This pipeline targets an **AMD64 Ubuntu VPS**, Docker Compose and host Nginx.
 It transfers images directly over SSH: the VPS does not need GitHub repository or
 container-registry credentials, a JDK, Maven or application source code.
+Host Nginx serves the frontend domain through `127.0.0.1:18080` and the separate
+API domain through `127.0.0.1:18082`. Both containers remain private. The frontend
+uses relative `/api/` requests through its own origin; its web container forwards
+those requests to Java. Payment callbacks continue to use the separate API origin.
+
+## Upgrade an existing backend-only VPS
+
+Before pushing this frontend deployment change to `main`, point every frontend
+A/AAAA record at the same VPS and rerun the **updated** installer there. This
+installs the frontend Nginx site/certificate, upgrades the receiver to v2 and sets
+the repository variable `PRODUCTION_FRONTEND_URL` using the existing saved
+frontend domain. Existing secrets, database volume, deployment key and settings
+are preserved. Manually edited Nginx sites are refused for review.
+
+Build the installer locally from these changes and copy that file to your VPS:
+
+```sh
+python3 scripts/java-production/setup-vps.py --bundle /tmp/holyspace-vps-setup.pyz
+scp /tmp/holyspace-vps-setup.pyz administrator@your-vps:~/holyspace-vps-setup.pyz
+```
+
+On the VPS:
+
+```sh
+sudo python3 ~/holyspace-vps-setup.pyz
+sudo -u holyspace-deploy python3 /srv/holyspace/bin/receive-release.py --version
+```
+
+The version must be `holyspace-release-v2`. Then push to `main` or dispatch the
+workflow for that commit. If the change was pushed before provisioning, rerun the
+failed workflow after setup. CI checks receiver compatibility before uploading
+images and fails with upgrade instructions when it finds an older installation.
+Rerunning an older workflow does not pick up the new deployment code.
 
 ## Temporary Java test switch
 
@@ -65,7 +98,7 @@ Then run this single command on the VPS:
 sudo python3 ~/holyspace-vps-setup.pyz
 ```
 
-The portable file contains the same setup code and three public configuration
+The portable file contains the same setup code and four public configuration
 assets, with no credentials. The VPS needs Python 3.10+ already installed; Ubuntu
 22.04's standard Python is supported without replacing the system interpreter. For a
 preview, use `--plan` with `--api-domain`, `--frontend-domain`, `--email`,
@@ -78,7 +111,7 @@ that check to pass.
 The installer obtains GitHub CLI from its official signed APT repository to
 avoid the older distro client's missing features and retired API behavior.
 
-Before running, point **every** API A/AAAA record directly at this VPS and allow
+Before running, point **every** API and frontend A/AAAA record directly at this VPS and allow
 SSH/HTTP/HTTPS in the provider and host firewall. The installer leaves firewall
 and SSH daemon settings alone. It refuses another site's use of the same domain
 and preserves unrelated Nginx sites. Run provisioning in a maintenance window
@@ -118,8 +151,8 @@ and [GitHub CLI login](https://cli.github.com/manual/gh_auth_login).
 ## Deployment behavior
 
 1. Verify Java, architecture rules, migrations, restricted DB roles, recovery and
-   proxy boundaries in CI. Reject high/critical backend-image security findings.
-2. Tag the tested API/database/tools images with the full Git commit and package
+   proxy boundaries in CI. Reject high/critical application-image security findings.
+2. Tag the tested API/database/tools/web images with the full Git commit and package
    them with image IDs, file hashes and an archive checksum. Include only listed
    deployment files; production settings and secrets are excluded.
 3. Transfer the release using a dedicated SSH key and a pinned VPS host key.
@@ -127,9 +160,10 @@ and [GitHub CLI login](https://cli.github.com/manual/gh_auth_login).
    load the images and compare their IDs. Re-run preflight and the security gate
    before stopping the API. Never rebuild or silently pull replacement app images.
 5. Require an encrypted backup for any existing database volume, then stop the
-   API, migrate as the separate migrator role, apply runtime grants and start it.
+   API and frontend, migrate as the separate migrator role, apply runtime grants and start both.
 6. Check internal health/queues, record the current successful release and check
-   public HTTPS readiness through Nginx from the GitHub runner.
+   public API readiness, frontend HTML, login routing, compiled JavaScript assets
+   and frontend API relay readiness through Nginx from the GitHub runner.
 
 Deployments use a stable `holyspace-java-prod` Compose project and database volume
 across release directories. They do not reload Nginx, issue certificates, bootstrap
@@ -229,6 +263,8 @@ a new host key automatically and never disables strict host checking.
 
 Add **repository Actions variable** `PRODUCTION_API_URL`, e.g.
 `https://api.your-church.org`. It must match the API origin in the server settings.
+Add **repository Actions variable** `PRODUCTION_FRONTEND_URL`, e.g.
+`https://members.your-church.org`, matching `PAYMENTS_PUBLIC_URL` on the VPS.
 Add **repository Actions variable** `PRODUCTION_DEPLOY_ENABLED=true` only after
 the host, backups, SSH and launch gates are ready. This switch must be repository
 scoped because GitHub evaluates the deploy-job condition before entering its
@@ -243,7 +279,7 @@ workflow; they remain mounted secret files on the VPS.
 
 Commit and push the reviewed deployment changes to `main` through the normal
 review process. Watch **Actions → Java and member app release checks**. The Java
-job must pass before `deploy-backend` can start. Deployment is serialized and a
+job, frontend job and Ubuntu compatibility job must pass before `deploy-backend` can start. Deployment is serialized and a
 superseded main commit is rejected before transfer. New pushes do not cancel a
 running production migration. A manual workflow dispatch on `main` can retry;
 each run attempt has a separate immutable release directory.
@@ -254,7 +290,7 @@ use the deployed release and the same project/target:
 
 ```sh
 cd /srv/holyspace/current
-export JAVA_PRODUCTION_TARGET=nginx-api
+export JAVA_PRODUCTION_TARGET=nginx-app
 export JAVA_PRODUCTION_PROJECT=holyspace-java-prod
 scripts/java-production/bootstrap.sh administrator admin@your-church.org \
   'Church Administrator' /secure/operator/bootstrap-password

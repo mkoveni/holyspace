@@ -11,7 +11,8 @@ targets=("api|holyspace-java-api:$release_tag" "tools|holyspace-java-tools:$rele
 case "${JAVA_PRODUCTION_TARGET:-bundled}" in
   bundled) targets+=("web|holyspace-java-web:$release_tag" "edge|holyspace-java-edge:$release_tag") ;;
   nginx-api) ;;
-  *) echo 'Unknown JAVA_PRODUCTION_TARGET; use bundled or nginx-api.' >&2; exit 1 ;;
+  nginx-app) targets+=("web|holyspace-java-web:$release_tag") ;;
+  *) echo 'Unknown JAVA_PRODUCTION_TARGET; use bundled, nginx-api or nginx-app.' >&2; exit 1 ;;
 esac
 for target in "${targets[@]}"; do
   component=${target%%|*}

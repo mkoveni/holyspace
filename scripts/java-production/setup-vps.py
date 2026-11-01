@@ -27,8 +27,11 @@ PRIVATE = Path("/root/holyspace-setup")
 STATE = PRIVATE / "settings.json"
 SITE = Path("/etc/nginx/sites-available/holyspace-api")
 ENABLED_SITE = Path("/etc/nginx/sites-enabled/holyspace-api")
+FRONTEND_SITE = Path("/etc/nginx/sites-available/holyspace-frontend")
+ENABLED_FRONTEND_SITE = Path("/etc/nginx/sites-enabled/holyspace-frontend")
 MARKER = "# Managed by Holyspace VPS setup.\n"
-ASSETS = ("docker/java-production/nginx-api.conf", "scripts/java-production/receive-release.py",
+ASSETS = ("docker/java-production/nginx-api.conf", "docker/java-production/nginx-frontend.conf",
+          "scripts/java-production/receive-release.py",
           ".env.java-production.example")
 
 
@@ -112,9 +115,9 @@ def protected_write(path, content, mode=0o600, uid=0, gid=0, preserve=False):
     return True
 
 
-def nginx_config(domain, tls=True):
-    source = asset("docker/java-production/nginx-api.conf")
-    source = source.replace("api.church.example.org", domain)
+def nginx_config(domain, tls=True, frontend=False):
+    source = asset("docker/java-production/nginx-frontend.conf" if frontend else "docker/java-production/nginx-api.conf")
+    source = source.replace("church.example.org" if frontend else "api.church.example.org", domain)
     if not tls:
         source = source.split("\nserver {\n    listen 443 ssl;", 1)[0]
     return MARKER + source
@@ -135,21 +138,23 @@ def check_host(settings):
     validate_platform(release, sys.version_info[:2], platform.machine())
     # Fail before changing the host if this domain is already served by another site.
     for site in Path("/etc/nginx/sites-enabled").glob("*"):
-        if site.name != ENABLED_SITE.name and site.is_file():
+        if site.name not in (ENABLED_SITE.name, ENABLED_FRONTEND_SITE.name) and site.is_file():
             content = re.sub(r"#.*", "", site.read_text())
             declarations = re.findall(r"\bserver_name\s+([^;]+);", content)
-            if any(settings.api_domain in declaration.split() for declaration in declarations):
-                raise ValueError("The API domain is already configured in another Nginx site: " + str(site))
-    api_addresses = {entry[4][0] for entry in socket.getaddrinfo(settings.api_domain, 80)}
+            if any(domain in declaration.split() for declaration in declarations
+                   for domain in (settings.api_domain, settings.frontend_domain)):
+                raise ValueError("An application domain is already configured in another Nginx site: " + str(site))
     host_addresses = {entry[4][0] for entry in socket.getaddrinfo(settings.ssh_host, settings.ssh_port)}
     # Include global addresses assigned directly to this VPS for valid IPv6 DNS records.
     if shutil.which("ip"):
         interfaces = json.loads(subprocess.check_output(["ip", "-json", "address"], text=True))
         host_addresses |= {item["local"] for interface in interfaces for item in interface.get("addr_info", [])
                            if item.get("scope") == "global"}
-    if not api_addresses or not api_addresses <= host_addresses or not all(
-            ipaddress.ip_address(address).is_global for address in api_addresses):
-        raise ValueError("Point every API A/AAAA record directly at this VPS before setup; CDN proxying is not supported here.")
+    for domain in (settings.api_domain, settings.frontend_domain):
+        addresses = {entry[4][0] for entry in socket.getaddrinfo(domain, 80)}
+        if not addresses or not addresses <= host_addresses or not all(
+                ipaddress.ip_address(address).is_global for address in addresses):
+            raise ValueError("Point every API/frontend A/AAAA record directly at this VPS before setup; CDN proxying is not supported here.")
     return release.get("VERSION_CODENAME", "").strip('"')
 
 
@@ -303,35 +308,40 @@ def configure_files(settings, account):
         stdout=subprocess.DEVNULL)
 
 
-def install_site(settings):
-    hash_file = PRIVATE / "nginx-site.sha256"
-    if SITE.exists():
-        current = SITE.read_text()
+def install_site(settings, frontend=False):
+    site = FRONTEND_SITE if frontend else SITE
+    enabled_site = ENABLED_FRONTEND_SITE if frontend else ENABLED_SITE
+    domain = settings.frontend_domain if frontend else settings.api_domain
+    hash_file = PRIVATE / ("nginx-frontend-site.sha256" if frontend else "nginx-site.sha256")
+    if site.is_symlink():
+        raise ValueError("The managed Nginx site must not be a symlink.")
+    if site.exists():
+        current = site.read_text()
         if (not current.startswith(MARKER) or not hash_file.exists()
                 or hashlib.sha256(current.encode()).hexdigest() != hash_file.read_text().strip()):
             raise ValueError("Existing Nginx site is not managed by this script or has manual edits; preserve and review it separately.")
-    if ENABLED_SITE.exists() or ENABLED_SITE.is_symlink():
-        if not ENABLED_SITE.is_symlink() or ENABLED_SITE.resolve() != SITE:
+    if enabled_site.exists() or enabled_site.is_symlink():
+        if not enabled_site.is_symlink() or enabled_site.resolve() != site:
             raise ValueError("The Nginx enabled-site path is already used by another configuration.")
-    certificate = Path("/etc/letsencrypt/live") / settings.api_domain / "fullchain.pem"
+    certificate = Path("/etc/letsencrypt/live") / domain / "fullchain.pem"
 
     def apply(tls):
-        old = SITE.read_text() if SITE.exists() else None
-        linked = ENABLED_SITE.is_symlink()
-        content = nginx_config(settings.api_domain, tls)
-        protected_write(SITE, content, mode=0o644)
+        old = site.read_text() if site.exists() else None
+        linked = enabled_site.is_symlink()
+        content = nginx_config(domain, tls, frontend=frontend)
+        protected_write(site, content, mode=0o644)
         if not linked:
-            ENABLED_SITE.symlink_to(SITE)
+            enabled_site.symlink_to(site)
         try:
             run("nginx", "-t")
             run("systemctl", "reload", "nginx")
         except subprocess.CalledProcessError:
             if old is None:
-                SITE.unlink(missing_ok=True)
+                site.unlink(missing_ok=True)
             else:
-                protected_write(SITE, old, mode=0o644)
+                protected_write(site, old, mode=0o644)
             if not linked:
-                ENABLED_SITE.unlink(missing_ok=True)
+                enabled_site.unlink(missing_ok=True)
             raise
         protected_write(hash_file, hashlib.sha256(content.encode()).hexdigest() + "\n")
 
@@ -339,8 +349,8 @@ def install_site(settings):
     Path("/var/www/letsencrypt").chmod(0o755)
     apply(tls=certificate.exists())
     run("certbot", "certonly", "--webroot", "-w", "/var/www/letsencrypt", "--non-interactive",
-        "--agree-tos", "--email", settings.email, "--cert-name", settings.api_domain,
-        "-d", settings.api_domain, "--keep-until-expiring")
+        "--agree-tos", "--email", settings.email, "--cert-name", domain,
+        "-d", domain, "--keep-until-expiring")
     apply(tls=True)
     hook = Path("/etc/letsencrypt/renewal-hooks/deploy/holyspace-nginx")
     hook.parent.mkdir(parents=True, exist_ok=True)
@@ -349,7 +359,7 @@ def install_site(settings):
         raise ValueError("An existing certificate renewal hook has custom content; preserve and review it separately.")
     protected_write(hook, hook_content, mode=0o755)
     run("systemctl", "enable", "--now", "certbot.timer")
-    run("certbot", "renew", "--dry-run", "--cert-name", settings.api_domain)
+    run("certbot", "renew", "--dry-run", "--cert-name", domain)
 
 
 def deployment_key(account):
@@ -424,6 +434,7 @@ def configure_github(settings, values):
             run("gh", "secret", "set", name, "--repo", settings.repository, "--env", "production",
                 input=value, env=env, stdout=subprocess.DEVNULL)
         for name, value in (("PRODUCTION_API_URL", "https://" + settings.api_domain),
+                            ("PRODUCTION_FRONTEND_URL", "https://" + settings.frontend_domain),
                             ("PRODUCTION_DEPLOY_ENABLED", "true")):
             run("gh", "variable", "set", name, "--repo", settings.repository, "--body", value,
                 env=env, stdout=subprocess.DEVNULL)
@@ -482,6 +493,7 @@ def main():
     account = prepare_account()
     configure_files(settings, account)
     install_site(settings)
+    install_site(settings, frontend=True)
     key = deployment_key(account)
     values = github_settings(settings, key)
     # This file contains a private key: never print it, commit it or include it in releases.

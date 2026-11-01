@@ -1,5 +1,12 @@
 # Java API on Ubuntu with host Nginx
 
+For the Java backend **and Vue Java frontend** on the same VPS, use the
+[combined application CI/CD setup](backend-cicd.md), including its upgrade
+instructions for an existing backend-only installation. It uses the `nginx-app`
+target, adds a private web listener at `127.0.0.1:18080` and configures HTTPS for
+both domains. The manual `nginx-api` target below remains available for an API-only
+installation.
+
 For automatic deployments after successful GitHub checks, follow the
 [backend CI/CD setup](backend-cicd.md) after preparing the host below.
 Its single-script installer can perform that host preparation and GitHub setup

@@ -33,6 +33,14 @@ options=(-i "$ssh_directory/key" -o "UserKnownHostsFile=$ssh_directory/known_hos
   -o StrictHostKeyChecking=yes -o IdentitiesOnly=yes -o BatchMode=yes
   -o ConnectTimeout=15 -o ServerAliveInterval=15 -o ServerAliveCountMax=4)
 # Do not discover/trust host keys during a deployment or disable host checking.
+transfer_stage='checking VPS release receiver compatibility'
+printf 'Deployment: %s\n' "$transfer_stage"
+if ! receiver_version=$(ssh "${options[@]}" -p "$VPS_SSH_PORT" "$VPS_USER@$VPS_HOST" \
+  '/usr/bin/python3 -u /srv/holyspace/bin/receive-release.py --version') \
+  || [[ "$receiver_version" != holyspace-release-v2 ]]; then
+  echo 'Update the VPS with the latest holyspace-vps-setup.pyz before deploying the frontend release. See docs/backend-cicd.md.' >&2
+  exit 1
+fi
 transfer_stage='uploading release archive'
 printf 'Deployment: %s\n' "$transfer_stage"
 scp "${options[@]}" -P "$VPS_SSH_PORT" "$artifact_directory/holyspace-release.tar" \

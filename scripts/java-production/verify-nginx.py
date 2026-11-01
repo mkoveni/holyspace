@@ -63,9 +63,17 @@ class NginxDeploymentChecks(unittest.TestCase):
             self.assertEqual(config["services"]["api"]["ports"][0]["host_ip"], "127.0.0.1")
             self.assertNotIn("edge", config["services"])
             self.assertNotIn("web", config["services"])
+            env["JAVA_PRODUCTION_TARGET"] = "nginx-app"
+            self.assertEqual(run(*command, env=env).returncode, 0)
+            resolved = run("bash", "-c", 'source scripts/java-production/common.sh; dc config --format json',
+                           env=env, cwd=ROOT, check=True)
+            config = json.loads(resolved.stdout)
+            self.assertNotIn("edge", config["services"])
+            self.assertEqual(config["services"]["web"]["ports"][0]["host_ip"], "127.0.0.1")
+            self.assertEqual(str(config["services"]["web"]["ports"][0]["published"]), "18080")
             override = path / "unsafe.yaml"
             env["JAVA_PRODUCTION_OVERRIDE_FILE"] = str(override)
-            for service, port in (("api", "8082:8082"), ("database", "5432:5432")):
+            for service, port in (("api", "8082:8082"), ("database", "5432:5432"), ("web", "18080:8080")):
                 with self.subTest(service=service):
                     override.write_text(f"services:\n  {service}:\n    ports: !override ['{port}']\n")
                     self.assertNotEqual(run(*command, env=env).returncode, 0)
@@ -74,6 +82,12 @@ class NginxDeploymentChecks(unittest.TestCase):
             self.assertEqual(run(*command, env=env).returncode, 0)
 
     def test_live_nginx_routes_and_replaces_untrusted_forwarding_headers(self):
+        self.check_live_nginx(frontend=False)
+
+    def test_live_frontend_nginx_routes_and_replaces_untrusted_forwarding_headers(self):
+        self.check_live_nginx(frontend=True)
+
+    def check_live_nginx(self, frontend):
         class Echo(BaseHTTPRequestHandler):
             def do_GET(self):
                 payload = json.dumps({"path": self.path, "headers": dict(self.headers)}).encode()
@@ -98,15 +112,18 @@ class NginxDeploymentChecks(unittest.TestCase):
                     "-subj", "/CN=api.verification.invalid", "-keyout", str(path / "key.pem"),
                     "-out", str(path / "cert.pem"), check=True)
                 http_port, https_port = free_port(), free_port()
-                site = (ROOT / "docker/java-production/nginx-api.conf").read_text()
+                domain = "church.example.org" if frontend else "api.church.example.org"
+                template = "nginx-frontend.conf" if frontend else "nginx-api.conf"
+                site = (ROOT / "docker/java-production" / template).read_text()
                 site = site.replace("listen 80;", f"listen 127.0.0.1:{http_port};")
                 site = site.replace("listen 443 ssl;", f"listen 127.0.0.1:{https_port} ssl;")
                 site = site.replace("listen [::]:80;", "").replace("listen [::]:443 ssl;", "")
-                site = site.replace("/etc/letsencrypt/live/api.church.example.org/fullchain.pem", "/test/cert.pem")
-                site = site.replace("/etc/letsencrypt/live/api.church.example.org/privkey.pem", "/test/key.pem")
-                site = site.replace("127.0.0.1:18082", f"127.0.0.1:{upstream.server_port}")
-                site = site.replace("/var/log/nginx/holyspace-api.access.log", "/dev/stdout")
-                site = site.replace("/var/log/nginx/holyspace-api.error.log", "/dev/stderr")
+                site = site.replace(f"/etc/letsencrypt/live/{domain}/fullchain.pem", "/test/cert.pem")
+                site = site.replace(f"/etc/letsencrypt/live/{domain}/privkey.pem", "/test/key.pem")
+                site = site.replace("127.0.0.1:18080" if frontend else "127.0.0.1:18082", f"127.0.0.1:{upstream.server_port}")
+                log_name = "frontend" if frontend else "api"
+                site = site.replace(f"/var/log/nginx/holyspace-{log_name}.access.log", "/dev/stdout")
+                site = site.replace(f"/var/log/nginx/holyspace-{log_name}.error.log", "/dev/stderr")
                 (path / "nginx.conf").write_text("pid /tmp/nginx-check.pid;\nevents {}\nhttp {\n" + site + "\n}\n")
                 run("docker", "run", "-d", "--name", container, "--network", "host", "--user", "0",
                     "-v", f"{path}:/test:ro", "--entrypoint", "nginx",
@@ -133,24 +150,28 @@ class NginxDeploymentChecks(unittest.TestCase):
                     payload = json.load(response)
                     self.assertEqual(response.headers["Content-Security-Policy"], "default-src 'none'")
                 headers = {key.lower(): value for key, value in payload["headers"].items()}
-                self.assertEqual(headers["host"], "api.church.example.org")
-                self.assertEqual(headers["x-forwarded-host"], "api.church.example.org")
+                self.assertEqual(headers["host"], domain)
+                self.assertEqual(headers["x-forwarded-host"], domain)
                 self.assertEqual(headers["x-forwarded-proto"], "https")
                 self.assertEqual(headers["x-forwarded-for"], "127.0.0.1")
                 for key in ("forwarded", "x-forwarded-port", "x-forwarded-prefix"):
                     self.assertNotIn(key, headers)
                 with urllib.request.urlopen(base + "/health/ready", context=context) as response:
-                    self.assertEqual(json.load(response)["path"], "/actuator/health/readiness")
-                for route in ("/docs", "/v3/api-docs", "/actuator/env"):
+                    self.assertEqual(json.load(response)["path"], "/health/ready" if frontend else "/actuator/health/readiness")
+                for route in (() if frontend else ("/docs", "/v3/api-docs", "/actuator/env")):
                     with self.assertRaises(urllib.error.HTTPError) as error:
                         urllib.request.urlopen(base + route, context=context)
                     self.assertEqual(error.exception.code, 404)
                     error.exception.close()
+                if frontend:
+                    for route in ("/login", "/people", "/assets/app.js"):
+                        with urllib.request.urlopen(base + route, context=context) as response:
+                            self.assertEqual(json.load(response)["path"], route)
                 redirect = http.client.HTTPConnection("127.0.0.1", http_port)
                 redirect.request("GET", "/api/verify?test=1", headers={"Host": "attacker.invalid"})
                 response = redirect.getresponse()
                 self.assertEqual(response.status, 308)
-                self.assertEqual(response.getheader("Location"), "https://api.church.example.org/api/verify?test=1")
+                self.assertEqual(response.getheader("Location"), f"https://{domain}/api/verify?test=1")
                 redirect.close()
                 # Headers alone must trigger the size rejection before a body is sent.
                 connection = http.client.HTTPSConnection("127.0.0.1", https_port, context=context)

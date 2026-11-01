@@ -17,6 +17,8 @@ command = ["docker", "compose", "--env-file", env, "-f", str(root / "compose.jav
 target = os.environ.get("JAVA_PRODUCTION_TARGET", "bundled")
 if target == "nginx-api":
     command += ["-f", str(root / "compose.java-production-nginx.yaml")]
+elif target == "nginx-app":
+    command += ["-f", str(root / "compose.java-production-nginx-app.yaml")]
 if os.environ.get("JAVA_PRODUCTION_OVERRIDE_FILE"):
     command += ["-f", os.environ["JAVA_PRODUCTION_OVERRIDE_FILE"]]
 if os.environ.get("JAVA_PRODUCTION_PROJECT"):
@@ -44,7 +46,7 @@ def origin(value):
 
 
 try:
-    require(target in ("bundled", "nginx-api"), "Unknown JAVA_PRODUCTION_TARGET; use bundled or nginx-api.")
+    require(target in ("bundled", "nginx-api", "nginx-app"), "Unknown JAVA_PRODUCTION_TARGET.")
     result = subprocess.run(command + ["config", "--format", "json"], capture_output=True, text=True)
     require(result.returncode == 0, "Compose configuration is incomplete; check the private environment file.")
     config = json.loads(result.stdout)
@@ -61,17 +63,25 @@ try:
                 "Public origins must match their HTTPS routing domains.")
     origins = [origin(value.strip()) for value in settings["CORS_ALLOWED_ORIGINS"].split(",")]
     require(frontend in origins, "CORS must include the frontend origin.")
-    require(not any(config["services"].get(name, {}).get("ports") for name in ("database", "web")),
-            "Database and web containers must not publish production ports.")
+    require(not config["services"]["database"].get("ports"), "Database must not publish production ports.")
+    if target != "nginx-app":
+        require(not config["services"].get("web", {}).get("ports"), "Web container must not publish production ports.")
     api_ports = api.get("ports", [])
-    if target == "nginx-api":
+    if target in ("nginx-api", "nginx-app"):
         require(len(api_ports) == 1 and api_ports[0].get("host_ip") == "127.0.0.1"
                 and str(api_ports[0].get("published")) == "18082"
                 and api_ports[0].get("target") == 8082
                 and api_ports[0].get("protocol", "tcp") == "tcp",
                 "Host Nginx requires exactly 127.0.0.1:18082 mapped to API port 8082.")
-        require(not any(name in config["services"] for name in ("edge", "web")),
+        require("edge" not in config["services"] and (target == "nginx-app" or "web" not in config["services"]),
                 "Host Nginx mode must not enable bundled-edge profiles.")
+        if target == "nginx-app":
+            web_ports = config["services"]["web"].get("ports", [])
+            require(len(web_ports) == 1 and web_ports[0].get("host_ip") == "127.0.0.1"
+                    and str(web_ports[0].get("published")) == "18080"
+                    and web_ports[0].get("target") == 8080
+                    and web_ports[0].get("protocol", "tcp") == "tcp",
+                    "Host Nginx requires exactly 127.0.0.1:18080 mapped to web port 8080.")
     else:
         require(not api_ports, "Only the HTTPS edge may publish production ports.")
     values = {}

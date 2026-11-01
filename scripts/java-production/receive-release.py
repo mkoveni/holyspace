@@ -12,7 +12,7 @@ import sys
 import tarfile
 import tempfile
 
-COMPONENTS = ("api", "database", "tools")
+COMPONENTS = ("api", "database", "tools", "web")
 
 
 def digest(path):
@@ -29,7 +29,7 @@ def unpack(archive, destination, commit):
         for member in bundle.getmembers():
             path = Path(member.name)
             allowed = (member.name in ("manifest.json", "images.tar.gz", "compose.java-production.yaml",
-                                       "compose.java-production-nginx.yaml")
+                                       "compose.java-production-nginx.yaml", "compose.java-production-nginx-app.yaml")
                        or (str(path.parent) in ("scripts/java-production", "docker/java-production")))
             if (member.type not in (tarfile.REGTYPE, tarfile.AREGTYPE) or not allowed
                     or path.is_absolute() or ".." in path.parts
@@ -49,8 +49,9 @@ def unpack(archive, destination, commit):
             target.chmod(0o755 if member.mode & 0o100 else 0o644)
     manifest = json.loads((destination / "manifest.json").read_text())
     expected_images = {f"holyspace-java-{component}:{commit}" for component in COMPONENTS}
+    backend_images = expected_images - {f"holyspace-java-web:{commit}"}
     if (manifest["commit"] != commit or manifest["platform"] != "linux/amd64"
-            or set(manifest["images"]) != expected_images):
+            or set(manifest["images"]) not in (expected_images, backend_images)):
         raise ValueError("Release commit, platform or images do not match the deployment request.")
     if digest(destination / "images.tar.gz") != manifest["image_archive_sha256"]:
         raise ValueError("Image archive checksum mismatch.")
@@ -63,6 +64,9 @@ def unpack(archive, destination, commit):
 
 
 def main():
+    if sys.argv[1:] == ["--version"]:
+        print("holyspace-release-v2")
+        return
     if len(sys.argv) != 2 or not re.fullmatch(r"[0-9a-f]{40}-[0-9]+-[0-9]+", sys.argv[1]):
         raise ValueError("Usage: receive-release.py COMMIT-RUN-ATTEMPT")
     release_id = sys.argv[1]
@@ -102,7 +106,8 @@ def main():
             raise ValueError("Configure a single age public backup recipient on the VPS.")
         env = {key: value for key, value in os.environ.items()
                if not key.startswith(("JAVA_PRODUCTION_", "COMPOSE_"))}
-        env.update(JAVA_PRODUCTION_TARGET="nginx-api", JAVA_PRODUCTION_PREBUILT="true",
+        target = "nginx-app" if f"holyspace-java-web:{commit}" in manifest["images"] else "nginx-api"
+        env.update(JAVA_PRODUCTION_TARGET=target, JAVA_PRODUCTION_PREBUILT="true",
                    JAVA_PRODUCTION_PROJECT="holyspace-java-prod",
                    JAVA_PRODUCTION_ENV_FILE=str(destination / ".env.java-production.local"),
                    JAVA_PRODUCTION_SECURITY_REPORTS=str(destination / "security-reports"))
@@ -116,7 +121,7 @@ def main():
         pending.replace(root / "current")
         archive.unlink()
         checksum_file.unlink()
-        print("Backend deployed successfully: " + commit)
+        print("Application release deployed successfully: " + commit)
 
 
 if __name__ == "__main__":

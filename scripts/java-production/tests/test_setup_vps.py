@@ -98,6 +98,17 @@ class SetupNginxTests(unittest.TestCase):
         self.assertIn("/live/" + SETTINGS.api_domain + "/fullchain.pem", full)
         self.assertNotIn("api.church.example.org", full)
 
+    def test_frontend_site_uses_its_own_domain_certificate_and_loopback_port(self):
+        config = setup.nginx_config(SETTINGS.frontend_domain, frontend=True)
+        self.assertIn("127.0.0.1:18080", config)
+        self.assertIn("server_name " + SETTINGS.frontend_domain, config)
+        self.assertIn("/live/" + SETTINGS.frontend_domain + "/fullchain.pem", config)
+        self.assertNotIn("church.example.org", config)
+        self.assertIn('proxy_set_header X-Forwarded-Proto $scheme;', config)
+        http = setup.nginx_config(SETTINGS.frontend_domain, tls=False, frontend=True)
+        self.assertIn("/.well-known/acme-challenge/", http)
+        self.assertNotIn("ssl_certificate", http)
+
     def test_manually_edited_nginx_site_is_preserved(self):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory)
@@ -107,6 +118,16 @@ class SetupNginxTests(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     setup.install_site(SETTINGS)
             self.assertEqual(site.read_text(), "server { # custom configuration\n}\n")
+
+    def test_manually_edited_frontend_site_is_preserved(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory)
+            site = path / "frontend-site"
+            site.write_text("server { # existing frontend\n}\n")
+            with patch.object(setup, "FRONTEND_SITE", site), patch.object(setup, "PRIVATE", path):
+                with self.assertRaises(ValueError):
+                    setup.install_site(SETTINGS, frontend=True)
+            self.assertEqual(site.read_text(), "server { # existing frontend\n}\n")
 
 
 class SetupGithubTests(unittest.TestCase):
@@ -147,6 +168,8 @@ class SetupGithubTests(unittest.TestCase):
             self.assertNotIn("fixture-private-key", secret[0])
             self.assertEqual(secret[1]["input"], "fixture-private-key")
             self.assertIn("PRODUCTION_DEPLOY_ENABLED", commands[-1][0])
+            self.assertTrue(any("PRODUCTION_FRONTEND_URL" in args and "https://" + SETTINGS.frontend_domain in args
+                                for args, _ in commands))
             self.assertFalse(Path(secret[1]["env"]["GH_CONFIG_DIR"]).exists())
 
     def test_new_environment_is_main_only_and_browser_credentials_are_temporary(self):

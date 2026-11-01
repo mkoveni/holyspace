@@ -106,7 +106,7 @@ class ReleaseArchiveTests(unittest.TestCase):
 
 
 class PrebuiltDeploymentTests(unittest.TestCase):
-    def deploy(self, directory, fail_at=""):
+    def deploy(self, directory, fail_at="", target="nginx-api"):
         root = Path(directory)
         scripts = root / "scripts/java-production"
         scripts.mkdir(parents=True)
@@ -138,7 +138,7 @@ class PrebuiltDeploymentTests(unittest.TestCase):
         docker.chmod(0o700)
         env = {key: value for key, value in os.environ.items() if not key.startswith("JAVA_PRODUCTION_")}
         env.update(PATH=str(binary) + os.pathsep + os.environ["PATH"], TEST_LOG=str(root / "calls"),
-                   JAVA_PRODUCTION_TARGET="nginx-api", JAVA_PRODUCTION_PREBUILT="true", FAIL_AT=fail_at)
+                   JAVA_PRODUCTION_TARGET=target, JAVA_PRODUCTION_PREBUILT="true", FAIL_AT=fail_at)
         result = subprocess.run(["bash", str(scripts / "deploy.sh"), "age1test", str(root / "backups")],
                                 env=env, capture_output=True, text=True)
         return result, (root / "calls").read_text()
@@ -162,6 +162,15 @@ class PrebuiltDeploymentTests(unittest.TestCase):
             self.assertIn(f"docker image inspect holyspace-java-tools:{COMMIT}\n", calls)
             self.assertIn("Deployment: verifying loaded tools image", result.stdout)
             self.assertNotIn("KeyError", result.stderr)
+
+    def test_full_application_deployment_verifies_and_starts_web_with_api(self):
+        with tempfile.TemporaryDirectory() as directory:
+            result, calls = self.deploy(directory, target="nginx-app")
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn(f"docker image inspect holyspace-java-web:{COMMIT}\n", calls)
+            self.assertIn(" stop api web\n", calls)
+            self.assertIn("--wait-timeout 240 api web\n", calls)
+            self.assertIn("compose.java-production-nginx-app.yaml", calls)
 
     def test_silent_image_failure_reports_stage_and_preserves_exit_status(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -193,7 +202,8 @@ class SshTransferTests(unittest.TestCase):
             binary.mkdir()
             for name in ("ssh", "scp"):
                 script = binary / name
-                script.write_text('#!/bin/bash\necho "$0 $*" >> "$TEST_LOG"\n')
+                script.write_text('#!/bin/bash\necho "$0 $*" >> "$TEST_LOG"\n'
+                                  'if [[ " $* " == *" --version "* ]]; then echo "${RECEIVER_VERSION:-holyspace-release-v2}"; fi\n')
                 script.chmod(0o700)
             content = b"fixture-release"
             (root / "holyspace-release.tar").write_bytes(content)
@@ -208,7 +218,7 @@ class SshTransferTests(unittest.TestCase):
             result = subprocess.run(["bash", str(script), str(root)], env=env, capture_output=True, text=True)
             self.assertEqual(result.returncode, 0, result.stderr)
             calls = (root / "calls").read_text().splitlines()
-            self.assertEqual(len(calls), 3)
+            self.assertEqual(len(calls), 4)
             for call in calls:
                 self.assertIn("StrictHostKeyChecking=yes", call)
                 self.assertIn("UserKnownHostsFile=", call)
@@ -217,6 +227,12 @@ class SshTransferTests(unittest.TestCase):
             self.assertIn(f"receive-release.py {COMMIT}-123-2", calls[-1])
             self.assertIn("/usr/bin/python3 -u ", calls[-1])
             self.assertIn("VPS release completed successfully", result.stdout)
+            (root / "calls").unlink()
+            env["RECEIVER_VERSION"] = "old-receiver"
+            incompatible = subprocess.run(["bash", str(script), str(root)], env=env, capture_output=True, text=True)
+            self.assertNotEqual(incompatible.returncode, 0)
+            self.assertIn("Update the VPS", incompatible.stderr)
+            self.assertEqual(len((root / "calls").read_text().splitlines()), 1)
             (root / "calls").unlink()
             env["VPS_HOST"] = "host;exit 0"
             self.assertNotEqual(subprocess.run(["bash", str(script), str(root)], env=env,

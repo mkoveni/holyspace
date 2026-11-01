@@ -11,7 +11,7 @@ def cell(value):
 
 
 def summarize(directory, statuses):
-    lines = ["## Backend image security gate", "",
+    lines = ["## Application image security gate", "",
              "High and critical findings block deployment, including findings without a vendor fix.", ""]
     blocked = False
     for component, status in statuses:

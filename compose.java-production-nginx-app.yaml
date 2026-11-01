@@ -1,0 +1,9 @@
+# Host Nginx terminates HTTPS for both application domains.
+services:
+  api:
+    ports: ['127.0.0.1:18082:8082']
+  web:
+    ports: ['127.0.0.1:18080:8080']
+  edge:
+    profiles: [bundled-edge]
+    ports: !reset []

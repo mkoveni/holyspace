@@ -77,11 +77,11 @@ jobs:
           path: /tmp/holyspace-vps-setup.pyz
           retention-days: 7
           if-no-files-found: error
-      - name: Scan backend deployment images
+      - name: Scan backend and frontend deployment images
         run: scripts/java-production/security-scan.sh release-check /tmp/holyspace-image-security
         env:
-          JAVA_PRODUCTION_TARGET: nginx-api
-      - name: Package the verified backend release
+          JAVA_PRODUCTION_TARGET: nginx-app
+      - name: Package the verified backend and frontend release
         if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
         run: python3 scripts/java-production/package-release.py "$GITHUB_SHA" dist/backend-deploy
       - uses: actions/upload-artifact@v4
@@ -107,7 +107,7 @@ jobs:
             frontend/test-results/
           retention-days: 7
   deploy-backend:
-    needs: [java, ubuntu22-compatibility]
+    needs: [java, frontend, ubuntu22-compatibility]
     if: >-
       github.ref == 'refs/heads/main' && github.event_name != 'pull_request' &&
       vars.PRODUCTION_DEPLOY_ENABLED == 'true'
@@ -127,15 +127,19 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           PRODUCTION_API_URL: ${{ vars.PRODUCTION_API_URL }}
+          PRODUCTION_FRONTEND_URL: ${{ vars.PRODUCTION_FRONTEND_URL }}
         run: |
           latest=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq .object.sha)
           [[ "$latest" == "$GITHUB_SHA" ]] || { echo 'A newer main commit exists; deploy the current release instead.' >&2; exit 1; }
           python3 - <<'PY'
           import os
+          import runpy
           from urllib.parse import urlsplit
           origin = urlsplit(os.environ['PRODUCTION_API_URL'])
           assert origin.scheme == 'https' and origin.hostname and not origin.username and not origin.password
           assert origin.path in ('', '/') and not origin.query and not origin.fragment
+          frontend = runpy.run_path('scripts/java-production/check-frontend.py')['validate_origin'](os.environ['PRODUCTION_FRONTEND_URL'])
+          assert frontend != os.environ['PRODUCTION_API_URL'].rstrip('/'), 'Use separate frontend and API origins.'
           PY
       - uses: actions/download-artifact@v4
         with:
@@ -161,6 +165,10 @@ jobs:
           with open('/tmp/backend-readiness.json') as stream:
               assert json.load(stream)['status'] == 'UP', 'Public backend readiness failed.'
           PY
+      - name: Check public Java frontend through host Nginx
+        env:
+          PRODUCTION_FRONTEND_URL: ${{ vars.PRODUCTION_FRONTEND_URL }}
+        run: python3 scripts/java-production/check-frontend.py
   frontend:
     runs-on: ubuntu-latest
     timeout-minutes: 15
