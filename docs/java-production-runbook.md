@@ -83,6 +83,26 @@ not establish DNS reachability, successful TLS issuance or live provider readine
 
 ## First deployment
 
+The small-host defaults cap the API at 512 MiB (approximately 256 MiB maximum
+heap), PostgreSQL at 192 MiB, the web container at 48 MiB, migrations at 256 MiB
+and tools at 128 MiB. Nginx uses two workers. API connections and request threads
+are bounded. These are ceilings, not guaranteed allocations or load-tested
+capacity. Ubuntu, Docker, native JVM memory and deployment work also need RAM;
+use at least 2 GiB for production and measure with realistic traffic. A 1 GiB
+host has very little headroom even with these limits.
+
+Each service has an equal memory/swap ceiling so a process cannot consume
+unlimited host swap. See [Docker resource limits](https://docs.docker.com/engine/containers/resource_constraints/).
+PostgreSQL uses 32 MiB shared buffers, 2 MiB per query operation, 16 MiB maintenance
+memory and at most 20 connections. Existing environment files are preserved by
+setup; reduce an older `DB_POOL_SIZE=10` to `5` in
+`/srv/holyspace/shared/production.env`. Scale PostgreSQL's connection limit and
+memory budget together before increasing the pool.
+
+After deployment, use `scripts/java-production/memory-status.sh` with the same
+production target/project to inspect memory and OOM flags. For a host that crashed
+during administrator creation, follow the [memory recovery procedure](vps-memory-recovery.md).
+
 From the repository root:
 
 ```sh
@@ -108,7 +128,13 @@ scripts/java-production/bootstrap.sh administrator admin@your-domain.org \
 ```
 
 The script runs an isolated, unpublished API container with outbound services
-disabled, waits for the committed bootstrap result, and removes that container.
+disabled and a 256 MiB Java heap, waits for the committed bootstrap result, and
+removes that container. If the regular API is running, bootstrap first stops it
+and restarts that same container only after the temporary JVM is removed, on
+success or failure. This creates a short maintenance window and avoids running
+two full Java applications on a small VPS. An API that was already stopped stays
+stopped. If temporary-container removal fails, the regular API stays stopped so
+another JVM cannot exhaust host RAM.
 The handler refuses any database that already has accounts. The ordinary API never
 has bootstrap enabled. Remove the temporary password file after success. Set up
 staff roles, permissions and verified member/donor links through administration;

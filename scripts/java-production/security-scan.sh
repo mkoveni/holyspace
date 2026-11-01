@@ -19,11 +19,12 @@ for target in "${targets[@]}"; do
   image=${target#*|}
   # Never accidentally summarize a report left by an earlier scan.
   rm -f "$report_directory/$component.json"
-  if docker run --rm \
+  if docker run --rm --memory "${SCANNER_MEMORY_LIMIT:-256m}" --memory-swap "${SCANNER_MEMORY_LIMIT:-256m}" \
+    -e GOMEMLIMIT=192MiB -e GOMAXPROCS=1 \
     -v /var/run/docker.sock:/var/run/docker.sock:ro \
     -v holyspace-trivy-cache:/root/.cache/ \
     -v "$report_directory:/reports" "$scanner" image \
-    --scanners vuln --severity HIGH,CRITICAL --exit-code 1 --timeout 10m \
+    --scanners vuln --parallel 1 --severity HIGH,CRITICAL --exit-code 1 --timeout 10m \
     --format json --output "/reports/$component.json" "$image"; then
     scan_status=0
   else

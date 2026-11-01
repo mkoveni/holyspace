@@ -47,9 +47,14 @@ def origin(value):
 
 try:
     require(target in ("bundled", "nginx-api", "nginx-app"), "Unknown JAVA_PRODUCTION_TARGET.")
-    result = subprocess.run(command + ["config", "--format", "json"], capture_output=True, text=True)
+    result = subprocess.run(command + ["--profile", "operations", "config", "--format", "json"], capture_output=True, text=True)
     require(result.returncode == 0, "Compose configuration is incomplete; check the private environment file.")
     config = json.loads(result.stdout)
+    for name, service in config["services"].items():
+        require(int(service.get("mem_limit", 0)) > 0,
+                "Every service requires a finite memory limit: " + name)
+        require(service.get("memswap_limit") == service["mem_limit"],
+                "Memory and total memory/swap limits must match: " + name)
     api = config["services"]["api"]
     settings = api["environment"]
     release = api["image"].rsplit(":", 1)[-1]

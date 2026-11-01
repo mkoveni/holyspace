@@ -102,6 +102,14 @@ docker run --rm --network host --ipc=host -e HOME=/tmp \
   -v "$verify_directory/secrets/fixture_password:/run/release-password:ro" \
   -w /app "$browser_image" npx playwright test --config playwright.production.config.ts --reporter=line
 "$production_root/scripts/java-production/check.sh"
+# Bootstrap on a running deployment must stop its regular JVM, reject the
+# existing account, remove its temporary JVM and restore the healthy API.
+if "$production_root/scripts/java-production/bootstrap.sh" release-verification release-verification@church.invalid \
+  'Release Verification' "$verify_directory/secrets/fixture_password" > "$verify_directory/repeated-bootstrap.log" 2>&1; then
+  echo 'Administrator bootstrap accepted an existing account store.' >&2; exit 1
+fi
+grep -F 'Restarting the regular API after administrator setup' "$verify_directory/repeated-bootstrap.log" >/dev/null
+dc exec -T api curl --fail --silent --max-time 5 http://127.0.0.1:8082/actuator/health/readiness >/dev/null
 # Render the actual HTTPS edge configuration as well; this never requests a certificate.
 docker run --rm --network none \
   -e CHURCH_DOMAIN=verify.church.invalid -e API_DOMAIN=api.verify.church.invalid \

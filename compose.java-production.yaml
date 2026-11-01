@@ -7,9 +7,12 @@ x-api-environment: &api-environment
   SPRING_PROFILES_ACTIVE: production
   DB_URL: jdbc:postgresql://database:5432/holyspace
   DB_USERNAME: holyspace_runtime
-  DB_POOL_SIZE: ${DB_POOL_SIZE:-10}
+  DB_POOL_SIZE: ${DB_POOL_SIZE:-5}
   SERVER_PORT: 8082
-  JAVA_TOOL_OPTIONS: -XX:MaxRAMPercentage=65 -XX:+ExitOnOutOfMemoryError
+  JAVA_TOOL_OPTIONS: ${API_JAVA_TOOL_OPTIONS:--XX:InitialRAMPercentage=10 -XX:MaxRAMPercentage=50 -XX:ActiveProcessorCount=1 -XX:+UseSerialGC -XX:+ExitOnOutOfMemoryError}
+  SERVER_TOMCAT_THREADS_MAX: ${HTTP_MAX_THREADS:-32}
+  SERVER_TOMCAT_THREADS_MIN_SPARE: 4
+  SERVER_TOMCAT_MAX_CONNECTIONS: 128
   CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:?Set exact HTTPS frontend origins}
   PEOPLE_TIME_ZONE: ${PEOPLE_TIME_ZONE:-Africa/Johannesburg}
   SESSION_LIFETIME: ${SESSION_LIFETIME:-8h}
@@ -31,6 +34,9 @@ services:
     image: holyspace-java-database:${RELEASE_TAG:?Set an immutable release tag}
     build: {context: ., dockerfile: docker/java-production/database.Dockerfile}
     restart: unless-stopped
+    mem_limit: ${DATABASE_MEMORY_LIMIT:-192m}
+    memswap_limit: ${DATABASE_MEMORY_LIMIT:-192m}
+    command: [postgres, -c, 'shared_buffers=32MB', -c, 'work_mem=2MB', -c, 'maintenance_work_mem=16MB', -c, 'max_connections=20']
     environment:
       POSTGRES_DB: holyspace
       POSTGRES_USER: holyspace_admin
@@ -52,14 +58,17 @@ services:
     image: holyspace-java-api:${RELEASE_TAG:?Set an immutable release tag}
     build: ./backend-java
     command: [migrate]
+    mem_limit: ${MIGRATION_MEMORY_LIMIT:-256m}
+    memswap_limit: ${MIGRATION_MEMORY_LIMIT:-256m}
     environment:
       DB_URL: jdbc:postgresql://database:5432/holyspace
       DB_USERNAME: holyspace_migrator
       DB_PASSWORD_FILE: /run/secrets/migration_password
+      JAVA_TOOL_OPTIONS: -XX:InitialRAMPercentage=10 -XX:MaxRAMPercentage=50 -XX:ActiveProcessorCount=1 -XX:+UseSerialGC -XX:+ExitOnOutOfMemoryError
     secrets: [migration_password]
     networks: [database]
     read_only: true
-    tmpfs: [/tmp]
+    tmpfs: ['/tmp:size=32m']
     cap_drop: [ALL]
     security_opt: [no-new-privileges:true]
     depends_on:
@@ -79,10 +88,11 @@ services:
       - {source: push_access_token, target: PUSH_ACCESS_TOKEN}
     networks: [database, application]
     read_only: true
-    tmpfs: [/tmp]
+    tmpfs: ['/tmp:size=64m']
     cap_drop: [ALL]
     security_opt: [no-new-privileges:true]
-    mem_limit: 2g
+    mem_limit: ${API_MEMORY_LIMIT:-512m}
+    memswap_limit: ${API_MEMORY_LIMIT:-512m}
     stop_grace_period: 45s
     depends_on:
       database: {condition: service_healthy}
@@ -98,8 +108,10 @@ services:
     image: holyspace-java-web:${RELEASE_TAG:?Set an immutable release tag}
     build: {context: ., dockerfile: docker/java-production/web.Dockerfile}
     restart: unless-stopped
+    mem_limit: ${WEB_MEMORY_LIMIT:-48m}
+    memswap_limit: ${WEB_MEMORY_LIMIT:-48m}
     read_only: true
-    tmpfs: [/tmp]
+    tmpfs: ['/tmp:size=16m']
     cap_drop: [ALL]
     security_opt: [no-new-privileges:true]
     networks: [application]
@@ -116,8 +128,10 @@ services:
     image: holyspace-java-edge:${RELEASE_TAG:?Set an immutable release tag}
     build: {context: ., dockerfile: docker/java-production/edge.Dockerfile}
     restart: unless-stopped
+    mem_limit: 128m
+    memswap_limit: 128m
     read_only: true
-    tmpfs: [/tmp]
+    tmpfs: ['/tmp:size=16m']
     cap_drop: [ALL]
     cap_add: [NET_BIND_SERVICE]
     security_opt: [no-new-privileges:true]
@@ -145,8 +159,10 @@ services:
     image: holyspace-java-tools:${RELEASE_TAG:?Set an immutable release tag}
     build: {context: ., dockerfile: docker/java-production/tools.Dockerfile}
     network_mode: none
+    mem_limit: ${TOOLS_MEMORY_LIMIT:-128m}
+    memswap_limit: ${TOOLS_MEMORY_LIMIT:-128m}
     read_only: true
-    tmpfs: [/tmp]
+    tmpfs: ['/tmp:size=32m']
     cap_drop: [ALL]
     security_opt: [no-new-privileges:true]
     logging: *logging

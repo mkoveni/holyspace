@@ -16,6 +16,11 @@ API domain through `127.0.0.1:18082`. Both containers remain private. The fronte
 uses relative `/api/` requests through its own origin; its web container forwards
 those requests to Java. Payment callbacks continue to use the separate API origin.
 
+For a small VPS, read the [memory recovery and sizing guide](vps-memory-recovery.md).
+Runtime containers, migrations and the scanner have finite memory limits.
+Administrator bootstrap temporarily stops a running API to avoid two full Java
+instances. A 1 GiB server is tight; at least 2 GiB is recommended for production.
+
 ## Upgrade an existing backend-only VPS
 
 Before pushing this frontend deployment change to `main`, point every frontend

@@ -8,7 +8,9 @@ cleanup() { if [[ -n "$restore_id" ]]; then docker rm -f "$restore_id" >/dev/nul
 trap cleanup EXIT
 if [[ -f "$backup_path.sha256" ]]; then (cd "$(dirname "$backup_path")" && sha256sum --check --status "$(basename "$backup_path").sha256"); fi
 database_image=$(dc config --format json | python3 -c 'import json,sys;print(json.load(sys.stdin)["services"]["database"]["image"])')
-restore_id=$(docker run -d --rm --network none -e POSTGRES_PASSWORD="$(openssl rand -hex 32)" -e POSTGRES_DB=holyspace "$database_image")
+restore_id=$(docker run -d --rm --network none --memory 256m --memory-swap 256m \
+  -e POSTGRES_PASSWORD="$(openssl rand -hex 32)" -e POSTGRES_DB=holyspace "$database_image" \
+  postgres -c shared_buffers=64MB -c work_mem=2MB -c maintenance_work_mem=32MB -c max_connections=30)
 ready=0
 for ((attempt = 0; attempt < 60; attempt++)); do
   if docker exec "$restore_id" holyspace-database-ready >/dev/null 2>&1; then ready=1; break; fi

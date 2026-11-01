@@ -71,12 +71,17 @@ class NginxDeploymentChecks(unittest.TestCase):
             self.assertNotIn("edge", config["services"])
             self.assertEqual(config["services"]["web"]["ports"][0]["host_ip"], "127.0.0.1")
             self.assertEqual(str(config["services"]["web"]["ports"][0]["published"]), "18080")
+            self.assertEqual(int(config["services"]["api"]["mem_limit"]), 512 * 1024 * 1024)
+            self.assertEqual(int(config["services"]["database"]["mem_limit"]), 192 * 1024 * 1024)
+            self.assertEqual(int(config["services"]["web"]["mem_limit"]), 48 * 1024 * 1024)
             override = path / "unsafe.yaml"
             env["JAVA_PRODUCTION_OVERRIDE_FILE"] = str(override)
             for service, port in (("api", "8082:8082"), ("database", "5432:5432"), ("web", "18080:8080")):
                 with self.subTest(service=service):
                     override.write_text(f"services:\n  {service}:\n    ports: !override ['{port}']\n")
                     self.assertNotEqual(run(*command, env=env).returncode, 0)
+            override.write_text("services:\n  api:\n    mem_limit: 0\n    memswap_limit: 0\n")
+            self.assertNotEqual(run(*command, env=env).returncode, 0)
             env.pop("JAVA_PRODUCTION_OVERRIDE_FILE")
             env["JAVA_PRODUCTION_TARGET"] = "bundled"
             self.assertEqual(run(*command, env=env).returncode, 0)
