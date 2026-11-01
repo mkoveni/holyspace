@@ -6,6 +6,15 @@ mkdir -p "$report_directory"
 scanner='aquasec/trivy:0.76.1@sha256:790fd66d1697395d8693d1acaa1ea702406a20f109b6fc7bac8db623eca6c06c'
 result=0
 scan_results=()
+scanner_container=''
+cleanup_scanner() {
+  if [[ -n "$scanner_container" ]]; then
+    docker rm -f "$scanner_container" >/dev/null 2>&1 || true
+  fi
+}
+trap 'cleanup_scanner' EXIT
+scanner_memory=${SCANNER_MEMORY_LIMIT:-256m}
+scanner_go_memory=${SCANNER_GO_MEMORY_LIMIT:-192MiB}
 targets=("api|holyspace-java-api:$release_tag" "tools|holyspace-java-tools:$release_tag"
   "database|holyspace-java-database:$release_tag")
 case "${JAVA_PRODUCTION_TARGET:-bundled}" in
@@ -18,9 +27,12 @@ for target in "${targets[@]}"; do
   component=${target%%|*}
   image=${target#*|}
   # Never accidentally summarize a report left by an earlier scan.
-  rm -f "$report_directory/$component.json"
-  if docker run --rm --memory "${SCANNER_MEMORY_LIMIT:-256m}" --memory-swap "${SCANNER_MEMORY_LIMIT:-256m}" \
-    -e GOMEMLIMIT=192MiB -e GOMAXPROCS=1 \
+  rm -f "$report_directory/$component.json" "$report_directory/$component.status.json"
+  scanner_container="holyspace-security-$component-$$-$RANDOM"
+  printf 'Scanning %s image (container memory limit: %s)...\n' "$component" "$scanner_memory"
+  # Retain the stopped scanner until its OOM state has been recorded.
+  if docker run --name "$scanner_container" --memory "$scanner_memory" --memory-swap "$scanner_memory" \
+    -e "GOMEMLIMIT=$scanner_go_memory" -e GOMAXPROCS=1 \
     -v /var/run/docker.sock:/var/run/docker.sock:ro \
     -v holyspace-trivy-cache:/root/.cache/ \
     -v "$report_directory:/reports" "$scanner" image \
@@ -31,6 +43,21 @@ for target in "${targets[@]}"; do
     scan_status=$?
     result=1
   fi
+  scanner_oom=$(docker inspect --format '{{.State.OOMKilled}}' "$scanner_container" 2>/dev/null || echo unknown)
+  printf 'Scanner result: component=%s exit=%s OOMKilled=%s memory_limit=%s\n' \
+    "$component" "$scan_status" "$scanner_oom" "$scanner_memory"
+  python3 - "$report_directory/$component.status.json" "$scan_status" "$scanner_oom" "$scanner_memory" <<'PY'
+import json
+from pathlib import Path
+import sys
+Path(sys.argv[1]).write_text(json.dumps({
+    "exit_code": int(sys.argv[2]),
+    "oom_killed": {"true": True, "false": False}.get(sys.argv[3]),
+    "memory_limit": sys.argv[4],
+}) + "\n")
+PY
+  cleanup_scanner
+  scanner_container=''
   scan_results+=("$component:$scan_status")
 done
 if ! python3 "$(dirname "$0")/security-summary.py" "$report_directory" "${scan_results[@]}"; then

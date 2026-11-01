@@ -16,6 +16,22 @@ def summarize(directory, statuses):
     blocked = False
     for component, status in statuses:
         lines += ["### " + cell(component), ""]
+        scanner_oom = False
+        if status:
+            lines += [f"Scanner exit code: `{status}`.", ""]
+        try:
+            diagnostic = json.loads((directory / (component + ".status.json")).read_text())
+            if diagnostic.get("oom_killed") is True:
+                scanner_oom = True
+                blocked = True
+                lines += ["**Scanner exceeded its container memory limit and was OOM-killed.** "
+                          "Increase the scanner's memory budget on the scanning host; the application image "
+                          "has not passed the security gate.", ""]
+            elif status == 137:
+                lines += ["**Scanner was killed (SIGKILL).** Check the host/container memory state; "
+                          "the exit code alone does not establish an OOM event.", ""]
+        except (OSError, ValueError, AttributeError):
+            pass
         try:
             report = json.loads((directory / (component + ".json")).read_text())
             if not isinstance(report.get("Results"), list):
@@ -28,7 +44,7 @@ def summarize(directory, statuses):
             blocked = True
             continue
         if not findings:
-            if status:
+            if status or scanner_oom:
                 lines += ["**Scanner exited unsuccessfully** despite no high/critical entries in its report. "
                           "Check the scanner output before retrying.", ""]
                 blocked = True

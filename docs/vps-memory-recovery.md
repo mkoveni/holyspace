@@ -67,5 +67,6 @@ stats and `scripts/java-production/memory-status.sh` once available.
 The bounded defaults are suitable for validation with modest traffic, not a
 capacity promise. Increase the VPS to at least 2 GiB for production and monitor
 under realistic load. Deployment scans now run sequentially with a 256 MiB
-container cap and a 192 MiB Go memory target. Scanner OOMs still fail the security
+container cap and a 192 MiB Go memory target on the VPS. CI uses a separate 1 GiB
+scanner cap and 768 MiB Go target. Scanner OOMs still fail the security
 gate; a 1 GiB host may need a maintenance window or more RAM to complete them.

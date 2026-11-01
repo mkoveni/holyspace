@@ -11,6 +11,16 @@ SPEC.loader.exec_module(summary)
 
 
 class SecuritySummaryTests(unittest.TestCase):
+    def test_missing_report_with_confirmed_oom_explains_memory_failure_and_still_blocks(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory)
+            (path / "database.status.json").write_text('{"oom_killed": true, "exit_code": 137}')
+            text, blocked = summary.summarize(path, [("database", 137)])
+            self.assertTrue(blocked)
+            self.assertIn("Scanner exit code: `137`", text)
+            self.assertIn("OOM-killed", text)
+            self.assertNotIn("Passed:", text)
+
     def test_unfixed_findings_still_block_and_show_the_package_and_advisory(self):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory)

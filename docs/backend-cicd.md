@@ -64,6 +64,14 @@ Actions → Variables. The workflow records skipped execution in the run summary
 
 ## Deployment progress and failures
 
+CI image scans use a 1 GiB scanner container with a 768 MiB Go memory target.
+This scanning budget is separate from application runtime limits. VPS scans
+retain a 256 MiB limit by default; operators can set `SCANNER_MEMORY_LIMIT` and
+`SCANNER_GO_MEMORY_LIMIT` for a host with sufficient RAM. Scanning is sequential.
+Each component prints its exit code and Docker OOM flag and saves a
+`COMPONENT.status.json` diagnostic alongside the vulnerability report. A missing
+report or an OOM still blocks deployment; neither is treated as a clean scan.
+
 `Production preflight passed` confirms configuration validation only. The VPS
 still needs to verify images, scan them, prepare and back up the database, run
 migrations and pass application checks. In the `deploy-backend` job, expand

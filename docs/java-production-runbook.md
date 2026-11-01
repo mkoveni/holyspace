@@ -127,7 +127,8 @@ scripts/java-production/bootstrap.sh administrator admin@your-domain.org \
   'Church Administrator' /secure/operator/bootstrap-password
 ```
 
-The script runs an isolated, unpublished API container with outbound services
+The sscanning is enabled
+2026-11-01T11:45:04Z	INFO	[vuln] cript runs an isolated, unpublished API container with outbound services
 disabled and a 256 MiB Java heap, waits for the committed bootstrap result, and
 removes that container. If the regular API is running, bootstrap first stops it
 and restarts that same container only after the temporary JVM is removed, on

@@ -81,6 +81,8 @@ jobs:
         run: scripts/java-production/security-scan.sh release-check /tmp/holyspace-image-security
         env:
           JAVA_PRODUCTION_TARGET: nginx-app
+          SCANNER_MEMORY_LIMIT: 1g
+          SCANNER_GO_MEMORY_LIMIT: 768MiB
       - name: Package the verified backend and frontend release
         if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
         run: python3 scripts/java-production/package-release.py "$GITHUB_SHA" dist/backend-deploy
