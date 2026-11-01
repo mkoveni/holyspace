@@ -1,10 +1,43 @@
 # Production security scan record
 
-Assessment date: 31 October 2026. This records local release-candidate checks,
+Latest backend assessment: 1 November 2026. This records local release-candidate checks,
 not approval to deploy or an exploitability assessment. Re-run the gates for
 the exact release images and lockfiles before deployment.
 
-## Runtime images
+## Backend fix verified on 1 November 2026
+
+The failed image gate was reproduced locally: the former Debian database image
+had 88 high/critical package findings (43 distinct advisories). API and backup
+tools passed. Of the database findings, 26 affected the old Go runtime inside
+`gosu`; the other 62 had no vendor fix listed for the installed Debian packages.
+
+For this fresh production database, the runtime now uses the official PostgreSQL
+18 Alpine 3.24 variant with OS updates. The same upstream gosu 1.19 source commit
+is built with patched Go 1.27.3, preserving supplementary-group initialization for
+mounted secrets. The compiler is excluded from the runtime image. No advisory is
+ignored and the high/critical threshold is unchanged.
+
+The final API, database and backup-tool images each have **zero high/critical
+findings** in the current scan. This is a point-in-time result, not a waiver of
+future findings. This backend result does not certify the unused bundled Caddy
+image or the VPS's Nginx/Ubuntu packages.
+
+This database runtime is for fresh compatible volumes. It writes a runtime marker
+at initialization and refuses old unmarked/incompatible data directories.
+Deployment checks an existing volume read-only before replacing its container.
+Never switch an existing Debian cluster to Alpine in place; use a reviewed logical
+backup/restore migration. Restore drills now use the deployment's database image.
+
+Scanner failures and package/advisory/fixed-version details are now written to the
+workflow log and GitHub step summary. Complete JSON remains in `image-security`.
+The isolated production rehearsal passed fresh/repeat migrations, database restart,
+old-runtime refusal, role/secret access, browser authentication, encrypted backup,
+restore using the same database runtime, and database-outage probes. All 21
+deployment/installer tests passed. No production data or VPS was modified.
+
+The following earlier results are retained as the 31 October baseline.
+
+## Runtime image baseline on 31 October
 
 The production image gate scans OS packages and application dependencies for
 high and critical findings with Trivy
@@ -23,7 +56,7 @@ Package findings can repeat an advisory across installed packages. These counts
 do not establish whether a vulnerability is reachable in this deployment.
 PostgreSQL findings include vendor OS packages and the bundled `gosu` binary;
 edge findings include Go runtime and module dependencies. Some matches have no
-vendor fix available. Backend CI and deployment remain blocked by the database
+vendor fix available. At that baseline, backend CI and deployment were blocked by database
 findings. The bundled deployment also gates its edge image; the host-Nginx target
 omits that unused image and requires host security review separately.
 Upstream patches or a documented assessment are required;

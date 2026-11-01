@@ -72,6 +72,16 @@ files do not provision an external production environment or install host schedu
 See [the security scan record](production-security-scan.md) for scope and counts.
 No production host, off-site schedule or external alert destination was activated.
 
+## Backend security update on 1 November 2026
+
+The fresh-database image now uses PostgreSQL 18 on Alpine 3.24 and gosu 1.19 built
+with Go 1.27.3. The API, database and backup-tool images all pass the current
+high/critical scan, resolving the database blocker recorded above. No findings
+are ignored. Existing Debian data directories are refused before replacement;
+this runtime requires a fresh compatible volume or a reviewed logical migration.
+The bundled Caddy baseline and host security remain separate responsibilities.
+Scan details now appear in the GitHub step summary as well as JSON artifacts.
+
 ## Sequencing
 
 Finish and rehearse the production foundation, then implement privileged MFA and

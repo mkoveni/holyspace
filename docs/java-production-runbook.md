@@ -29,8 +29,9 @@ callbacks retain their separate frontend/backend origins. Public routes are
 limited to the intended API capabilities; API documentation and other Actuator
 endpoints are not exposed in production.
 
-Review [the launch tracker](production-readiness.md) before opening access. Database and HTTPS proxy image findings currently block deployment;
-no unfixed finding is automatically waived. The supported SDK 58 mobile security
+Review [the launch tracker](production-readiness.md) before opening access. The
+patched backend images pass the current high/critical scan; bundled HTTPS proxy
+findings remain a separate gate. No unfixed finding is automatically waived. The supported SDK 58 mobile security
 patch is recorded in the launch tracker. Cloud
 accounts, signing, DNS, external alerting and off-site storage are not provisioned
 by this repository.
@@ -241,6 +242,6 @@ tools, including OS and Java dependencies. The default bundled-target scan also
 includes frontend and edge images. Run the full scan locally after the
 rehearsal with `scripts/java-production/security-scan.sh release-check /tmp/holyspace-image-security`.
 No unfixed finding is automatically ignored. The deployment command also runs
-this gate before starting or stopping production services. Current database/edge
-image findings require upstream patches or a documented exploitability review;
-see the launch tracker.
+this gate before starting or stopping production services. The patched fresh
+backend images pass the current scan; the bundled edge baseline still needs
+upstream patches or a documented exploitability review. See the launch tracker.

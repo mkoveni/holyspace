@@ -7,9 +7,10 @@ restore_id=''
 cleanup() { if [[ -n "$restore_id" ]]; then docker rm -f "$restore_id" >/dev/null; fi; }
 trap cleanup EXIT
 if [[ -f "$backup_path.sha256" ]]; then (cd "$(dirname "$backup_path")" && sha256sum --check --status "$(basename "$backup_path").sha256"); fi
-restore_id=$(docker run -d --rm --network none -e POSTGRES_PASSWORD="$(openssl rand -hex 32)" -e POSTGRES_DB=holyspace postgres:18)
+database_image=$(dc config --format json | python3 -c 'import json,sys;print(json.load(sys.stdin)["services"]["database"]["image"])')
+restore_id=$(docker run -d --rm --network none -e POSTGRES_PASSWORD="$(openssl rand -hex 32)" -e POSTGRES_DB=holyspace "$database_image")
 ready=0
-for attempt in {1..60}; do
+for ((attempt = 0; attempt < 60; attempt++)); do
   if docker exec "$restore_id" pg_isready -U postgres -d holyspace >/dev/null 2>&1; then ready=1; break; fi
   sleep 1
 done

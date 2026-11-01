@@ -65,9 +65,22 @@ if JAVA_PRODUCTION_OVERRIDE_FILE= JAVA_PRODUCTION_ENV_FILE="$verify_directory/in
   echo 'Preflight accepted an insecure public origin.' >&2; exit 1
 fi
 if [[ "${JAVA_VERIFY_SKIP_BUILD:-0}" != 1 ]]; then dc build --pull api web tools database edge; fi
+# The new runtime must refuse an older unmarked cluster without modifying it.
+mkdir "$verify_directory/unmarked-database"
+printf '18\n' > "$verify_directory/unmarked-database/PG_VERSION"
+if docker run --rm --network none -e PGDATA=/test \
+  -v "$verify_directory/unmarked-database:/test:ro" \
+  "holyspace-java-database:${JAVA_VERIFY_RELEASE_TAG:-release-check}" postgres --version \
+  > "$verify_directory/runtime-guard.log" 2>&1; then
+  echo 'Database runtime guard accepted an unverified existing cluster.' >&2; exit 1
+fi
+grep -q 'Existing database uses an unverified runtime' "$verify_directory/runtime-guard.log"
 dc up -d --wait --wait-timeout 180 database
 dc run --rm -T --no-deps migrate
 dc exec -T database psql -U holyspace_admin -d holyspace -v ON_ERROR_STOP=1 < "$production_root/docker/java-production/grants.sql"
+# A freshly initialized cluster must remain usable after a normal restart.
+dc restart database
+dc up -d --wait --wait-timeout 180 database
 # Migration mode must be safe to repeat and must not bootstrap the administrator.
 dc run --rm -T --no-deps migrate
 test "$(dc exec -T database psql -U holyspace_admin -d holyspace -Atc 'SELECT count(*) FROM user_accounts')" = 0

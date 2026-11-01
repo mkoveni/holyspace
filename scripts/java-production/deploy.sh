@@ -18,6 +18,11 @@ existing_database=false
 if docker volume inspect "$database_volume" >/dev/null 2>&1; then
   existing_database=true
   [[ $# == 2 ]] || { echo 'Existing database volume: supply AGE_PUBLIC_RECIPIENT and BACKUP_DIRECTORY before deployment.' >&2; exit 1; }
+  # Refuse incompatible data directories before recreating a running database.
+  database_image=$(dc config --format json | python3 -c 'import json,sys;print(json.load(sys.stdin)["services"]["database"]["image"])')
+  docker run --rm --network none \
+    --mount "type=volume,source=$database_volume,target=/var/lib/postgresql,readonly" \
+    "$database_image" postgres --version >/dev/null
 fi
 dc up -d --no-build --pull never --wait --wait-timeout 180 database
 if [[ "$existing_database" == true ]]; then

@@ -127,6 +127,7 @@ class PrebuiltDeploymentTests(unittest.TestCase):
                                for component in receiver.COMPONENTS},
                   "volumes": {"database": {"name": "holyspace-java-prod_database"}}}
         docker.write_text('#!/bin/bash\necho "docker $*" >> "$TEST_LOG"\n'
+                          'if [[ " $* " == *" postgres --version "* && "${FAIL_AT:-}" == runtime-check ]]; then exit 1; fi\n'
                           'if [[ " $* " == *" config "* ]]; then\n'
                           "cat <<'JSON'\n" + json.dumps(config) + '\nJSON\nfi\n')
         docker.chmod(0o700)
@@ -148,12 +149,14 @@ class PrebuiltDeploymentTests(unittest.TestCase):
             self.assertLess(calls.index(" stop api"), calls.index("run --rm -T --no-deps migrate"))
 
     def test_security_or_backup_failure_cannot_stop_the_running_api(self):
-        for failure in ("security-scan", "backup"):
+        for failure in ("security-scan", "backup", "runtime-check"):
             with self.subTest(failure=failure), tempfile.TemporaryDirectory() as directory:
                 result, calls = self.deploy(directory, fail_at=failure)
                 self.assertNotEqual(result.returncode, 0)
                 self.assertNotIn(" stop api", calls)
                 self.assertNotIn("run --rm -T --no-deps migrate", calls)
+                if failure == "runtime-check":
+                    self.assertNotIn(" up -d ", calls)
 
 
 class SshTransferTests(unittest.TestCase):

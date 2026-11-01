@@ -5,6 +5,7 @@ report_directory=$(realpath -m "${2:?Provide a private report directory}")
 mkdir -p "$report_directory"
 scanner='aquasec/trivy:0.76.1@sha256:790fd66d1697395d8693d1acaa1ea702406a20f109b6fc7bac8db623eca6c06c'
 result=0
+scan_results=()
 targets=("api|holyspace-java-api:$release_tag" "tools|holyspace-java-tools:$release_tag"
   "database|holyspace-java-database:$release_tag")
 case "${JAVA_PRODUCTION_TARGET:-bundled}" in
@@ -15,15 +16,24 @@ esac
 for target in "${targets[@]}"; do
   component=${target%%|*}
   image=${target#*|}
-  if ! docker run --rm \
+  # Never accidentally summarize a report left by an earlier scan.
+  rm -f "$report_directory/$component.json"
+  if docker run --rm \
     -v /var/run/docker.sock:/var/run/docker.sock:ro \
     -v holyspace-trivy-cache:/root/.cache/ \
     -v "$report_directory:/reports" "$scanner" image \
     --scanners vuln --severity HIGH,CRITICAL --exit-code 1 --timeout 10m \
     --format json --output "/reports/$component.json" "$image"; then
+    scan_status=0
+  else
+    scan_status=$?
     result=1
   fi
+  scan_results+=("$component:$scan_status")
 done
+if ! python3 "$(dirname "$0")/security-summary.py" "$report_directory" "${scan_results[@]}"; then
+  result=1
+fi
 if (( result != 0 )); then
   echo 'Image security gate failed. Inspect the reports; do not waive or hide unresolved findings.' >&2
 fi

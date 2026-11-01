@@ -118,9 +118,16 @@ this is not a zero-downtime or automatic schema-rollback deployment.
 First complete the [Ubuntu/Nginx setup](ubuntu-nginx-java-deployment.md), including
 DNS, certificates, Docker, private secrets and firewall verification. Python 3.10+
 is required for the receiver. Check `docker info --format '{{.Architecture}}'`
-reports `x86_64` or `amd64`. Resolve the database-image security findings before
-expecting the release gate to pass. The VPS needs outbound HTTPS for the pinned
+reports `x86_64` or `amd64`. The fresh database runtime uses PostgreSQL 18 on Alpine
+3.24 with a patched gosu helper. Its current high/critical scan passes; the release
+gate still evaluates every exact release. The VPS needs outbound HTTPS for the pinned
 scanner image and vulnerability database.
+
+Do not reuse an initialized Debian database directory with this runtime. Existing
+unmarked volumes are refused before their container is replaced. For an existing
+cluster, use a separately reviewed logical backup/restore migration; for this
+fresh deployment, let the pipeline initialize a new volume. Never delete a volume
+that contains required data to bypass this check.
 
 Create a dedicated deployment account and directories. Example commands below
 are for a new installation; preserve any existing deployment and data:

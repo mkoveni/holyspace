@@ -51,7 +51,7 @@ scripts/java-production/deploy.sh
 The scripts automatically merge `compose.java-production-nginx.yaml`. They build
 and scan only the API, database and tools, then migrate and start the API with
 restricted runtime credentials. High/critical image findings still stop deployment;
-the database findings remain unresolved. Host Nginx and Ubuntu require their own
+the current patched fresh-database image passes that scan. Host Nginx and Ubuntu require their own
 security updates and review; excluding unused Caddy does not certify the host.
 
 This target is intended for a fresh installation. Do not switch targets on a live
