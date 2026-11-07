@@ -1,0 +1,11 @@
+framework:
+    messenger:
+        # One synchronous bus for commands. Handlers carry the `messenger.message_handler` tag through the
+        # CommandHandler marker interface (see services.yaml), so the Application layer stays free of Symfony.
+        default_bus: command.bus
+        buses:
+            command.bus:
+                default_middleware: false
+                middleware:
+                    - App\Shared\Infrastructure\Messenger\TransactionMiddleware
+                    - handle_message

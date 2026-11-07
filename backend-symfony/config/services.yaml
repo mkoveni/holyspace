@@ -1,0 +1,111 @@
+parameters:
+    env(PEOPLE_TIME_ZONE): 'Africa/Johannesburg'
+
+services:
+    _defaults:
+        autowire: true
+        autoconfigure: true
+
+    # Every command handler is registered on the command bus without importing Messenger attributes.
+    _instanceof:
+        App\Shared\Application\CommandHandler:
+            tags:
+                - { name: messenger.message_handler, bus: command.bus, method: handle }
+        # Implementations are collected into VerifyMemberLinkHandler without Symfony attributes in Application code.
+        App\IdentityAccess\Application\Contract\PersonBindingPolicy:
+            tags: ['identity.person_binding_policy']
+        # Contexts whose activities can be staffed publish an ActivitySource; the registry collects them.
+        App\Volunteering\Application\Contract\ActivitySource:
+            tags: ['volunteering.activity_source']
+        # Originating contexts judge their own deliveries and the templates they use; Communications collects them.
+        App\Communications\Application\Contract\DeliveryEligibility:
+            tags: ['communications.delivery_eligibility']
+        App\Communications\Application\Contract\TemplatePublicationPolicy:
+            tags: ['communications.template_policy']
+        # Contexts that attach evidence to an event occurrence can veto moving it and follow its schedule.
+        App\Events\Application\Contract\OccurrenceMovementPolicy:
+            tags: ['events.movement_policy']
+        App\Events\Application\Contract\OccurrenceScheduleListener:
+            tags: ['events.schedule_listener']
+
+    # Domain aggregates, value objects and policies are plain data, never services. Only the
+    # Domain/Repository interfaces stay registered so autowiring can alias their implementations.
+    # Command/Query records are plain data; handlers and adapters are services.
+    App\:
+        resource: '../src/'
+        exclude:
+            - '../src/Kernel.php'
+            - '../src/*/Domain/*.php'
+            - '../src/*/Domain/ValueObject/'
+            - '../src/*/Application/Command/*/*Command.php'
+            - '../src/*/Application/Query/*/*Query.php'
+            # The same rules one level deeper, for contexts split into modules (src/ChildrenMinistry/<Module>/...).
+            - '../src/*/*/Domain/*.php'
+            - '../src/*/*/Domain/ValueObject/'
+            - '../src/*/*/Application/Command/*/*Command.php'
+            - '../src/*/*/Application/Query/*/*Query.php'
+
+    Doctrine\DBAL\Connection:
+        public: true
+        factory: ['App\Shared\Infrastructure\Persistence\ConnectionFactory', 'create']
+        arguments: ['%env(DATABASE_URL)%']
+
+    App\Shared\Application\UnitOfWork: '@App\Shared\Infrastructure\Persistence\DbalUnitOfWork'
+
+    App\Shared\Infrastructure\Migration\MigrationFiles:
+        arguments: ['%kernel.project_dir%/migrations']
+
+    App\IdentityAccess\Infrastructure\Security\BcryptPasswordHasher:
+        arguments:
+            $cost: '%env(int:PASSWORD_HASH_COST)%'
+
+    App\IdentityAccess\Application\Command\Login\LoginHandler:
+        arguments:
+            $sessionLifetimeSeconds: '%env(int:SESSION_LIFETIME_SECONDS)%'
+
+    App\Shared\Application\ChurchCalendar:
+        arguments:
+            $timeZone: '%env(PEOPLE_TIME_ZONE)%'
+
+    App\IdentityAccess\Application\Command\VerifyMemberLink\VerifyMemberLinkHandler:
+        arguments:
+            $policies: !tagged_iterator identity.person_binding_policy
+
+    App\Communications\Application\DispatchEligibility:
+        arguments:
+            $policies: !tagged_iterator communications.delivery_eligibility
+
+    App\Communications\Application\Command\PublishTemplate\PublishTemplateHandler:
+        arguments:
+            $policies: !tagged_iterator communications.template_policy
+
+    App\Communications\Infrastructure\MailerEmailTransport:
+        arguments:
+            $enabled: '%env(bool:COMMUNICATIONS_EMAIL_ENABLED)%'
+            $capture: '%env(bool:COMMUNICATIONS_EMAIL_CAPTURE)%'
+            $from: '%env(COMMUNICATIONS_EMAIL_FROM)%'
+            $mailerDsn: '%env(MAILER_DSN)%'
+
+    App\Events\Application\OccurrenceChangeReview:
+        arguments:
+            $movementPolicies: !tagged_iterator events.movement_policy
+
+    App\Events\Application\OccurrenceChanges:
+        arguments:
+            $listeners: !tagged_iterator events.schedule_listener
+
+    App\Volunteering\Application\ActivityRegistry:
+        arguments:
+            $sources: !tagged_iterator volunteering.activity_source
+
+when@test:
+    services:
+        # Tests record mail instead of sending it, and drive the dispatcher directly.
+        App\Tests\Support\RecordingEmailTransport:
+            public: true
+        App\Communications\Application\Contract\EmailTransport:
+            alias: App\Tests\Support\RecordingEmailTransport
+            public: true
+        App\Communications\Application\DeliveryProcessor:
+            autowire: true
+            public: true

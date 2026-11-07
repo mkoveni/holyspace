@@ -1,0 +1,32 @@
+# Mirrors the Java ArchUnit rules: dependencies point inward toward the domain.
+# A layer lives at App\<Context>\<Layer> or, for contexts split into modules, App\<Context>\<Module>\<Layer>.
+# Context and module walls are enforced separately by tests/Architecture.
+deptrac:
+  paths:
+    - ./src
+  exclude_files:
+    - '#src/Kernel\.php#'
+  layers:
+    - name: Domain
+      collectors:
+        - { type: classLike, value: '^App\\[A-Za-z]+\\(?:[A-Za-z]+\\)?Domain\\' }
+    - name: Application
+      collectors:
+        - { type: classLike, value: '^App\\[A-Za-z]+\\(?:[A-Za-z]+\\)?Application\\' }
+    - name: Infrastructure
+      collectors:
+        - { type: classLike, value: '^App\\[A-Za-z]+\\(?:[A-Za-z]+\\)?Infrastructure\\' }
+    - name: Presentation
+      collectors:
+        - { type: classLike, value: '^App\\[A-Za-z]+\\(?:[A-Za-z]+\\)?Presentation\\' }
+    - name: Vendor
+      collectors:
+        - { type: classLike, value: '^(Symfony|Doctrine|Nelmio)\\' }
+    - name: Psr
+      collectors:
+        - { type: classLike, value: '^Psr\\' }
+  ruleset:
+    Domain: []
+    Application: [Domain, Psr]
+    Infrastructure: [Domain, Application, Vendor, Psr]
+    Presentation: [Domain, Application, Vendor, Psr]

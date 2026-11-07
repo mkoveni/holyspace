@@ -1,0 +1,6 @@
+# Only classes carrying #[Route] attributes (the Presentation layer) produce routes.
+presentation:
+    resource:
+        path: ../src/
+        namespace: App
+    type: attribute

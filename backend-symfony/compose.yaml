@@ -1,0 +1,43 @@
+name: onechurch-symfony
+
+services:
+  database:
+    image: postgres:18
+    environment:
+      POSTGRES_DB: onechurch_symfony
+      POSTGRES_USER: onechurch
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-development-only}
+    ports:
+      - "127.0.0.1:5434:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql
+    healthcheck:
+      test: [CMD-SHELL, "pg_isready -U onechurch -d onechurch_symfony"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  mailpit:
+    image: axllent/mailpit:v1.27
+    ports:
+      - "127.0.0.1:8026:8025"
+    restart: unless-stopped
+
+  app:
+    build:
+      context: docker
+    working_dir: /app
+    command: php -S 0.0.0.0:8083 -t public
+    environment:
+      DATABASE_URL: postgresql://onechurch:${DB_PASSWORD:-development-only}@database:5432/onechurch_symfony?serverVersion=18&charset=utf8
+      MAILER_DSN: smtp://mailpit:1025
+    volumes:
+      - .:/app
+    ports:
+      - "127.0.0.1:8083:8083"
+    depends_on:
+      database:
+        condition: service_healthy
+
+volumes:
+  postgres_data:

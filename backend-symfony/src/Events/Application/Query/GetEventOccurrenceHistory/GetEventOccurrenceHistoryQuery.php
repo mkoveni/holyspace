@@ -1,0 +1,12 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Events\Application\Query\GetEventOccurrenceHistory;
+
+final readonly class GetEventOccurrenceHistoryQuery
+{
+    public function __construct(public string $occurrenceId, public int $limit, public int $offset)
+    {
+    }
+}
