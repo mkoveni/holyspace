@@ -21,7 +21,7 @@ final class GivingHash
     {
     }
 
-    /** @param string|int|bool|CalendarDate|Money|list<Allocation>|null ...$fields */
+    /** @param string|int|bool|CalendarDate|Money|list<Allocation|string>|null ...$fields */
     public static function of(string|int|bool|CalendarDate|Money|array|null ...$fields): string
     {
         $context = hash_init('sha256');
@@ -33,7 +33,7 @@ final class GivingHash
         return hash_final($context);
     }
 
-    /** @param string|int|bool|CalendarDate|Money|list<Allocation>|null $field */
+    /** @param string|int|bool|CalendarDate|Money|list<Allocation|string>|null $field */
     private static function render(string|int|bool|CalendarDate|Money|array|null $field): string
     {
         return match (true) {
@@ -42,7 +42,7 @@ final class GivingHash
             false === $field => 'false',
             $field instanceof CalendarDate => $field->iso(),
             $field instanceof Money => $field->javaString(),
-            \is_array($field) => '['.implode(', ', array_map(static fn (Allocation $item): string => $item->javaString(), $field)).']',
+            \is_array($field) => '['.implode(', ', array_map(static fn (Allocation|string $item): string => $item instanceof Allocation ? $item->javaString() : $item, $field)).']',
             default => (string) $field,
         };
     }

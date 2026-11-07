@@ -74,6 +74,16 @@ final class GiftEvidenceTriggersTest extends DatabaseTestCase
         }
     }
 
+    public function testTheStoreKeepsTheBalanceDeferredForLaterGiftsInTheTransaction(): void
+    {
+        $this->connection->transactional(function (): void {
+            $this->store()->insert($this->gift(), str_repeat('b', 64));
+            $this->store()->insert($this->gift('00000000-0000-4000-8000-0000000000ab'), str_repeat('c', 64));
+        });
+
+        self::assertSame(2, (int) $this->connection->fetchOne('SELECT count(*) FROM giving_gifts'));
+    }
+
     public function testPostedEvidenceIsImmutable(): void
     {
         $this->connection->transactional(fn () => $this->store()->insert($this->gift(), str_repeat('b', 64)));

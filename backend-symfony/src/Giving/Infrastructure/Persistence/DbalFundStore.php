@@ -87,4 +87,13 @@ final readonly class DbalFundStore implements FundRepository
             throw GivingException::conflict('The fund changed. Refresh before trying again.');
         }
     }
+
+    public function offerOnline(string $fundId, bool $enabled): void
+    {
+        $this->connection->executeStatement(
+            'INSERT INTO giving_online_funds (fund_id, enabled) VALUES (?, ?) ON CONFLICT (fund_id) DO UPDATE SET enabled = EXCLUDED.enabled',
+            [$fundId, $enabled],
+            [1 => ParameterType::BOOLEAN],
+        );
+    }
 }

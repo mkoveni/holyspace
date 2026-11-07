@@ -9,6 +9,7 @@ use App\Giving\Domain\Gift;
 use App\Giving\Domain\GivingException;
 use App\Giving\Domain\Money;
 use App\Shared\Domain\CalendarDate;
+use App\Shared\Domain\ErrorKind;
 use DateTimeImmutable;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -19,6 +20,8 @@ final class GiftTest extends TestCase
     private const string FUND = '00000000-0000-4000-8000-000000000001';
     private const string OTHER = '00000000-0000-4000-8000-000000000002';
     private const string ACTOR = '99999999-9999-4999-8999-999999999999';
+    private const string DONOR = '00000000-0000-4000-8000-0000000000dd';
+    private const string REFUND = '00000000-0000-4000-8000-0000000000e1';
 
     /** @param list<Allocation|null>|null $allocations */
     private function gift(?array $allocations, ?string $method = 'BANK', ?string $reference = null, string $id = self::GIFT): Gift
@@ -140,6 +143,62 @@ final class GiftTest extends TestCase
         self::assertSame('r1', $reversal->id);
         self::assertSame('Duplicate recorded', $reversal->reason);
         self::assertSame(10000, $gift->money->amountMinor);
+    }
+
+    private function online(int $amount = 10000, string $reference = 'payfast:live:pf_1'): Gift
+    {
+        return Gift::online(self::GIFT, self::DONOR, self::FUND, $amount, $reference, CalendarDate::of(2026, 1, 10), self::ACTOR, new DateTimeImmutable('2026-01-10T10:00:00Z'));
+    }
+
+    public function testAnOnlineGiftIsZarToOneFundAndKeepsTheProviderReference(): void
+    {
+        $gift = $this->online();
+
+        self::assertSame([self::GIFT, self::DONOR, 'ONLINE', 'ZAR', 10000, 'payfast:live:pf_1'], [
+            $gift->id, $gift->donorId, $gift->method, $gift->money->currency, $gift->money->amountMinor, $gift->externalReference,
+        ]);
+        self::assertEquals([new Allocation(self::FUND, 10000)], $gift->allocations);
+    }
+
+    public function testAnOnlineGiftKeepsTheMoneyAndReferenceLimits(): void
+    {
+        foreach ([0, 1_000_000_000_001] as $amount) {
+            try {
+                $this->online($amount);
+                self::fail("$amount minor units must be rejected");
+            } catch (GivingException $error) {
+                self::assertSame(ErrorKind::Invalid, $error->kind());
+            }
+        }
+        $this->expectInvalid('Reference is required and must be at most 200 characters.');
+        $this->online(reference: str_repeat('r', 201));
+    }
+
+    public function testARefundIsBoundedByTheUnrefundedAmountAndTheReceivedDate(): void
+    {
+        $gift = $this->online();
+        $now = new DateTimeImmutable('2026-02-01T10:00:00Z');
+
+        $refund = $gift->refundOnline(self::REFUND, 2500, 'payfast:live:rf_1', CalendarDate::of(2026, 1, 10), 7500, self::ACTOR, $now);
+        self::assertSame([self::REFUND, self::GIFT, self::FUND, 2500, 'payfast:live:rf_1', '2026-01-10', self::ACTOR], [
+            $refund->id, $refund->giftId, $refund->fundId, $refund->amountMinor, $refund->reference, $refund->refundedOn->iso(), $refund->createdBy,
+        ]);
+        self::assertSame(10000, $gift->refundOnline(self::REFUND, 10000, 'r', CalendarDate::of(2026, 2, 1), 0, self::ACTOR, $now)->amountMinor);
+
+        $rejected = [
+            'zero' => [$gift, 0, CalendarDate::of(2026, 2, 1), 0],
+            'over the unrefunded amount' => [$gift, 2501, CalendarDate::of(2026, 2, 1), 7500],
+            'before the received date' => [$gift, 100, CalendarDate::of(2026, 1, 9), 0],
+            'a manual gift' => [$this->gift([new Allocation(self::FUND, 10000)]), 100, CalendarDate::of(2026, 2, 1), 0],
+        ];
+        foreach ($rejected as $case => [$target, $amount, $date, $refunded]) {
+            try {
+                $target->refundOnline(self::REFUND, $amount, 'r', $date, $refunded, self::ACTOR, $now);
+                self::fail("$case must be rejected");
+            } catch (GivingException $error) {
+                self::assertSame([ErrorKind::Conflict, 'Refund must match the unrefunded online gift and its dates.'], [$error->kind(), $error->getMessage()], $case);
+            }
+        }
     }
 
     public function testAllocationsRenderLikeTheJavaRecord(): void

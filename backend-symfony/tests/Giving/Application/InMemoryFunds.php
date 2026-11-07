@@ -16,6 +16,9 @@ final class InMemoryFunds implements FundRepository
     /** @var array<string, string> */
     public array $hashes = [];
 
+    /** @var array<string, bool> */
+    public array $online = [];
+
     public function __construct(public readonly LockLog $log = new LockLog())
     {
     }
@@ -56,6 +59,11 @@ final class InMemoryFunds implements FundRepository
             throw GivingException::evidenceConflict();
         }
         $this->funds[$fund->id] = $fund;
+    }
+
+    public function offerOnline(string $fundId, bool $enabled): void
+    {
+        $this->online[$fundId] = $enabled;
     }
 
     private function nameTaken(Fund $fund): bool

@@ -15,6 +15,7 @@ final readonly class Gift
 {
     public const array METHODS = ['CASH', 'BANK', 'OTHER', 'ONLINE'];
     public const array MANUAL_METHODS = ['CASH', 'BANK', 'OTHER'];
+    public const string ONLINE = 'ONLINE';
 
     public ?string $externalReference;
     public string $method;
@@ -102,6 +103,25 @@ final readonly class Gift
         return new self($id, $donorId, $money, $receivedOn, $method, $externalReference, $allocations, $createdBy, $createdAt);
     }
 
+    /**
+     * A gift Payments verified with the provider: ZAR, method ONLINE, the whole amount to one fund. The charge id becomes
+     * the gift id, so a retried post finds the row it wrote.
+     */
+    public static function online(
+        string $chargeId,
+        string $donorId,
+        string $fundId,
+        int $amountMinor,
+        string $reference,
+        CalendarDate $receivedOn,
+        string $createdBy,
+        DateTimeImmutable $createdAt,
+    ): self {
+        $money = Money::of($amountMinor, 'ZAR');
+
+        return new self($chargeId, $donorId, $money, $receivedOn, self::ONLINE, $reference, [new Allocation($fundId, $amountMinor)], $createdBy, $createdAt);
+    }
+
     /** @param list<Allocation> $allocations */
     public static function reconstitute(
         string $id,
@@ -138,5 +158,26 @@ final readonly class Gift
         }
 
         return Reversal::record($requestId, $this->id, $date, $reason, $actorId, $now);
+    }
+
+    /**
+     * A provider-completed refund of an online gift: at least one minor unit, at most what is still unrefunded, and not
+     * before the gift was received. The refund id comes from Payments.
+     */
+    public function refundOnline(
+        string $refundId,
+        int $amountMinor,
+        string $reference,
+        CalendarDate $refundedOn,
+        int $alreadyRefundedMinor,
+        string $actorId,
+        DateTimeImmutable $now,
+    ): OnlineRefund {
+        if (self::ONLINE !== $this->method || 1 !== \count($this->allocations) || $refundedOn->isBefore($this->receivedOn)
+            || $amountMinor < 1 || $amountMinor > $this->money->amountMinor - $alreadyRefundedMinor) {
+            throw GivingException::conflict('Refund must match the unrefunded online gift and its dates.');
+        }
+
+        return OnlineRefund::record($refundId, $this->id, $this->allocations[0]->fundId, $amountMinor, $reference, $refundedOn, $actorId, $now);
     }
 }

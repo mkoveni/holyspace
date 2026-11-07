@@ -8,10 +8,11 @@ use App\Giving\Application\Contract\FundPage;
 use App\Giving\Application\Contract\FundView;
 use App\Giving\Application\Contract\GiftDetail;
 use App\Giving\Application\Contract\GiftFilter;
-use App\Giving\Application\Contract\GiftHistoryEntry;
 use App\Giving\Application\Contract\GiftPage;
 use App\Giving\Application\Contract\GiftSummary;
 use App\Giving\Application\Contract\GivingReader;
+use App\Giving\Application\Contract\GivingTotal;
+use App\Giving\Application\Contract\HistoryEntry;
 use App\Giving\Application\Contract\ReversalView;
 use App\Giving\Domain\Allocation;
 use App\Giving\Domain\Money;
@@ -22,6 +23,7 @@ use App\Shared\Infrastructure\Persistence\Timestamps;
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Query\QueryBuilder;
+use Doctrine\DBAL\Query\UnionType;
 
 /** Funds and gifts as read models. Donor names come from the People directory, never from People tables. */
 final readonly class DbalGivingReader implements GivingReader
@@ -145,6 +147,44 @@ final readonly class DbalGivingReader implements GivingReader
         );
     }
 
+    public function totals(GiftFilter $filter): array
+    {
+        $gifts = LedgerConditions::restrict($this->connection->createQueryBuilder()
+            ->select('g.currency', 'a.amount_minor AS gross', '0 AS reversed')
+            ->from('giving_gifts', 'g')
+            ->innerJoin('g', 'giving_allocations', 'a', 'a.gift_id = g.id'), $filter, 'g.received_on');
+        $reversals = LedgerConditions::restrict($this->connection->createQueryBuilder()
+            ->select('g.currency', '0 AS gross', 'a.amount_minor AS reversed')
+            ->from('giving_gifts', 'g')
+            ->innerJoin('g', 'giving_allocations', 'a', 'a.gift_id = g.id')
+            ->innerJoin('g', 'giving_reversals', 'r', 'r.gift_id = g.id'), $filter, 'r.reversed_on');
+        $refunds = LedgerConditions::restrict($this->connection->createQueryBuilder()
+            ->select('g.currency', '0 AS gross', 'p.amount_minor AS reversed')
+            ->from('giving_gifts', 'g')
+            ->innerJoin('g', 'giving_payment_refunds', 'p', 'p.gift_id = g.id')
+            ->innerJoin('g', 'giving_allocations', 'a', 'a.gift_id = g.id AND a.fund_id = p.fund_id'), $filter, 'p.refunded_on');
+        $lines = $this->connection->createQueryBuilder()
+            ->union($gifts)
+            ->addUnion($reversals, UnionType::ALL)
+            ->addUnion($refunds, UnionType::ALL);
+
+        // SUM(bigint) is numeric in PostgreSQL, so the totals are exact at any size and leave as decimal text.
+        return array_values(array_map(
+            static fn (array $row): GivingTotal => new GivingTotal(
+                (string) $row['currency'],
+                (string) $row['gross'],
+                (string) $row['reversed'],
+                (string) $row['net'],
+            ),
+            LedgerConditions::bind($this->connection->createQueryBuilder()
+                ->select('t.currency', 'SUM(t.gross)::text AS gross', 'SUM(t.reversed)::text AS reversed', '(SUM(t.gross) - SUM(t.reversed))::text AS net')
+                ->from('('.$lines->getSQL().')', 't')
+                ->groupBy('t.currency')
+                ->orderBy('t.currency'), $filter)
+                ->fetchAllAssociative(),
+        ));
+    }
+
     private function matchingFunds(bool $archived, string $search): QueryBuilder
     {
         $query = $this->connection->createQueryBuilder()->from('giving_funds');
@@ -258,11 +298,11 @@ final readonly class DbalGivingReader implements GivingReader
         );
     }
 
-    /** @return list<GiftHistoryEntry> */
+    /** @return list<HistoryEntry> */
     private function history(string $giftId): array
     {
         return array_values(array_map(
-            static fn (array $row): GiftHistoryEntry => new GiftHistoryEntry(
+            static fn (array $row): HistoryEntry => new HistoryEntry(
                 (string) $row['action'],
                 (string) $row['reason'],
                 (string) $row['actor_id'],

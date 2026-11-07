@@ -21,4 +21,7 @@ interface FundRepository
 
     /** Saves the next version. Throws a conflict when the stored version is not the previous one. */
     public function save(Fund $fund): void;
+
+    /** Offers the fund to donor self-service or withdraws it (`giving_online_funds`). */
+    public function offerOnline(string $fundId, bool $enabled): void;
 }

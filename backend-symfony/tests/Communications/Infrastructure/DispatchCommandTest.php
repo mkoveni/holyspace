@@ -25,7 +25,18 @@ final class DispatchCommandTest extends DatabaseTestCase
         self::assertStringContainsString('Attempted 0 due deliveries.', $tester->getDisplay());
     }
 
-    public function testTheScheduleRunsTheCommandEveryFifteenSeconds(): void
+    public function testThePushCommandReportsHowManyJobsItAttempted(): void
+    {
+        $application = new Application(self::bootKernel());
+        $tester = new CommandTester($application->find('app:communications:dispatch-push'));
+
+        $tester->execute([]);
+
+        self::assertSame(0, $tester->getStatusCode());
+        self::assertStringContainsString('Attempted 0 due push jobs.', $tester->getDisplay());
+    }
+
+    public function testTheScheduleRunsTheEmailAndPushWorkersEveryFifteenSeconds(): void
     {
         $provider = new Schedule(new ArrayAdapter());
 
@@ -38,6 +49,6 @@ final class DispatchCommandTest extends DatabaseTestCase
             self::assertStringContainsString('15 seconds', (string) $recurring->getTrigger());
         }
 
-        self::assertSame(['app:communications:dispatch-due'], $found);
+        self::assertSame(['app:communications:dispatch-due', 'app:communications:dispatch-push'], $found);
     }
 }

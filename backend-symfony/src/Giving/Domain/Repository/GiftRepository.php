@@ -27,5 +27,8 @@ interface GiftRepository
 
     public function hasReversal(string $giftId): bool;
 
+    /** Minor units refunded through Payments for the whole gift (all funds). */
+    public function refunded(string $giftId): int;
+
     public function insertReversal(Reversal $reversal, string $hash): void;
 }

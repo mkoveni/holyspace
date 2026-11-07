@@ -11,7 +11,9 @@ interface GivingHistoryRepository
 {
     public const string FUND = 'FUND';
     public const string GIFT = 'GIFT';
+    public const string PLEDGE = 'PLEDGE';
+    public const string BATCH = 'BATCH';
 
-    /** @param self::FUND|self::GIFT $targetType */
+    /** @param self::FUND|self::GIFT|self::PLEDGE|self::BATCH $targetType */
     public function append(string $targetId, string $targetType, string $action, string $reason, string $actorId, DateTimeImmutable $at): void;
 }

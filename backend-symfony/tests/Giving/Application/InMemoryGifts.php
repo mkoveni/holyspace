@@ -20,6 +20,8 @@ final class InMemoryGifts implements GiftRepository
     public array $reversals = [];
     /** @var array<string, string> */
     public array $reversalHashes = [];
+    /** @var array<string, int> */
+    public array $refunds = [];
 
     public function __construct(private readonly LockLog $log = new LockLog())
     {
@@ -57,6 +59,11 @@ final class InMemoryGifts implements GiftRepository
         }
 
         return false;
+    }
+
+    public function refunded(string $giftId): int
+    {
+        return $this->refunds[$giftId] ?? 0;
     }
 
     public function insertReversal(Reversal $reversal, string $hash): void

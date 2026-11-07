@@ -86,6 +86,22 @@ services:
             $from: '%env(COMMUNICATIONS_EMAIL_FROM)%'
             $mailerDsn: '%env(MAILER_DSN)%'
 
+    # Device push stays off until enabled with a 32-byte token key and the Expo project id.
+    App\Communications\Infrastructure\Push\AesPushTokens:
+        arguments:
+            $key: '%env(PUSH_TOKEN_KEY)%'
+
+    App\Communications\Infrastructure\Push\ExpoPushSettings:
+        arguments:
+            $enabled: '%env(bool:PUSH_ENABLED)%'
+            $projectId: '%env(PUSH_PROJECT_ID)%'
+            $tokenKey: '%env(PUSH_TOKEN_KEY)%'
+
+    App\Communications\Infrastructure\Push\ExpoPushTransport:
+        arguments:
+            $endpoint: '%env(PUSH_EXPO_URL)%'
+            $accessToken: '%env(PUSH_ACCESS_TOKEN)%'
+
     App\Events\Application\OccurrenceChangeReview:
         arguments:
             $movementPolicies: !tagged_iterator events.movement_policy
@@ -108,4 +124,30 @@ when@test:
             public: true
         App\Communications\Application\DeliveryProcessor:
             autowire: true
+            public: true
+        # Tests script the push provider and drive the push worker directly.
+        App\Tests\Support\ScriptedPushTransport:
+            autowire: true
+            public: true
+        App\Communications\Application\Contract\PushTransport:
+            alias: App\Tests\Support\ScriptedPushTransport
+            public: true
+        App\Communications\Application\PushDeliveryProcessor:
+            autowire: true
+            public: true
+        # Payments is not ported yet; the Giving contract tests call its trusted contracts as Payments will.
+        App\Giving\Application\Contract\OnlineGivingLedger:
+            alias: App\Giving\Application\OnlineGivingService
+            public: true
+        App\Giving\Application\Contract\DonorCheckoutGuard:
+            alias: App\Giving\Infrastructure\PublishedDonorCheckoutGuard
+            public: true
+        App\Giving\Application\Contract\DonorIdentity:
+            alias: App\Giving\Application\VerifiedDonorIdentity
+            public: true
+        App\Giving\Application\Contract\DonorIdentityGuard:
+            alias: App\Giving\Application\VerifiedDonorIdentity
+            public: true
+        App\Giving\Application\Contract\OnlineFundDirectory:
+            alias: App\Giving\Infrastructure\Persistence\DbalDonorAccessReader
             public: true

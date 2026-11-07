@@ -6,7 +6,8 @@ namespace App\Giving\Application\Contract;
 
 use DateTimeImmutable;
 
-final readonly class GiftHistoryEntry
+/** One giving_history row of a gift or pledge (Java GivingReader.History). */
+final readonly class HistoryEntry
 {
     public function __construct(
         public string $action,

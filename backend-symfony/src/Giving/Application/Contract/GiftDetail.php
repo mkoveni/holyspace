@@ -13,9 +13,9 @@ use DateTimeImmutable;
 final readonly class GiftDetail
 {
     /**
-     * @param list<Allocation>       $allocations
-     * @param array<string, string>  $fundNames
-     * @param list<GiftHistoryEntry> $history
+     * @param list<Allocation>      $allocations
+     * @param array<string, string> $fundNames
+     * @param list<HistoryEntry>    $history
      */
     public function __construct(
         public string $id,

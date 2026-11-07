@@ -93,8 +93,10 @@ final readonly class DbalGiftStore implements GiftRepository
                 ], ['amount_minor' => ParameterType::INTEGER]);
             }
             // The balance triggers are deferred to commit, which runs outside the handler; check them now so a
-            // violation is translated here and rolls back with the command.
+            // violation is translated here and rolls back with the command. Deferral is restored afterwards: IMMEDIATE
+            // lasts for the rest of the transaction and would check a second gift's header before its allocations.
             $this->connection->executeStatement('SET CONSTRAINTS giving_header_balance, giving_allocation_balance IMMEDIATE');
+            $this->connection->executeStatement('SET CONSTRAINTS giving_header_balance, giving_allocation_balance DEFERRED');
         });
     }
 
@@ -103,6 +105,16 @@ final readonly class DbalGiftStore implements GiftRepository
         return false !== $this->connection->createQueryBuilder()
             ->select('1')
             ->from('giving_reversals')
+            ->where('gift_id = :gift')
+            ->setParameter('gift', $giftId)
+            ->fetchOne();
+    }
+
+    public function refunded(string $giftId): int
+    {
+        return (int) $this->connection->createQueryBuilder()
+            ->select('COALESCE(SUM(amount_minor), 0)')
+            ->from('giving_payment_refunds')
             ->where('gift_id = :gift')
             ->setParameter('gift', $giftId)
             ->fetchOne();

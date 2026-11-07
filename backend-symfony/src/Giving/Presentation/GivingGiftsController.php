@@ -8,8 +8,8 @@ use App\Giving\Application\Command\RecordGift\RecordGiftCommand;
 use App\Giving\Application\Command\ReverseGift\ReverseGiftCommand;
 use App\Giving\Application\Contract\GiftDetail;
 use App\Giving\Application\Contract\GiftFilter;
-use App\Giving\Application\Contract\GiftHistoryEntry;
 use App\Giving\Application\Contract\GiftSummary;
+use App\Giving\Application\Contract\HistoryEntry;
 use App\Giving\Application\Query\GetGift\GetGiftHandler;
 use App\Giving\Application\Query\GetGift\GetGiftQuery;
 use App\Giving\Application\Query\ListGifts\ListGiftsHandler;
@@ -157,7 +157,7 @@ final readonly class GivingGiftsController
                 'createdBy' => $reversal->createdBy,
                 'createdAt' => Json::instant($reversal->createdAt),
             ],
-            'history' => array_map(static fn (GiftHistoryEntry $entry): array => [
+            'history' => array_map(static fn (HistoryEntry $entry): array => [
                 'action' => $entry->action,
                 'reason' => $entry->reason,
                 'actorId' => $entry->actorId,

@@ -28,6 +28,8 @@ final class Schedule implements ScheduleProviderInterface
             // Approved emails go out within about 15 seconds of their scheduled time. Run the worker with:
             // php bin/console messenger:consume scheduler_default
             ->add(RecurringMessage::every('15 seconds', new RunCommandMessage('app:communications:dispatch-due')))
+            // Device pushes and their receipts, on the same worker (Java's PUSH_POLL_MS default). Off until PUSH_ENABLED.
+            ->add(RecurringMessage::every('15 seconds', new RunCommandMessage('app:communications:dispatch-push')))
         ;
     }
 }

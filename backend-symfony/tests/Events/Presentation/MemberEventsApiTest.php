@@ -156,6 +156,29 @@ final class MemberEventsApiTest extends EventsApiTestCase
         self::assertSame($benPerson, $this->connection->fetchOne('SELECT person_id FROM event_registrations WHERE id = ?', [$this->json()['id']]));
     }
 
+    public function testBookingChangesReachOnlyTheMembersOwnInbox(): void
+    {
+        $this->publish();
+        $this->book();
+        self::assertSame(201, $this->code(), $this->message());
+        $this->call('GET', '/api/member/notifications', $this->ada);
+        self::assertSame(1, $this->json()['unreadCount']);
+        $body = (string) $this->client->getResponse()->getContent();
+        self::assertStringContainsString('Your event booking was updated', $body);
+        self::assertStringNotContainsString('personId', $body);
+        self::assertStringNotContainsString('sourceKey', $body);
+        self::assertSame('EVENTS', $this->json()['items'][0]['destination']);
+
+        $this->call('POST', "/api/member/events/{$this->occurrence}/cancel", $this->ada, ['expectedVersion' => 0]);
+        self::assertSame(204, $this->code());
+        $this->call('GET', '/api/member/notifications', $this->ada);
+        self::assertSame(2, $this->json()['unreadCount'], 'each booking revision is its own notice');
+
+        [, $ben] = $this->member('ben', 'Ben');
+        $this->call('GET', '/api/member/notifications', $ben);
+        self::assertSame(0, $this->json()['unreadCount']);
+    }
+
     public function testPeopleWithoutAVerifiedMemberLinkSeeNothingAndCannotBook(): void
     {
         $this->publish();

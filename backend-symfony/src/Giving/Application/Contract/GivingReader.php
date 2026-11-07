@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Giving\Application\Contract;
 
-/** Read side of funds and gifts (Java `GivingReader`); totals join it in G3. */
+/** Read side of funds, gifts and period totals (Java `GivingReader`). */
 interface GivingReader
 {
     /** Active funds, or all funds when $archived; $search (already trimmed, may be empty) matches the name literally. */
@@ -14,4 +14,13 @@ interface GivingReader
     public function gifts(GiftFilter $filter): GiftPage;
 
     public function gift(string $id): ?GiftDetail;
+
+    /**
+     * Totals of a validated filter per currency, sorted by currency. Gross counts gifts by received date; reversed
+     * counts full reversals and provider refunds by their own dates, so net can be negative. A fund filter counts only
+     * that fund's allocations.
+     *
+     * @return list<GivingTotal>
+     */
+    public function totals(GiftFilter $filter): array;
 }

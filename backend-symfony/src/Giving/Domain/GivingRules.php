@@ -33,12 +33,14 @@ final class GivingRules
         }
     }
 
-    /** A received or reversal date from 1900 through the church's today. */
-    public static function date(?CalendarDate $date, CalendarDate $today): void
+    /** A received, reversal or reconciliation date from 1900 through the church's today; returns the checked date. */
+    public static function date(?CalendarDate $date, CalendarDate $today): CalendarDate
     {
         if (null === $date || $date->isAfter($today) || $date->year() < 1900) {
             throw GivingException::invalid('Choose a date from 1900 through today.');
         }
+
+        return $date;
     }
 
     public static function page(int $limit, int $offset): void

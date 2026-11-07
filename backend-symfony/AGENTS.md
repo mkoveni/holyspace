@@ -81,6 +81,7 @@ architecture and DDD as a modular monolith, organised by bounded context.
   migration. Escape the user's text with the context's `LikePattern`.
 - Value objects and helpers needed by more than one context live in `Shared` (`CalendarDate`, `Revision`, `Timeline`, `LikePattern`,
   `Timestamps`); move one there the moment a second context needs it instead of importing across contexts.
+- Every `/api` response gets Spring Security's default headers from `Shared\Presentation\SecurityHeadersListener` (`no-cache, no-store, max-age=0, must-revalidate` + `Pragma`/`Expires` unless the controller set its own cache headers; `nosniff`, `X-Frame-Options: DENY`, `X-XSS-Protection: 0`, HSTS over HTTPS). A controller that sets `Cache-Control` itself replaces only the cache trio, as in Java.
 - A context failure extends `ContextException`; override `retryAfterSeconds()` if its throttle window is not 60 seconds.
 - Do not hand-edit `config/bundles.php`; install capabilities with `composer require`.
 - Import classes; never write inline fully-qualified names such as `\Doctrine\DBAL\Query\QueryBuilder`.
@@ -93,8 +94,10 @@ architecture and DDD as a modular monolith, organised by bounded context.
   exception messages, logs or ordinary audit rows.
 - Multi-row writes lock in one documented order (child person row, then collector/guardian, then session, then scope; incident row
   before guardian authority) and a handler test asserts it with a recording fake; keep that when adding a write path.
+- Giving (`docs/porting/giving.md`) is a flat context holding financial data: amounts are integer minor units, never `float`; integrity triggers stay the source of truth and stores translate their SQLSTATEs (deferred balance and online-source checks are run `IMMEDIATE` inside the store); every `/api/giving` response is `no-store` (the Shared `SecurityHeadersListener`). Lock order: a donor link before People and fund locks; donor person, then funds sorted by id; the gift row before its pledge; gifts sorted by id before a batch. Two-session tests fork a second database session with `tests/Giving/Infrastructure/ParallelSession` and prove it waits on the first session's lock before asserting what it decides.
 - Email goes through `Communications\Application\Contract\EmailDeliveries`; a context supplies `DeliveryEligibility` and
   `TemplatePublicationPolicy` (tagged services). Communications must not import any other context (`CommunicationsIndependenceTest`).
+  Member inbox notices go through `MemberNotifications::publish` inside the originating command transaction; the consuming context adapts it in its own Infrastructure (as `Events\Infrastructure\InboxMemberBookingUpdates` does). A new notice also queues device push jobs; `PushDeliveryProcessor` calls the provider outside any transaction and cancels any job whose device revision, topic opt-in, account or session changed since it was queued.
 - API tests that need a user with specific permissions use `IdentityApiTestCase::accountWith($username, [...codes])`.
 - A temporary stand-in for a module that is not ported yet is named `Pending*`, carries a `PLACEHOLDER` docblock, and is listed as a seam in
   the porting log; a later session replaces it rather than extending it.
