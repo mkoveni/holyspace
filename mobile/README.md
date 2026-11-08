@@ -141,11 +141,11 @@ user-facing `version` in `app.json` for each store release. Profiles:
 The `preview` and `production` profiles point at the Symfony API,
 `https://holyspace-api.rivalani.dev`, through `EXPO_PUBLIC_API_URL` in `eas.json`.
 Mobile checkout requires the payment settings' backend URL to use this same origin.
-Before the first release, set the remaining public values in the matching EAS
-environment (they are bundled into the app, so never secrets):
+The Firebase client file is stored as the secret EAS file variable
+`GOOGLE_SERVICES_JSON` in `preview` and `production`. To replace it:
 
 ```sh
-npx eas-cli@latest env:create --environment production --name GOOGLE_SERVICES_JSON --type file --value ./google-services.json --visibility secret
+npx eas-cli@latest env:set production --name GOOGLE_SERVICES_JSON --type file --value ./google-services.json --visibility secret
 ```
 
 `app.config.js` fails `preview` and `production` builds when the API origin is not
