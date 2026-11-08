@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace App\Giving\Application;
 
 use App\Giving\Domain\Allocation;
-use App\Giving\Domain\JavaString;
 use App\Giving\Domain\Money;
 use App\Shared\Domain\CalendarDate;
+use App\Shared\Domain\JavaString;
 
 /**
  * Request fingerprint shared with the Java application: SHA-256 over, for each field, the UTF-8 bytes of

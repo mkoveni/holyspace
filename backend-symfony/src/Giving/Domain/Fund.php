@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Giving\Domain;
 
+use App\Shared\Domain\JavaString;
+
 /** A designated purpose gifts are allocated to. Archiving (inactive) blocks new gifts but keeps past allocations. */
 final readonly class Fund
 {

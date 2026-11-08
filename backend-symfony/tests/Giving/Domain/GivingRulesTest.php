@@ -6,9 +6,9 @@ namespace App\Tests\Giving\Domain;
 
 use App\Giving\Domain\GivingException;
 use App\Giving\Domain\GivingRules;
-use App\Giving\Domain\JavaString;
 use App\Shared\Domain\CalendarDate;
 use App\Shared\Domain\ErrorKind;
+use App\Shared\Domain\JavaString;
 use PHPUnit\Framework\TestCase;
 
 final class GivingRulesTest extends TestCase

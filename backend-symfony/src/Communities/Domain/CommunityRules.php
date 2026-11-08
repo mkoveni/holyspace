@@ -4,37 +4,26 @@ declare(strict_types=1);
 
 namespace App\Communities\Domain;
 
-use DateTimeImmutable;
-
+/** Shared input rules, with Java's messages. */
 final class CommunityRules
 {
     private function __construct()
     {
     }
 
+    /** Required text: the length limit applies before surrounding whitespace is removed, as in Java. */
     public static function text(?string $value, int $max): string
     {
-        $value = trim($value ?? '');
-        if ($value === '' || mb_strlen($value) > $max) {
+        if (null === $value || '' === self::strip($value) || mb_strlen($value) > $max) {
             throw CommunityException::invalid('Enter text of 1–'.$max.' characters.');
         }
 
-        return $value;
+        return self::strip($value);
     }
 
     public static function optional(?string $value, int $max): string
     {
-        return trim($value ?? '') === '' ? '' : self::text($value, $max);
-    }
-
-    public static function time(DateTimeImmutable $value): DateTimeImmutable
-    {
-        return $value->setTime(
-            (int) $value->format('H'),
-            (int) $value->format('i'),
-            (int) $value->format('s'),
-            (int) substr($value->format('u'), 0, 6)
-        );
+        return null === $value || '' === self::strip($value) ? '' : self::text($value, $max);
     }
 
     public static function version(int $actual, int $expected): void
@@ -49,5 +38,10 @@ final class CommunityRules
         if ($limit < 1 || $limit > 100 || $offset < 0 || $offset > 100000) {
             throw CommunityException::invalid('Choose a page of 1–100 records.');
         }
+    }
+
+    private static function strip(string $value): string
+    {
+        return (string) preg_replace('/\A\s+|\s+\z/u', '', $value);
     }
 }

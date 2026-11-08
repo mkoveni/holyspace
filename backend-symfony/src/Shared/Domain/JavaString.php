@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Giving\Domain;
+namespace App\Shared\Domain;
 
 /**
  * java.lang.String semantics that Giving's limits and hashes depend on: length counts UTF-16 code units,

@@ -69,6 +69,7 @@ final readonly class ApiExceptionListener
             ErrorKind::Unauthenticated => 401,
             ErrorKind::Forbidden => 403,
             ErrorKind::Throttled => 429,
+            ErrorKind::Unavailable => 503,
         };
 
         return $this->message(

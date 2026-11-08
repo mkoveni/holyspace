@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Giving\Presentation;
 
 use App\Giving\Application\Contract\LedgerReport;
-use App\Giving\Domain\JavaString;
+use App\Shared\Domain\JavaString;
 
 /**
  * The ledger as CSV (Java GivingCsv): UTF-8 with a byte-order mark, CRLF rows, every text cell quoted, and a cell

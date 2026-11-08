@@ -1,0 +1,210 @@
+name: Symfony API checks and deploy
+# Every push and pull request touching backend-symfony runs the full check suite and builds the production release.
+# A push to main that passes is deployed to the VPS over SSH (see backend-symfony/docs/deployment.md, "CI/CD").
+on:
+  push:
+    paths:
+      - 'backend-symfony/**'
+      - '.github/workflows/symfony-release.yml'
+  pull_request:
+    paths:
+      - 'backend-symfony/**'
+      - '.github/workflows/symfony-release.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: symfony-release-${{ github.ref }}
+  # Never cancel a run on main: it may be in the middle of a production migration.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+defaults:
+  run:
+    working-directory: backend-symfony
+env:
+  PHP_VERSION: '8.4'
+  PHP_EXTENSIONS: pdo_pgsql, intl, mbstring, ctype, iconv, sodium
+
+jobs:
+  checks:
+    name: Code style, static analysis, architecture and tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      database:
+        image: postgres:16
+        env:
+          POSTGRES_USER: onechurch
+          POSTGRES_PASSWORD: development-only
+          POSTGRES_DB: onechurch_symfony
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U onechurch -d onechurch_symfony"
+          --health-interval 5s --health-timeout 5s --health-retries 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ env.PHP_VERSION }}
+          extensions: ${{ env.PHP_EXTENSIONS }}
+          coverage: none
+          tools: composer:v2
+      - name: Cache Composer downloads
+        uses: actions/cache@v4
+        with:
+          path: ~/.composer/cache
+          key: composer-${{ hashFiles('backend-symfony/composer.lock') }}
+      - run: composer validate --no-check-publish
+      - run: composer install --no-interaction --no-progress
+      - name: Code style
+        run: vendor/bin/php-cs-fixer fix --dry-run --diff --no-interaction
+      - name: PHPStan
+        run: vendor/bin/phpstan analyse --memory-limit=1G --no-progress
+      - name: Deptrac
+        run: vendor/bin/deptrac analyse --no-progress
+      - name: PHPUnit (PostgreSQL 16, as on the server)
+        run: |
+          # phpunit.xml (ignored by git) wins over phpunit.dist.xml; point it at the service container.
+          sed 's/@database:5432/@127.0.0.1:5432/' phpunit.dist.xml > phpunit.xml
+          vendor/bin/phpunit
+      - name: Composer audit
+        run: composer audit --no-dev --locked
+      - name: Lint deploy scripts
+        run: shellcheck -S warning deploy/*.sh
+      - name: Check nginx configuration syntax
+        run: |
+          work="$(mktemp -d)"
+          mkdir -p "$work/snippets" "$work/certs"
+          openssl req -x509 -newkey rsa:2048 -nodes -days 1 -subj /CN=ci -keyout "$work/certs/privkey.pem" -out "$work/certs/fullchain.pem" 2>/dev/null
+          sed -E 's|/etc/letsencrypt/live/[^/]+|/certs|' deploy/nginx/onechurch-api.conf > "$work/site.conf"
+          sed 's|unix:/run/php/onechurch-api.sock|127.0.0.1:9000|' deploy/nginx/onechurch-api-fastcgi.conf > "$work/snippets/onechurch-api-fastcgi.conf"
+          docker run --rm -v "$work/site.conf:/etc/nginx/conf.d/default.conf:ro" -v "$work/snippets:/etc/nginx/snippets:ro" \
+            -v "$work/certs:/certs:ro" nginx:stable nginx -t
+
+  package:
+    name: Build the production release
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    outputs:
+      release-id: ${{ steps.build.outputs.release-id }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ env.PHP_VERSION }}
+          extensions: ${{ env.PHP_EXTENSIONS }}
+          coverage: none
+          tools: composer:v2
+      - name: Build release with production dependencies
+        id: build
+        env:
+          APP_ENV: prod
+          APP_DEBUG: '0'
+          APP_SECRET: build-only-not-a-secret
+        run: |
+          id="$(date -u +%Y%m%d%H%M%S)-${GITHUB_SHA::12}"
+          build="$RUNNER_TEMP/release"
+          mkdir -p "$build"
+          # Committed files only, then production dependencies on the same PHP version as the server.
+          git archive "$GITHUB_SHA:backend-symfony" | tar -x -C "$build"
+          composer install --working-dir="$build" --no-dev --classmap-authoritative --no-interaction --no-progress
+          # Smoke test the production kernel: container compiles and every service is wired.
+          (cd "$build" && php bin/console cache:warmup && php bin/console lint:container)
+          rm -rf "${build:?}/var"
+          tar -czf "$RUNNER_TEMP/onechurch-api-$id.tar.gz" -C "$build" .
+          echo "release-id=$id" >> "$GITHUB_OUTPUT"
+          echo "Release $id: $(du -h "$RUNNER_TEMP/onechurch-api-$id.tar.gz" | cut -f1)" >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: symfony-release-${{ github.sha }}
+          path: ${{ runner.temp }}/onechurch-api-${{ steps.build.outputs.release-id }}.tar.gz
+          retention-days: 14
+          if-no-files-found: error
+
+  deploy:
+    name: Deploy to production
+    needs: [checks, package]
+    if: >-
+      github.event_name != 'pull_request' && github.ref == 'refs/heads/main' &&
+      vars.SYMFONY_DEPLOY_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment:
+      name: symfony-production
+      url: ${{ vars.SYMFONY_API_URL }}
+    concurrency:
+      group: symfony-production
+      cancel-in-progress: false
+    env:
+      RELEASE_ID: ${{ needs.package.outputs.release-id }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Skip a superseded commit
+        id: latest
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          latest="$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq .object.sha)"
+          if [[ "$latest" != "$GITHUB_SHA" ]]; then
+            echo "A newer main commit exists; its own run deploys it." | tee -a "$GITHUB_STEP_SUMMARY"
+            echo "current=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "current=true" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/download-artifact@v4
+        if: steps.latest.outputs.current == 'true'
+        with:
+          name: symfony-release-${{ github.sha }}
+          path: ${{ runner.temp }}/release
+      - name: Configure SSH
+        if: steps.latest.outputs.current == 'true'
+        env:
+          SSH_KEY: ${{ secrets.SYMFONY_VPS_SSH_KEY }}
+          KNOWN_HOSTS: ${{ secrets.SYMFONY_VPS_KNOWN_HOSTS }}
+          VPS_HOST: ${{ secrets.SYMFONY_VPS_HOST }}
+          VPS_PORT: ${{ vars.SYMFONY_VPS_PORT }}
+        run: |
+          [[ -n "$SSH_KEY" && -n "$KNOWN_HOSTS" && -n "$VPS_HOST" ]] || { echo "Deploy secrets are missing; run deploy/bootstrap-ci.sh." >&2; exit 1; }
+          install -d -m 0700 ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/deploy_key && chmod 0600 ~/.ssh/deploy_key
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+          cat > ~/.ssh/config <<EOF
+          Host vps
+            HostName $VPS_HOST
+            Port ${VPS_PORT:-22}
+            User onechurch-deploy
+            IdentityFile ~/.ssh/deploy_key
+            IdentitiesOnly yes
+            StrictHostKeyChecking yes
+            ServerAliveInterval 30
+          EOF
+      - name: Check the server's deploy scripts match this commit
+        if: steps.latest.outputs.current == 'true'
+        run: |
+          remote="$(ssh vps version)"
+          expected="$(printf 'install=%s\nreceive=%s\n' "$(sha256sum deploy/remote-install.sh | cut -d' ' -f1)" "$(sha256sum deploy/ci-receive.sh | cut -d' ' -f1)")"
+          if [[ "$remote" != "$expected" ]]; then
+            echo "::error::The deploy scripts on the server differ from this commit. Re-run deploy/bootstrap-ci.sh (or setup-server.sh) once, then re-run this job."
+            exit 1
+          fi
+      - name: Install the release (migrate, switch, health check, automatic switch-back)
+        if: steps.latest.outputs.current == 'true'
+        run: |
+          # shellcheck disable=SC2029 # the release id is meant to expand here, on the runner
+          ssh vps "deploy $RELEASE_ID" < "$RUNNER_TEMP/release/onechurch-api-$RELEASE_ID.tar.gz"
+      - name: Check public health
+        if: steps.latest.outputs.current == 'true'
+        env:
+          API_URL: ${{ vars.SYMFONY_API_URL }}
+        run: |
+          curl --fail --silent --show-error --proto '=https' --tlsv1.2 --connect-timeout 10 --max-time 20 \
+            --retry 5 --retry-delay 3 --retry-all-errors "${API_URL%/}/health/ready" | grep -q '"UP"'
+          echo "Release $RELEASE_ID is live at $API_URL" >> "$GITHUB_STEP_SUMMARY"
+      - name: Remove the SSH key
+        if: always()
+        run: rm -f ~/.ssh/deploy_key

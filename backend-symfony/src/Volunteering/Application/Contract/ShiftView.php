@@ -19,6 +19,10 @@ final readonly class ShiftView
         public DateTimeImmutable $endsAt,
         public string $status,
         public int $positions,
+        public string $requestId = '',
+        public string $requestHash = '',
+        public int $version = 0,
+        public int $scheduleRevision = 0,
     ) {
     }
 }

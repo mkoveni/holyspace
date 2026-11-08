@@ -1,0 +1,30 @@
+# Install as /etc/systemd/system/onechurch-api-worker.service.
+# Runs the Symfony scheduler: email dispatch and device push every 15 seconds (src/Schedule.php).
+# Exactly one worker must run. It exits hourly or at 256 MB and systemd restarts it with the current release.
+[Unit]
+Description=OneChurch API scheduler worker
+After=network-online.target postgresql.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=onechurch
+Group=onechurch
+WorkingDirectory=/srv/onechurch-api/current
+ExecStart=/usr/bin/php /srv/onechurch-api/current/bin/console messenger:consume scheduler_default --time-limit=3600 --memory-limit=256M --no-interaction
+Restart=always
+RestartSec=5
+KillSignal=SIGTERM
+TimeoutStopSec=60
+
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+ReadWritePaths=/srv/onechurch-api/shared /srv/onechurch-api/releases
+ProtectKernelTunables=yes
+ProtectControlGroups=yes
+RestrictSUIDSGID=yes
+
+[Install]
+WantedBy=multi-user.target

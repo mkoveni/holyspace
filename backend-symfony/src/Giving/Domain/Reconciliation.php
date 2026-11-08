@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Giving\Domain;
 
 use App\Shared\Domain\CalendarDate;
+use App\Shared\Domain\JavaString;
 use DateTimeImmutable;
 
 /**

@@ -13,12 +13,12 @@ final readonly class UpdateCommunityCommand implements Command
         public string $actorId,
         public string $communityId,
         public int $expectedVersion,
-        public string $name,
-        public string $description,
+        public ?string $name,
+        public ?string $description,
         public ?string $parentId,
-        public string $campus,
+        public ?string $campus,
         public bool $active,
-        public string $reason,
+        public ?string $reason,
     ) {
     }
 }

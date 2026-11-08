@@ -17,6 +17,9 @@ services:
         # Contexts whose activities can be staffed publish an ActivitySource; the registry collects them.
         App\Volunteering\Application\Contract\ActivitySource:
             tags: ['volunteering.activity_source']
+        # Contexts lock their own staffed activities before a Volunteering eligibility change; VolunteerLocks calls them all.
+        App\Volunteering\Application\Contract\ServingActivityLocks:
+            tags: ['volunteering.activity_locks']
         # Originating contexts judge their own deliveries and the templates they use; Communications collects them.
         App\Communications\Application\Contract\DeliveryEligibility:
             tags: ['communications.delivery_eligibility']
@@ -102,6 +105,30 @@ services:
             $endpoint: '%env(PUSH_EXPO_URL)%'
             $accessToken: '%env(PUSH_ACCESS_TOKEN)%'
 
+    # Payments: deployment bootstrap credentials (used until a provider is managed in the database) and the
+    # deployment-owned AES-256-GCM key for subscription tokens and stored provider credentials.
+    App\Payments\Infrastructure\Gateway\GatewaySettings:
+        arguments:
+            $publicUrl: '%env(PAYMENTS_PUBLIC_URL)%'
+            $payfastMode: '%env(PAYFAST_MODE)%'
+            $merchantId: '%env(PAYFAST_MERCHANT_ID)%'
+            $merchantKey: '%env(PAYFAST_MERCHANT_KEY)%'
+            $passphrase: '%env(PAYFAST_PASSPHRASE)%'
+            $ipRanges: '%env(PAYFAST_ITN_IP_RANGES)%'
+            $yocoMode: '%env(YOCO_MODE)%'
+            $yocoKey: '%env(YOCO_SECRET_KEY)%'
+            $yocoWebhookSecret: '%env(YOCO_WEBHOOK_SECRET)%'
+            $vaultKey: '%env(PAYMENTS_TOKEN_KEY)%'
+            $backendUrl: '%env(PAYMENTS_BACKEND_URL)%'
+
+    App\Payments\Infrastructure\Gateway\AesSubscriptionVault:
+        arguments:
+            $key: '%env(PAYMENTS_TOKEN_KEY)%'
+
+    App\Payments\Infrastructure\Gateway\EncryptedPaymentCredentials:
+        arguments:
+            $key: '%env(PAYMENTS_TOKEN_KEY)%'
+
     App\Events\Application\OccurrenceChangeReview:
         arguments:
             $movementPolicies: !tagged_iterator events.movement_policy
@@ -113,6 +140,10 @@ services:
     App\Volunteering\Application\ActivityRegistry:
         arguments:
             $sources: !tagged_iterator volunteering.activity_source
+
+    App\Volunteering\Application\VolunteerLocks:
+        arguments:
+            $activityLocks: !tagged_iterator volunteering.activity_locks
 
 when@test:
     services:
@@ -135,9 +166,31 @@ when@test:
         App\Communications\Application\PushDeliveryProcessor:
             autowire: true
             public: true
-        # Payments is not ported yet; the Giving contract tests call its trusted contracts as Payments will.
+        # The Giving contract tests call the trusted Payments-facing contracts directly, as Payments does.
+        App\Tests\Payments\Support\FailingGivingLedger:
+            autowire: true
+            public: true
         App\Giving\Application\Contract\OnlineGivingLedger:
-            alias: App\Giving\Application\OnlineGivingService
+            alias: App\Tests\Payments\Support\FailingGivingLedger
+            public: true
+        # Payments tests script the gateway, the provider HTTP calls and the connection probe; nothing reaches a provider.
+        App\Tests\Payments\Support\ScriptedProviderHttp:
+            autowire: true
+            public: true
+        App\Payments\Infrastructure\Gateway\ProviderHttp:
+            alias: App\Tests\Payments\Support\ScriptedProviderHttp
+            public: true
+        App\Tests\Payments\Support\ScriptedPaymentGateway:
+            autowire: true
+            public: true
+        App\Payments\Application\Contract\PaymentGateway:
+            alias: App\Tests\Payments\Support\ScriptedPaymentGateway
+            public: true
+        App\Tests\Payments\Support\ScriptedConnectionProbe:
+            autowire: true
+            public: true
+        App\Payments\Application\Contract\ProviderConnectionProbe:
+            alias: App\Tests\Payments\Support\ScriptedConnectionProbe
             public: true
         App\Giving\Application\Contract\DonorCheckoutGuard:
             alias: App\Giving\Infrastructure\PublishedDonorCheckoutGuard

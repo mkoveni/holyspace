@@ -5,13 +5,10 @@ declare(strict_types=1);
 namespace App\Volunteering\Domain;
 
 use DateTimeImmutable;
-use DateTimeZone;
 
 /** Decides whether the volunteer's rules and exceptions cover a whole interval. Unknown availability is not availability. */
 final class Availability
 {
-    private const DAY = 86400;
-
     private function __construct()
     {
     }
@@ -73,32 +70,13 @@ final class Availability
                 continue;
             }
             $endDate = $rule->endsAt > $rule->startsAt ? $date : $day->modify('+1 day')->format('Y-m-d');
-            $start = self::resolve($date.' '.$rule->startsAt, $zone);
-            $end = self::resolve($endDate.' '.$rule->endsAt, $zone);
+            $start = ZonedTime::resolve($date.' '.$rule->startsAt, $zone);
+            $end = ZonedTime::resolve($endDate.' '.$rule->endsAt, $zone);
             if (null !== $start && null !== $end) {
                 $windows[] = [$start, $end];
             }
         }
 
         return $windows;
-    }
-
-    /** The instant for a local time, or null when the zone skips it (gap) or repeats it (overlap). */
-    private static function resolve(string $local, DateTimeZone $zone): ?DateTimeImmutable
-    {
-        $guess = new DateTimeImmutable($local, new DateTimeZone('UTC'))->getTimestamp();
-        $offsets = [];
-        foreach ([-self::DAY, self::DAY] as $shift) {
-            $offsets[$zone->getOffset(new DateTimeImmutable('@'.($guess + $shift)))] = true;
-        }
-        $valid = [];
-        foreach (array_keys($offsets) as $offset) {
-            $instant = $guess - $offset;
-            if ($zone->getOffset(new DateTimeImmutable('@'.$instant)) === $offset) {
-                $valid[] = $instant;
-            }
-        }
-
-        return 1 === \count($valid) ? new DateTimeImmutable('@'.$valid[0]) : null;
     }
 }

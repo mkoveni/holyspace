@@ -8,7 +8,7 @@ use App\Giving\Application\Contract\FundPage;
 use App\Giving\Application\Contract\GivingReader;
 use App\Giving\Application\GivingAccess;
 use App\Giving\Domain\GivingRules;
-use App\Giving\Domain\JavaString;
+use App\Shared\Domain\JavaString;
 
 final readonly class ListGivingFundsHandler
 {

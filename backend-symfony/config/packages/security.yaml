@@ -34,6 +34,9 @@ security:
         - { path: ^/actuator/health, methods: [GET], roles: PUBLIC_ACCESS }
         - { path: ^/api/login_check$, methods: [POST, OPTIONS], roles: PUBLIC_ACCESS }
         - { path: ^/api/, methods: [OPTIONS], roles: PUBLIC_ACCESS }
+        # Payments' explicit trusted entry points: authenticated provider callbacks and the one-use mobile checkout token.
+        - { path: ^/api/payments/webhooks/[a-z]+$, methods: [POST], roles: PUBLIC_ACCESS }
+        - { path: ^/api/mobile-checkouts/[^/]+$, methods: [GET, POST], roles: PUBLIC_ACCESS }
         - { path: ^/api/, roles: IS_AUTHENTICATED_FULLY }
         - { path: ^/, roles: ROLE_NEVER_GRANTED }
 

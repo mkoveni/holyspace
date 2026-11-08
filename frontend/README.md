@@ -185,13 +185,18 @@ Use this component for person selection instead of building a separate person dr
 
 ## Java People workspace
 
-The Java directory has its own deployment configuration. Run the Java backend
-at `http://localhost:8082`, then start the frontend:
+The Java directory has its own deployment configuration. `npm run dev:java` uses the
+Java API contract, served by the Symfony port (`backend-symfony`, which matches the Java
+routes one for one). Start it with `make build && make up` in `backend-symfony`
+(`http://localhost:8083`), then start the frontend:
 
 ```sh
 npm install
 npm run dev:java -- --host 127.0.0.1
 ```
+
+To use the original Java backend instead, run it at `http://localhost:8082` and start the
+frontend with `VITE_API_PROXY_TARGET=http://localhost:8082 npm run dev:java`.
 
 Open **http://localhost:5175** and sign in with a Java account. The existing
 administrator has the People permissions. Java sessions use a separate storage

@@ -13,9 +13,9 @@ availability was checked against `migrations/` and `src/*/Application/Contract`.
 | A1 | Inbox: `MemberNotifications`, preferences, inbox routes, `GET /api/member/notifications/{id}`, Events seam replaced | [x] 2026-11-07 |
 | A2 | Push devices and preferences, token cipher, push routes | [x] 2026-11-07 (Java-captured cipher vector still open) |
 | A3 | Push queue, processor, Expo transport, scheduler; `publish` enqueues push jobs | [x] 2026-11-07. **Item A complete:** Communications matches Java's 17 routes |
-| B1–B6 | Communities (see `communities.md`) | [ ] |
-| V1–V8 | Volunteering | [ ] (V7 now unblocked by A1) |
-| D0–D8 | Payments | [ ] |
+| B (S1–S6) | Communities (see `communities.md`) | [x] 2026-11-07. **Item B complete:** 31/31 routes, Events movement veto live, Java-captured `CommunityHash` vectors, two-session tests |
+| V1–V8 | Volunteering (see `volunteering.md`) | [x] 2026-11-07. **Item C complete:** 41/41 routes; member duty notices via the inbox, reminders via Communications email |
+| D0–D8 | Payments (see `payments.md`) | [x] 2026-11-08. **Item D complete:** 28/28 routes, Java-captured `PaymentHash`, vault and checkout-signature vectors, two-session tests |
 
 ### A1 log (2026-11-07)
 
@@ -319,8 +319,9 @@ No test may make a network call.
 
 ## 7. Cross-cutting items to close the port
 
-- **Java-captured hash vectors** for `GivingHash`, the Events hashes, `CommunityHash` and `PaymentHash`, plus AES golden
-  vectors (push, subscription vault, provider credentials). These block any mixed Java/Symfony deployment (D5 in
+- **Java-captured hash vectors** for `GivingHash` and the Events hashes (`CommunityHash` done in S6, `PaymentHash`
+  and the Payments AES vault/credential ciphertexts done in D8 with `docs/porting/vectors/PaymentVectors.java`; reuse
+  that approach with the `maven:3.9-eclipse-temurin-25` image), plus the push AES golden vector. These block any mixed Java/Symfony deployment (D5 in
   `events.md` and `giving.md`).
 - **OpenAPI documentation tests** (`*DocumentationIntegrationTest`) were skipped everywhere. Decide once whether
   Symfony needs an OpenAPI parity check.

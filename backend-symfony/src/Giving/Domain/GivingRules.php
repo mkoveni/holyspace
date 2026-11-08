@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Giving\Domain;
 
 use App\Shared\Domain\CalendarDate;
+use App\Shared\Domain\JavaString;
 
 /** Shared bounds and validation for the Giving context; messages match the Java application. */
 final class GivingRules

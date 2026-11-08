@@ -108,12 +108,20 @@ services:
     restart: unless-stopped
     ports:
       - "5173:5173"
+    # Java API contract served by the Symfony port. Start backend-symfony first (make up there):
+    # this joins its network and proxies /api to its app container.
+    command: [npx, vite, --mode, java, --host, 0.0.0.0, --port, '5173']
     volumes:
       - ./frontend:/app
       - frontend_node_modules:/app/node_modules
     environment:
-      VITE_API_BASE_URL: http://localhost:8082
-      VITE_API_PROXY_TARGET: http://webserver
+      VITE_API_BASE_URL: /
+      VITE_API_PROXY_TARGET: http://onechurch-symfony-app-1:8083
+    networks: [default, symfony]
+networks:
+  symfony:
+    name: onechurch-symfony_default
+    external: true
 volumes:
   pgadmin_data:
   postgres_data:

@@ -6,9 +6,10 @@ namespace App\Communities\Domain;
 
 use DateTimeImmutable;
 
+/** A leader or co-leader appointment on a current membership, optionally bound to a login account that gains scoped access. */
 final readonly class Leadership
 {
-    public function __construct(
+    private function __construct(
         public string $id,
         public string $membershipId,
         public string $communityId,
@@ -23,21 +24,22 @@ final readonly class Leadership
         }
     }
 
-    public function end(DateTimeImmutable $at): self
+    public static function appoint(string $id, string $membershipId, string $communityId, ?string $accountId, string $role, DateTimeImmutable $now): self
     {
-        if ($this->endedAt !== null) {
+        return new self($id, $membershipId, $communityId, $accountId, $role, $now, null, 0);
+    }
+
+    public static function reconstitute(string $id, string $membershipId, string $communityId, ?string $accountId, string $role, DateTimeImmutable $startedAt, ?DateTimeImmutable $endedAt, int $version): self
+    {
+        return new self($id, $membershipId, $communityId, $accountId, $role, $startedAt, $endedAt, $version);
+    }
+
+    public function end(DateTimeImmutable $now): self
+    {
+        if (null !== $this->endedAt) {
             throw CommunityException::conflict('This appointment has already ended.');
         }
 
-        return new self(
-            $this->id,
-            $this->membershipId,
-            $this->communityId,
-            $this->accountId,
-            $this->role,
-            $this->startedAt,
-            CommunityRules::time($at),
-            $this->version + 1
-        );
+        return new self($this->id, $this->membershipId, $this->communityId, $this->accountId, $this->role, $this->startedAt, $now, $this->version + 1);
     }
 }

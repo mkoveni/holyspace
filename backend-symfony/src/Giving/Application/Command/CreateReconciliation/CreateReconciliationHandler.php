@@ -9,13 +9,13 @@ use App\Giving\Application\GivingHash;
 use App\Giving\Domain\Gift;
 use App\Giving\Domain\GivingException;
 use App\Giving\Domain\GivingRules;
-use App\Giving\Domain\JavaString;
 use App\Giving\Domain\Reconciliation;
 use App\Giving\Domain\Repository\GiftRepository;
 use App\Giving\Domain\Repository\GivingHistoryRepository;
 use App\Giving\Domain\Repository\ReconciliationRepository;
 use App\Shared\Application\ChurchCalendar;
 use App\Shared\Application\CommandHandler;
+use App\Shared\Domain\JavaString;
 use Psr\Clock\ClockInterface;
 
 /**
