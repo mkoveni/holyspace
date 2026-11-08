@@ -1,0 +1,167 @@
+name: Frontend checks and deploy
+# Every push and pull request touching frontend runs the unit tests and builds the production release.
+# A push to main that passes is deployed to the VPS over SSH (see frontend/deploy/README.md, "CI/CD").
+on:
+  push:
+    paths:
+      - 'frontend/**'
+      - '.github/workflows/frontend-release.yml'
+  pull_request:
+    paths:
+      - 'frontend/**'
+      - '.github/workflows/frontend-release.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: frontend-release-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+defaults:
+  run:
+    working-directory: frontend
+env:
+  NODE_VERSION: '24'
+
+jobs:
+  checks:
+    name: Unit tests and deploy script checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci --no-audit --no-fund
+      - run: npm audit --audit-level=high
+      - run: npm test
+      - name: Lint deploy scripts
+        run: shellcheck -S warning deploy/*.sh
+      - name: Check nginx configuration syntax
+        run: |
+          work="$(mktemp -d)"
+          mkdir -p "$work/snippets" "$work/certs"
+          openssl req -x509 -newkey rsa:2048 -nodes -days 1 -subj /CN=ci -keyout "$work/certs/privkey.pem" -out "$work/certs/fullchain.pem" 2>/dev/null
+          sed -E 's|/etc/letsencrypt/live/[^/]+|/certs|' deploy/nginx/onechurch-web.conf > "$work/site.conf"
+          # The API's snippet, as backend-symfony ships it, pointed at a TCP address the container can resolve.
+          sed 's|unix:/run/php/onechurch-api.sock|127.0.0.1:9000|' ../backend-symfony/deploy/nginx/onechurch-api-fastcgi.conf > "$work/snippets/onechurch-api-fastcgi.conf"
+          docker run --rm -v "$work/site.conf:/etc/nginx/conf.d/default.conf:ro" -v "$work/snippets:/etc/nginx/snippets:ro" \
+            -v "$work/certs:/certs:ro" nginx:stable nginx -t
+
+  package:
+    name: Build the production release
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    outputs:
+      release-id: ${{ steps.build.outputs.release-id }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Type-check and build (same script as release.sh)
+        id: build
+        run: |
+          id="$(date -u +%Y%m%d%H%M%S)-${GITHUB_SHA::12}"
+          bash deploy/build.sh . "$RUNNER_TEMP/onechurch-web-$id.tar.gz"
+          echo "release-id=$id" >> "$GITHUB_OUTPUT"
+          echo "Release $id: $(du -h "$RUNNER_TEMP/onechurch-web-$id.tar.gz" | cut -f1)" >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: frontend-release-${{ github.sha }}
+          path: ${{ runner.temp }}/onechurch-web-${{ steps.build.outputs.release-id }}.tar.gz
+          retention-days: 14
+          if-no-files-found: error
+
+  deploy:
+    name: Deploy to production
+    needs: [checks, package]
+    if: >-
+      github.event_name != 'pull_request' && github.ref == 'refs/heads/main' &&
+      vars.FRONTEND_DEPLOY_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:
+      name: frontend-production
+      url: ${{ vars.FRONTEND_URL }}
+    concurrency:
+      group: frontend-production
+      cancel-in-progress: false
+    env:
+      RELEASE_ID: ${{ needs.package.outputs.release-id }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Skip a superseded commit
+        id: latest
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          latest="$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq .object.sha)"
+          if [[ "$latest" != "$GITHUB_SHA" ]]; then
+            echo "A newer main commit exists; its own run deploys it." | tee -a "$GITHUB_STEP_SUMMARY"
+            echo "current=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "current=true" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/download-artifact@v4
+        if: steps.latest.outputs.current == 'true'
+        with:
+          name: frontend-release-${{ github.sha }}
+          path: ${{ runner.temp }}/release
+      - name: Configure SSH
+        if: steps.latest.outputs.current == 'true'
+        env:
+          SSH_KEY: ${{ secrets.FRONTEND_VPS_SSH_KEY }}
+          KNOWN_HOSTS: ${{ secrets.FRONTEND_VPS_KNOWN_HOSTS }}
+          VPS_HOST: ${{ secrets.FRONTEND_VPS_HOST }}
+          VPS_PORT: ${{ vars.FRONTEND_VPS_PORT }}
+        run: |
+          [[ -n "$SSH_KEY" && -n "$KNOWN_HOSTS" && -n "$VPS_HOST" ]] || { echo "Deploy secrets are missing; run deploy/bootstrap-ci.sh." >&2; exit 1; }
+          install -d -m 0700 ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/deploy_key && chmod 0600 ~/.ssh/deploy_key
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+          cat > ~/.ssh/config <<EOF
+          Host vps
+            HostName $VPS_HOST
+            Port ${VPS_PORT:-22}
+            User onechurch-web-deploy
+            IdentityFile ~/.ssh/deploy_key
+            IdentitiesOnly yes
+            StrictHostKeyChecking yes
+            ServerAliveInterval 30
+          EOF
+      - name: Check the server's deploy scripts match this commit
+        if: steps.latest.outputs.current == 'true'
+        run: |
+          remote="$(ssh vps version)"
+          expected="$(printf 'install=%s\nreceive=%s\n' "$(sha256sum deploy/remote-install.sh | cut -d' ' -f1)" "$(sha256sum deploy/ci-receive.sh | cut -d' ' -f1)")"
+          if [[ "$remote" != "$expected" ]]; then
+            echo "::error::The deploy scripts on the server differ from this commit. Re-run frontend/deploy/bootstrap-ci.sh (or setup-server.sh) once, then re-run this job."
+            exit 1
+          fi
+      - name: Install the release (switch, health check, automatic switch-back)
+        if: steps.latest.outputs.current == 'true'
+        run: |
+          # shellcheck disable=SC2029 # the release id is meant to expand here, on the runner
+          ssh vps "deploy $RELEASE_ID" < "$RUNNER_TEMP/release/onechurch-web-$RELEASE_ID.tar.gz"
+      - name: Check the public site
+        if: steps.latest.outputs.current == 'true'
+        env:
+          FRONTEND_URL: ${{ vars.FRONTEND_URL }}
+        run: |
+          curl --fail --silent --show-error --proto '=https' --tlsv1.2 --connect-timeout 10 --max-time 20 \
+            --retry 5 --retry-delay 3 --retry-all-errors "${FRONTEND_URL%/}/" | grep -q '/assets/'
+          echo "Release $RELEASE_ID is live at $FRONTEND_URL" >> "$GITHUB_STEP_SUMMARY"
+      - name: Remove the SSH key
+        if: always()
+        run: rm -f ~/.ssh/deploy_key
