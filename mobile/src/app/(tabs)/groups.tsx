@@ -1,12 +1,19 @@
 import { useState } from "react";
-import { Text, View } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
 import type { MyCommunities } from "@/core/models";
 import { useSession } from "@/core/session";
 import { useLoad } from "@/hooks/use-load";
-import { Button, Message, Screen } from "@/ui/components";
+import {
+  Appear,
+  EmptyState,
+  Message,
+  NoticeCard,
+  PageHeader,
+  Pager,
+  Screen,
+  Segmented,
+} from "@/ui/components";
 import { CommunityCard } from "@/ui/community-card";
-import { colors, ui } from "@/ui/theme";
+import { SkeletonList } from "@/ui/skeleton";
 export default function GroupsScreen() {
   const { api } = useSession();
   const [kind, setKind] = useState(""),
@@ -24,81 +31,61 @@ export default function GroupsScreen() {
   }
   return (
     <Screen refreshing={loading} onRefresh={() => void reload()}>
-      <View style={{ gap: 10 }}>
-        <Text style={ui.eyebrow}>ROOTED IN COMMUNITY</Text>
-        <Text style={ui.title}>Your people. Your purpose.</Text>
-        <Text style={ui.body}>
-          Your groups and ministries, and the moments that bring you together.
-        </Text>
-      </View>
-      <View
-        style={[ui.row, { flexWrap: "wrap", justifyContent: "flex-start" }]}
-      >
-        {[
-          { value: "", title: "All memberships" },
-          { value: "GROUP", title: "Groups" },
-          { value: "MINISTRY", title: "Ministries" },
-        ].map((option) => (
-          <Button
-            key={option.value}
-            title={option.title}
-            subtle={kind !== option.value}
-            onPress={() => filter(option.value)}
-          />
-        ))}
-      </View>
+      <PageHeader
+        eyebrow="Rooted in community"
+        title="Your people. Your purpose."
+        intro="Your groups and ministries, and the moments that bring you together."
+      />
+      <Segmented
+        value={kind}
+        options={[
+          { value: "", label: "All memberships" },
+          { value: "GROUP", label: "Groups" },
+          { value: "MINISTRY", label: "Ministries" },
+        ]}
+        onChange={filter}
+      />
       <Message text={error} error />
+      {!data && !error && <SkeletonList />}
       {data && !data.verified ? (
-        <View style={ui.card}>
-          <Ionicons name="lock-closed-outline" color={colors.green} size={30} />
-          <Text style={ui.h2}>Let’s connect your community.</Text>
-          <Text style={ui.body}>
-            Ask the church office to verify your member identity to see your
-            groups and ministries.
-          </Text>
-        </View>
+        <NoticeCard
+          title="Let’s connect your community."
+          text="Ask the church office to verify your member identity to see your groups and ministries."
+        />
       ) : (
         data && (
           <>
             {!data.items.length && (
-              <View style={ui.card}>
-                <Ionicons
-                  name="people-outline"
-                  size={30}
-                  color={colors.green}
-                />
-                <Text style={ui.h2}>There’s a place for you.</Text>
-                <Text style={ui.body}>
-                  No current{" "}
-                  {kind === "GROUP"
+              <EmptyState
+                icon="people-outline"
+                title="There’s a place for you."
+                text={`No current ${
+                  kind === "GROUP"
                     ? "group"
                     : kind === "MINISTRY"
                       ? "ministry"
-                      : "group or ministry"}{" "}
-                  memberships to show. Contact the church office if a membership
-                  is missing or you’d like to get involved.
-                </Text>
-              </View>
+                      : "group or ministry"
+                } memberships to show. Contact the church office if a membership is missing or you’d like to get involved.`}
+              />
             )}
-            {data.items.map((community) => (
-              <CommunityCard key={community.id} community={community} />
+            {data.items.map((community, i) => (
+              <Appear key={community.id} index={i}>
+                <CommunityCard community={community} />
+              </Appear>
             ))}
-            {(offset > 0 || data.hasMore) && (
-              <View style={ui.row}>
-                <Button
-                  title="Previous memberships"
-                  subtle
-                  disabled={offset === 0 || loading}
-                  onPress={() => setOffset(Math.max(0, offset - 25))}
-                />
-                <Button
-                  title="More memberships"
-                  subtle
-                  disabled={!data.hasMore || loading}
-                  onPress={() => setOffset(offset + 25)}
-                />
-              </View>
-            )}
+            <Pager
+              hasPrevious={offset > 0}
+              hasNext={data.hasMore}
+              disabled={loading}
+              previous={{
+                title: "Previous memberships",
+                onPress: () => setOffset(Math.max(0, offset - 25)),
+              }}
+              next={{
+                title: "More memberships",
+                onPress: () => setOffset(offset + 25),
+              }}
+            />
           </>
         )
       )}

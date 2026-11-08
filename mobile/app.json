@@ -6,14 +6,14 @@
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "holyspace",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "app.holyspace.member"
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#F6F5EF",
+        "backgroundColor": "#12241C",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
@@ -31,7 +31,13 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#F6F5EF"
+          "backgroundColor": "#12241C",
+          "image": "./assets/images/splash-icon.png",
+          "imageWidth": 120,
+          "dark": {
+            "backgroundColor": "#12241C",
+            "image": "./assets/images/splash-icon.png"
+          }
         }
       ],
       [

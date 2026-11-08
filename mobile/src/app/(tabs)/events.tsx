@@ -1,12 +1,19 @@
 import { useState } from "react";
-import { Text, View } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
 import { useSession } from "@/core/session";
 import type { MemberEvents } from "@/core/models";
 import { useLoad } from "@/hooks/use-load";
-import { Button, Message, Screen } from "@/ui/components";
+import {
+  Appear,
+  EmptyState,
+  Message,
+  NoticeCard,
+  PageHeader,
+  Pager,
+  Screen,
+  Segmented,
+} from "@/ui/components";
 import { EventCard } from "@/ui/event-card";
-import { colors, ui } from "@/ui/theme";
+import { SkeletonList } from "@/ui/skeleton";
 export default function EventsScreen() {
   const { api } = useSession();
   const [mine, setMine] = useState(false),
@@ -24,77 +31,67 @@ export default function EventsScreen() {
   }
   return (
     <Screen refreshing={loading} onRefresh={() => void reload()}>
-      <View style={{ gap: 10 }}>
-        <Text style={ui.eyebrow}>GATHER. BELONG. GROW.</Text>
-        <Text style={ui.title}>Make room for community.</Text>
-        <Text style={ui.body}>
-          Find your next gathering and keep your plans close. Upcoming six
-          months.
-        </Text>
-      </View>
-      <View style={ui.row}>
-        <Button
-          title="Discover events"
-          subtle={mine}
-          onPress={() => choose(false)}
-        />
-        <Button
-          title="My bookings"
-          subtle={!mine}
-          onPress={() => choose(true)}
-        />
-      </View>
+      <PageHeader
+        eyebrow="Gather. Belong. Grow."
+        title="Make room for community."
+        intro="Find your next gathering and keep your plans close. Upcoming six months."
+      />
+      <Segmented
+        value={mine ? "mine" : "all"}
+        options={[
+          { value: "all", label: "Discover events" },
+          { value: "mine", label: "My bookings" },
+        ]}
+        onChange={(v) => choose(v === "mine")}
+      />
       <Message text={error} error />
+      {!data && !error && <SkeletonList />}
       {data && !data.verified ? (
-        <View style={ui.card}>
-          <Ionicons name="lock-closed-outline" size={30} color={colors.green} />
-          <Text style={ui.h2}>Let’s connect your events.</Text>
-          <Text style={ui.body}>
-            Ask the church office to verify your member identity before browsing
-            or booking events.
-          </Text>
-        </View>
+        <NoticeCard
+          title="Let’s connect your events."
+          text="Ask the church office to verify your member identity before browsing or booking events."
+        />
       ) : (
         data && (
           <>
             {!data.items.length && (
-              <View style={ui.card}>
-                <Ionicons
-                  name="calendar-outline"
-                  size={30}
-                  color={colors.green}
-                />
-                <Text style={ui.h2}>
-                  {mine
+              <EmptyState
+                icon="calendar-outline"
+                title={
+                  mine
                     ? "Your next chapter awaits."
-                    : "More moments are on their way."}
-                </Text>
-                <Text style={ui.body}>
-                  {mine
+                    : "More moments are on their way."
+                }
+                text={
+                  mine
                     ? "You have no upcoming bookings. Explore the church calendar to find your next gathering."
-                    : "There are no published gatherings in the next six months. Check back soon."}
-                </Text>
-              </View>
+                    : "There are no published gatherings in the next six months. Check back soon."
+                }
+                action={
+                  mine
+                    ? { title: "Discover events", onPress: () => choose(false) }
+                    : undefined
+                }
+              />
             )}
-            {data.items.map((event) => (
-              <EventCard key={event.id} event={event} />
+            {data.items.map((event, i) => (
+              <Appear key={event.id} index={i}>
+                <EventCard event={event} />
+              </Appear>
             ))}
-            {(offset > 0 || data.hasMore) && (
-              <View style={ui.row}>
-                <Button
-                  title="Previous events"
-                  subtle
-                  disabled={offset === 0 || loading}
-                  onPress={() => setOffset(Math.max(0, offset - 25))}
-                />
-                <Button
-                  title="More events"
-                  subtle
-                  disabled={!data.hasMore || loading}
-                  onPress={() => setOffset(offset + 25)}
-                />
-              </View>
-            )}
+            <Pager
+              hasPrevious={offset > 0}
+              hasNext={data.hasMore}
+              disabled={loading}
+              previous={{
+                title: "Previous events",
+                onPress: () => setOffset(Math.max(0, offset - 25)),
+              }}
+              next={{
+                title: "More events",
+                onPress: () => setOffset(offset + 25),
+              }}
+            />
           </>
         )
       )}

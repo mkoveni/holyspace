@@ -89,7 +89,7 @@ final class MemberEventsApiTest extends EventsApiTestCase
         $this->call('GET', '/api/member/events', $this->ada);
         self::assertCount(1, $this->json()['items']);
         $item = $this->json()['items'][0];
-        self::assertSame(['id', 'eventId', 'title', 'description', 'startsAt', 'endsAt', 'timeZone', 'venueName', 'venueAddress', 'status', 'registrationOpen', 'waitlistEnabled', 'remainingPlaces', 'booking'], array_keys($item), 'a member sees event details and their own booking only');
+        self::assertSame(['id', 'eventId', 'title', 'description', 'startsAt', 'endsAt', 'timeZone', 'venueName', 'venueAddress', 'status', 'registrationOpen', 'waitlistEnabled', 'remainingPlaces', 'booking', 'coverImageUrl'], array_keys($item), 'a member sees event details and their own booking only');
         self::assertSame($this->occurrence, $item['id']);
         self::assertSame('Sunday service', $item['title']);
         self::assertTrue($item['registrationOpen']);

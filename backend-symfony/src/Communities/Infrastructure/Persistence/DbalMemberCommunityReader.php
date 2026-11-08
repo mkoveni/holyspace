@@ -99,11 +99,12 @@ final readonly class DbalMemberCommunityReader implements MemberCommunityReader
     private function communityQuery(string $personId, DateTimeImmutable $at): QueryBuilder
     {
         $query = $this->connection->createQueryBuilder()
-            ->select('c.id', 'c.kind', 'c.name', 'c.description', 'c.campus', 'own.started_at', 'own_role.role', 'parent.name AS parent_name')
+            ->select('c.id', 'c.kind', 'c.name', 'c.description', 'c.campus', 'own.started_at', 'own_role.role', 'parent.name AS parent_name', 'cover.image_id AS cover_image_id')
             ->from('communities', 'c')
             ->join('c', 'community_memberships', 'own', 'own.community_id = c.id')
             ->leftJoin('own', 'community_leadership', 'own_role', 'own_role.membership_id = own.id AND own_role.started_at <= :at AND (own_role.ended_at IS NULL OR own_role.ended_at > :at)')
-            ->leftJoin('c', 'communities', 'parent', 'parent.id = c.parent_id AND parent.active = TRUE');
+            ->leftJoin('c', 'communities', 'parent', 'parent.id = c.parent_id AND parent.active = TRUE')
+            ->leftJoin('c', 'community_cover_images', 'cover', 'cover.community_id = c.id');
         $this->current($query, $personId, $at);
 
         return $query;
@@ -135,6 +136,7 @@ final readonly class DbalMemberCommunityReader implements MemberCommunityReader
             null === $row['parent_name'] ? null : (string) $row['parent_name'],
             Timestamps::fromDatabase((string) $row['started_at']),
             null === $row['role'] ? 'MEMBER' : (string) $row['role'],
+            null === $row['cover_image_id'] ? null : (string) $row['cover_image_id'],
         );
     }
 

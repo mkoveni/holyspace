@@ -65,3 +65,29 @@ export function attendanceAvailability(
     return "This event has ended. Attendance codes are now closed.";
   return "Your attendance code is available now. Show it to the welcome team when you arrive.";
 }
+
+/** Calendar-tile parts for an event, in the event's own time zone. */
+export function eventDay(event: Pick<MemberEvent, "startsAt" | "timeZone">): {
+  weekday: string;
+  day: string;
+  month: string;
+  time: string;
+} {
+  const parts = new Intl.DateTimeFormat("en-ZA", {
+    timeZone: event.timeZone,
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(new Date(event.startsAt));
+  const part = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((p) => p.type === type)?.value ?? "";
+  return {
+    weekday: part("weekday"),
+    day: String(Number(part("day"))),
+    month: part("month").replace(".", ""),
+    time: `${part("hour")}:${part("minute")}`,
+  };
+}

@@ -3,7 +3,9 @@ export interface CropSettings { zoom: number, x: number, y: number }
 export const imagePresets = {
   person: { width: 250, height: 250 },
   family: { width: 1200, height: 800 },
-  event: { width: 1200, height: 300 },
+  // Event and community covers are shown 16:9 in the member app; the uploader saves PNG, so 720p stays well under 5 MB.
+  event: { width: 1280, height: 720 },
+  community: { width: 1280, height: 720 },
   form: { width: 1200, height: 300 },
 } as const
 

@@ -5,7 +5,13 @@ import { useDevicePush } from "@/core/device-push";
 import type { PushSettings } from "@/core/push";
 import { notificationTopic } from "@/core/notifications";
 import { useLoad } from "@/hooks/use-load";
-import { Button, Message } from "./components";
+import {
+  Button,
+  InfoLink,
+  Message,
+  SectionHeader,
+  ToggleRow,
+} from "./components";
 import { ui } from "./theme";
 export function PushPreferences() {
   const { api } = useSession();
@@ -32,10 +38,9 @@ export function PushPreferences() {
     }
   }
   return (
-    <View style={{ gap: 20 }}>
-      <Text style={ui.eyebrow}>ON YOUR DEVICE</Text>
-      <Text style={ui.h2}>Push notifications</Text>
-      <Text style={ui.body}>
+    <View style={{ gap: 16 }}>
+      <SectionHeader title="On this device" />
+      <Text style={[ui.body, { fontSize: 14, marginTop: -6 }]}>
         A gentle heads-up, even when Holyspace is closed. Personal details stay
         inside the app.
       </Text>
@@ -50,39 +55,44 @@ export function PushPreferences() {
         <>
           <Button
             title="Enable notifications on this device"
+            icon="notifications-outline"
             disabled={busy || push.busy || loading || !data?.available}
             onPress={() => void action(push.enable)}
           />
           <Button
             title="Disable notifications on this device"
-            subtle
+            variant="ghost"
             disabled={busy || push.busy}
             onPress={() => void action(push.disable)}
           />
         </>
       )}
-      {data?.preferences?.map((item) => (
-        <View key={item.topic} style={[ui.card, { gap: 12 }]}>
-          <Text style={ui.h2}>{notificationTopic(item.topic)}</Text>
-          <Text style={ui.body}>Push alerts {item.enabled ? "on" : "off"}</Text>
-          <Button
-            title={`${item.enabled ? "Turn off" : "Turn on"} push for ${notificationTopic(item.topic)}`}
-            subtle
-            disabled={busy || push.busy || loading}
-            onPress={() =>
-              void action(() =>
-                api(`/api/member/push/preferences/${item.topic}`, "PUT", {
-                  enabled: !item.enabled,
-                  expectedVersion: item.version,
-                }),
-              )
-            }
-          />
+      {data?.preferences && data.preferences.length > 0 && (
+        <View style={ui.group}>
+          {data.preferences.map((item, i, all) => (
+            <ToggleRow
+              key={item.topic}
+              last={i === all.length - 1}
+              title={notificationTopic(item.topic)}
+              status={`Push alerts ${item.enabled ? "on" : "off"}`}
+              on={item.enabled}
+              actionLabel={`${item.enabled ? "Turn off" : "Turn on"} push for ${notificationTopic(item.topic)}`}
+              disabled={busy || push.busy || loading}
+              onPress={() =>
+                void action(() =>
+                  api(`/api/member/push/preferences/${item.topic}`, "PUT", {
+                    enabled: !item.enabled,
+                    expectedVersion: item.version,
+                  }),
+                )
+              }
+            />
+          ))}
         </View>
-      ))}
+      )}
       {data?.devices?.map((device) => (
         <View key={device.id} style={[ui.card, { gap: 12 }]}>
-          <Text style={ui.h2}>
+          <Text style={ui.h3}>
             {device.platform === "ios" ? "iOS" : "Android"} device
           </Text>
           <Text style={ui.body}>
@@ -94,7 +104,7 @@ export function PushPreferences() {
           {device.status === "ACTIVE" && (
             <Button
               title="Revoke this push registration"
-              subtle
+              variant="ghost"
               disabled={busy}
               onPress={() =>
                 void action(() =>
@@ -105,7 +115,13 @@ export function PushPreferences() {
           )}
         </View>
       ))}
-      <Message text="Enable this device and choose the topics you want. Push choices are separate from inbox and email settings. Signing out or revoking a session stops future sends once the server receives it; a notification already handed to the provider may still arrive." />
+      <InfoLink
+        sheetTitle="About push notifications"
+        paragraphs={[
+          "Enable this device and choose the topics you want. Push choices are separate from inbox and email settings.",
+          "Signing out or revoking a session stops future sends once the server receives it; a notification already handed to the provider may still arrive.",
+        ]}
+      />
     </View>
   );
 }

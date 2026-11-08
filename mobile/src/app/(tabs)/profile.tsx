@@ -1,12 +1,26 @@
 import { useState } from "react";
 import { Text, View } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
 import type { Contact, MemberProfile, Profile } from "@/core/models";
 import { useSession } from "@/core/session";
 import { date } from "@/core/money";
 import { useLoad } from "@/hooks/use-load";
-import { Button, Choice, Field, Message, Screen, Sheet } from "@/ui/components";
-import { colors, ui } from "@/ui/theme";
+import {
+  Avatar,
+  Button,
+  Choice,
+  EmptyState,
+  Field,
+  IconTile,
+  InfoRow,
+  Message,
+  NoticeCard,
+  InfoLink,
+  Screen,
+  SectionHeader,
+  Sheet,
+} from "@/ui/components";
+import { colors, fonts, ui } from "@/ui/theme";
+import { SkeletonBlock } from "@/ui/skeleton";
 export default function ProfileScreen() {
   const { api } = useSession(),
     { data, loading, error, reload } = useLoad(() =>
@@ -111,120 +125,164 @@ export default function ProfileScreen() {
   }
   const p = data?.profile;
   return (
-    <Screen refreshing={loading} onRefresh={() => void reload()}>
-      <View style={{ gap: 10 }}>
-        <Text style={ui.eyebrow}>MY PERSONAL DETAILS</Text>
-        <Text style={ui.title}>A profile that feels like you.</Text>
-        <Text style={ui.body}>Help your church stay connected with you.</Text>
-      </View>
+    <Screen
+      refreshing={loading}
+      onRefresh={() => void reload()}
+      hero={
+        p ? (
+          <View style={{ alignItems: "center", gap: 10, paddingTop: 4 }}>
+            <Avatar
+              name={`${p.details.firstName} ${p.details.lastName}`}
+              size={76}
+            />
+            <Text
+              accessibilityRole="header"
+              style={{
+                fontFamily: fonts.display,
+                fontSize: 28,
+                lineHeight: 34,
+                color: colors.onDark,
+                textAlign: "center",
+              }}
+            >
+              {p.details.firstName} {p.details.lastName}
+            </Text>
+            <Text style={[ui.eyebrow, { color: colors.goldBright }]}>
+              {p.membershipType.replaceAll("_", " ")}
+            </Text>
+          </View>
+        ) : (
+          <View style={{ gap: 6 }}>
+            <Text style={[ui.eyebrow, { color: colors.goldBright }]}>
+              MY PERSONAL DETAILS
+            </Text>
+            <Text style={[ui.title, { color: colors.onDark }]}>
+              A profile that feels like you.
+            </Text>
+          </View>
+        )
+      }
+    >
       <Message text={error} error />
       <Message text={success} />
+      {!data && !error && <SkeletonBlock />}
       {!editing && !contactOpen && <Message text={actionError} error />}
       {data && !p && (
-        <View style={ui.card}>
-          <Ionicons
-            name="person-circle-outline"
-            color={colors.green}
-            size={38}
-          />
-          <Text style={ui.h2}>Let’s connect your profile.</Text>
-          <Text style={ui.body}>
-            Ask your church office to verify your account and link it to your
-            People record. Giving access is verified separately.
-          </Text>
-        </View>
+        <NoticeCard
+          icon="person-circle-outline"
+          title="Let’s connect your profile."
+          text="Ask your church office to verify your account and link it to your People record. Giving access is verified separately."
+        />
       )}
       {p && (
         <>
-          <View style={ui.card}>
-            <View style={ui.row}>
-              <View style={{ flex: 1, gap: 8 }}>
-                <Text style={ui.h2}>
-                  {p.details.firstName} {p.details.lastName}
-                </Text>
-                <Text style={ui.body}>
-                  {p.membershipType.replaceAll("_", " ").toLowerCase()}
-                </Text>
-              </View>
-              <Ionicons
-                name="person-circle-outline"
-                size={42}
-                color={colors.green}
-              />
-            </View>
-            <View style={ui.separator} />
-            <Text style={ui.body}>
-              Date of birth:{" "}
-              {p.details.dateOfBirth
-                ? date(p.details.dateOfBirth)
-                : "Not recorded"}
-            </Text>
-            <Text style={[ui.body, { fontSize: 12 }]}>
-              Please contact the church office to correct your birth date or
-              membership status.
-            </Text>
-            <Button title="Edit my personal details" onPress={() => edit(p)} />
-          </View>
-          <View style={ui.card}>
-            <Text style={ui.eyebrow}>CONTACT DETAILS</Text>
-            <Text style={ui.h2}>Stay in the loop.</Text>
-            {!p.contacts.length && (
-              <Text style={ui.body}>
-                Add your phone or email so your church can reach you.
-              </Text>
-            )}
-            {p.contacts.map((c) => (
-              <View
-                key={c.id}
-                style={{
-                  gap: 10,
-                  paddingVertical: 10,
-                  borderBottomWidth: 1,
-                  borderColor: colors.line,
-                }}
-              >
-                <View style={ui.row}>
-                  <Text style={[ui.body, { fontSize: 11 }]}>
-                    {c.kind === "EMAIL" ? "Email" : "Phone"}
-                    {c.primary ? " · Primary" : ""}
-                  </Text>
-                  <Ionicons
-                    name={c.kind === "EMAIL" ? "mail-outline" : "call-outline"}
-                    size={19}
-                    color={colors.muted}
-                  />
-                </View>
-                <Text style={{ fontSize: 15, color: colors.text }}>
-                  {c.value}
-                </Text>
-                <View style={ui.row}>
-                  <Button
-                    title={`Edit ${c.kind === "EMAIL" ? "email" : "phone"}`}
-                    subtle
-                    onPress={() => editContact(c)}
-                  />
-                  <Button
-                    title="Remove contact"
-                    subtle
-                    onPress={() => {
-                      setActionError("");
-                      setRemoving(c);
-                    }}
-                  />
-                </View>
-              </View>
-            ))}
-            <Button
-              title="Add contact details"
-              subtle
-              onPress={() => editContact(null)}
+          <SectionHeader title="Personal details" />
+          <View style={ui.group}>
+            <InfoRow
+              icon="gift-outline"
+              title={
+                p.details.dateOfBirth
+                  ? date(p.details.dateOfBirth)
+                  : "Not recorded"
+              }
+              subtitle="Date of birth"
             />
-            <Text style={[ui.body, { fontSize: 12 }]}>
-              Changing your contact email does not change the email used to sign
-              in. Updates may require fresh verification for church
-              communications.
-            </Text>
+            <InfoRow
+              last
+              icon="ribbon-outline"
+              title={p.membershipType
+                .replaceAll("_", " ")
+                .toLowerCase()
+                .replace(/^./, (c) => c.toUpperCase())}
+              subtitle="Membership"
+            />
           </View>
+          <Text style={[ui.caption, { marginTop: -8 }]}>
+            Please contact the church office to correct your birth date or
+            membership status.
+          </Text>
+          <Button
+            title="Edit my personal details"
+            variant="secondary"
+            icon="create-outline"
+            onPress={() => edit(p)}
+          />
+          <SectionHeader title="Contact details" />
+          {!p.contacts.length && (
+            <EmptyState
+              icon="call-outline"
+              text="Add your phone or email so your church can reach you."
+            />
+          )}
+          {p.contacts.length > 0 && (
+            <View style={ui.group}>
+              {p.contacts.map((c, i) => (
+                <View
+                  key={c.id}
+                  style={{
+                    gap: 10,
+                    padding: 16,
+                    borderBottomWidth: i === p.contacts.length - 1 ? 0 : 1,
+                    borderColor: colors.line,
+                  }}
+                >
+                  <View style={[ui.row, { justifyContent: "flex-start" }]}>
+                    <IconTile
+                      size={38}
+                      icon={
+                        c.kind === "EMAIL" ? "mail-outline" : "call-outline"
+                      }
+                    />
+                    <View style={{ flex: 1, gap: 2 }}>
+                      <Text style={[ui.h3, { fontSize: 15 }]}>{c.value}</Text>
+                      <Text style={ui.caption}>
+                        {c.kind === "EMAIL" ? "Email" : "Phone"}
+                        {c.primary ? " · Primary" : ""}
+                      </Text>
+                    </View>
+                  </View>
+                  <View style={{ flexDirection: "row", gap: 4 }}>
+                    <Button
+                      title={`Edit ${c.kind === "EMAIL" ? "email" : "phone"}`}
+                      variant="ghost"
+                      style={{
+                        minHeight: 40,
+                        paddingVertical: 8,
+                        paddingHorizontal: 12,
+                      }}
+                      onPress={() => editContact(c)}
+                    />
+                    <Button
+                      title="Remove contact"
+                      variant="ghost"
+                      style={{
+                        minHeight: 40,
+                        paddingVertical: 8,
+                        paddingHorizontal: 12,
+                      }}
+                      onPress={() => {
+                        setActionError("");
+                        setRemoving(c);
+                      }}
+                    />
+                  </View>
+                </View>
+              ))}
+            </View>
+          )}
+          <Button
+            title="Add contact details"
+            variant="secondary"
+            icon="add"
+            onPress={() => editContact(null)}
+          />
+          <InfoLink
+            sheetTitle="About contact details"
+            paragraphs={[
+              "Changing your contact email does not change the email used to sign in.",
+              "Updates may require fresh verification for church communications.",
+            ]}
+          />
         </>
       )}
       <Sheet

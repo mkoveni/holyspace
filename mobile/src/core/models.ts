@@ -117,6 +117,8 @@ export interface MemberEvent {
     version: number;
     attendance: string | null;
   } | null;
+  /** Same-origin public image path, or null when staff set no cover. Resolve with `coverImageSource`. */
+  coverImageUrl: string | null;
 }
 export interface MemberEvents {
   verified: boolean;
@@ -137,6 +139,8 @@ export interface MemberCommunity {
   parentName: string | null;
   joinedAt: string;
   role: string;
+  /** Same-origin public image path, or null when staff set no cover. Resolve with `coverImageSource`. */
+  coverImageUrl: string | null;
 }
 export interface MyCommunities {
   verified: boolean;

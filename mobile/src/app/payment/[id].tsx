@@ -7,8 +7,16 @@ import { useSession } from "@/core/session";
 import { safeHandoff } from "@/core/http";
 import { date, label, money } from "@/core/money";
 import { useLoad } from "@/hooks/use-load";
-import { Button, Check, Message, Screen, Sheet } from "@/ui/components";
-import { colors, ui } from "@/ui/theme";
+import {
+  Badge,
+  Button,
+  Check,
+  IconTile,
+  Message,
+  Screen,
+  Sheet,
+} from "@/ui/components";
+import { colors, fonts, ui } from "@/ui/theme";
 export default function Payment() {
   const { id } = useLocalSearchParams<{ id: string }>(),
     session = useSession();
@@ -74,29 +82,65 @@ export default function Payment() {
     }
   }
   return (
-    <Screen refreshing={loading} onRefresh={() => void reload()}>
-      <Button
-        title="Back to giving"
-        subtle
-        onPress={() => {
+    <Screen
+      refreshing={loading}
+      onRefresh={() => void reload()}
+      back={{
+        label: "Back to giving",
+        onPress: () => {
           if (router.canGoBack()) router.back();
           else router.replace("/giving");
-        }}
-      />
-      <Text style={ui.eyebrow}>YOUR ONLINE GIFT</Text>
+        },
+      }}
+    >
       <Message text={error} error />
       <Message text={actionError} error />
       {order && (
         <>
-          <View style={ui.card}>
-            <Text style={ui.title}>{money(order.amountMinor)}</Text>
-            <Text style={ui.body}>
+          <View
+            style={{
+              backgroundColor: colors.hero,
+              borderRadius: 26,
+              paddingVertical: 26,
+              paddingHorizontal: 20,
+              alignItems: "center",
+              gap: 8,
+            }}
+          >
+            <Text style={[ui.eyebrow, { color: colors.goldBright }]}>
+              YOUR ONLINE GIFT
+            </Text>
+            <Text
+              style={{
+                fontFamily: fonts.display,
+                fontSize: 44,
+                lineHeight: 52,
+                letterSpacing: -1,
+                color: colors.onDark,
+              }}
+            >
+              {money(order.amountMinor)}
+            </Text>
+            <Text
+              style={[ui.caption, { color: colors.onDarkMuted, fontSize: 13 }]}
+            >
               {order.provider === "payfast" ? "Payfast" : "Yoco"} ·{" "}
               {order.recurring ? "Monthly giving" : "One-off gift"}
             </Text>
-            <Text style={[ui.badge, { alignSelf: "flex-start" }]}>
-              {label(order.status)}
-            </Text>
+            <View style={{ alignSelf: "center", marginTop: 4 }}>
+              <Badge
+                text={label(order.status)}
+                tone={
+                  order.status === "PAID"
+                    ? "success"
+                    : order.status === "FAILED" || order.status === "CANCELLED"
+                      ? "danger"
+                      : "gold"
+                }
+              />
+            </View>
+          </View>
+          <View style={ui.card}>
             {order.mode === "test" && (
               <Message text="Test payment · No real contribution will be recorded." />
             )}
@@ -112,10 +156,12 @@ export default function Payment() {
               <>
                 <Button
                   title="Open secure checkout"
+                  variant="gold"
+                  icon="lock-closed"
                   busy={busy}
                   onPress={() => void checkout()}
                 />
-                <Text style={[ui.body, { fontSize: 12 }]}>
+                <Text style={[ui.caption, { textAlign: "center" }]}>
                   After payment, close the browser to return here. Refresh to
                   see the provider-verified outcome.
                 </Text>
@@ -131,7 +177,7 @@ export default function Payment() {
                 />
                 <Button
                   title="Cancel future monthly gifts"
-                  subtle
+                  variant="ghost"
                   disabled={busy}
                   onPress={() => {
                     setConfirmed(false);
@@ -143,7 +189,12 @@ export default function Payment() {
           </View>
           {data.charges.map((c) => (
             <View key={c.id} style={ui.card}>
-              <Text style={ui.h2}>{money(c.amountMinor)}</Text>
+              <View
+                style={{ flexDirection: "row", gap: 12, alignItems: "center" }}
+              >
+                <IconTile icon="receipt-outline" tone="success" />
+                <Text style={[ui.h2, { flex: 1 }]}>{money(c.amountMinor)}</Text>
+              </View>
               <Text style={ui.body}>
                 {date(c.receivedOn)} · {label(c.givingStatus)}
               </Text>
@@ -181,7 +232,14 @@ export default function Payment() {
           ))}
           {data.refunds.map((r, i) => (
             <View key={i} style={ui.card}>
-              <Text style={ui.h2}>Refund · {money(r.amountMinor)}</Text>
+              <View
+                style={{ flexDirection: "row", gap: 12, alignItems: "center" }}
+              >
+                <IconTile icon="return-down-back-outline" tone="warning" />
+                <Text style={[ui.h2, { flex: 1 }]}>
+                  Refund · {money(r.amountMinor)}
+                </Text>
+              </View>
               <Text style={ui.body}>
                 {date(r.refundedOn)} ·{" "}
                 {r.applied ? "Recorded" : "Being recorded"}

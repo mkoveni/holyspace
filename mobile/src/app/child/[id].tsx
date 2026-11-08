@@ -21,7 +21,15 @@ import {
 } from "@/core/family";
 import { useSession } from "@/core/session";
 import { useLoad } from "@/hooks/use-load";
-import { Button, Message, Screen, Sheet } from "@/ui/components";
+import {
+  Avatar,
+  Button,
+  Message,
+  Pager,
+  Screen,
+  Segmented,
+  Sheet,
+} from "@/ui/components";
 import { colors, ui } from "@/ui/theme";
 export default function ChildDetail() {
   const { id } = useLocalSearchParams<{ id: string }>(),
@@ -173,14 +181,23 @@ export default function ChildDetail() {
     <Screen
       refreshing={child.loading || page.loading}
       onRefresh={() => void refresh()}
+      back={{
+        label: "Back to my children",
+        onPress: () => router.navigate("/children"),
+      }}
     >
-      <Button
-        title="Back to my children"
-        subtle
-        onPress={() => router.navigate("/children")}
-      />
-      <Text style={ui.eyebrow}>FAMILY MINISTRY</Text>
-      <Text style={ui.title}>{child.data?.name || "Your child"}</Text>
+      <View style={{ flexDirection: "row", gap: 14, alignItems: "center" }}>
+        <Avatar name={child.data?.name || "Your child"} size={56} />
+        <View style={{ flex: 1, gap: 4 }}>
+          <Text style={ui.eyebrow}>FAMILY MINISTRY</Text>
+          <Text
+            accessibilityRole="header"
+            style={[ui.title, { fontSize: 30, lineHeight: 36 }]}
+          >
+            {child.data?.name || "Your child"}
+          </Text>
+        </View>
+      </View>
       <Message
         text={
           child.error ||
@@ -193,20 +210,17 @@ export default function ChildDetail() {
       />
       {authorized && (
         <>
-          <View style={{ flexDirection: "row", gap: 8 }}>
-            {["programmes", "sessions", "attendance"].map((value) => (
-              <View key={value} style={{ flex: 1 }}>
-                <Button
-                  title={value[0].toUpperCase() + value.slice(1)}
-                  subtle={tab !== value}
-                  onPress={() => {
-                    clear();
-                    setTab(value);
-                  }}
-                />
-              </View>
-            ))}
-          </View>
+          <Segmented
+            value={tab}
+            options={["programmes", "sessions", "attendance"].map((value) => ({
+              value,
+              label: value[0].toUpperCase() + value.slice(1),
+            }))}
+            onChange={(value) => {
+              clear();
+              setTab(value);
+            }}
+          />
           {tab === "programmes" && (
             <>
               <Text style={ui.body}>
@@ -341,32 +355,26 @@ export default function ChildDetail() {
               text={`No ${tab} on this page. Contact the ministry team if something is missing.`}
             />
           )}
-          <View style={ui.row}>
-            <Button
-              title="Previous records"
-              subtle
-              disabled={offset === 0 || page.loading}
-              onPress={() => {
+          <Pager
+            hasPrevious={offset > 0}
+            hasNext={Boolean(page.data?.hasMore)}
+            disabled={page.loading}
+            page={`Page ${offset / 5 + 1}`}
+            previous={{
+              title: "Previous records",
+              onPress: () => {
                 clear();
                 setOffset(Math.max(0, offset - 5));
-              }}
-            />
-            <Text
-              numberOfLines={1}
-              style={[ui.body, { fontSize: 12, flexShrink: 0 }]}
-            >
-              Page {offset / 5 + 1}
-            </Text>
-            <Button
-              title="More records"
-              subtle
-              disabled={!page.data?.hasMore || page.loading}
-              onPress={() => {
+              },
+            }}
+            next={{
+              title: "More records",
+              onPress: () => {
                 clear();
                 setOffset(offset + 5);
-              }}
-            />
-          </View>
+              },
+            }}
+          />
         </>
       )}
       {review && authorized && (
@@ -385,7 +393,7 @@ export default function ChildDetail() {
           />
           <Button
             title="Keep existing label"
-            subtle
+            variant="ghost"
             disabled={busy}
             onPress={() => setReview(null)}
           />

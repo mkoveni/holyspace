@@ -1,12 +1,25 @@
 import { useState } from "react";
 import { router } from "expo-router";
 import { Text, View } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
 import type { Device } from "@/core/models";
 import { useSession } from "@/core/session";
 import { date } from "@/core/money";
 import { useLoad } from "@/hooks/use-load";
-import { Button, Field, Message, Screen, Sheet } from "@/ui/components";
+import {
+  Avatar,
+  Badge,
+  Button,
+  Field,
+  IconTile,
+  ListRow,
+  Message,
+  PageHeader,
+  Pager,
+  InfoLink,
+  Screen,
+  SectionHeader,
+  Sheet,
+} from "@/ui/components";
 import { colors, ui } from "@/ui/theme";
 export default function Security() {
   const session = useSession(),
@@ -83,34 +96,31 @@ export default function Security() {
     }
   }
   return (
-    <Screen refreshing={loading} onRefresh={() => void reload()}>
-      <Button
-        title="Back to home"
-        subtle
-        onPress={() => router.navigate("/")}
+    <Screen
+      refreshing={loading}
+      onRefresh={() => void reload()}
+      back={{ label: "Back to home", onPress: () => router.navigate("/") }}
+    >
+      <PageHeader
+        eyebrow="Your account, protected"
+        title="Peace of mind. In your hands."
+        intro="Manage your password and the devices signed in to your account."
       />
-      <View style={{ gap: 10 }}>
-        <Text style={ui.eyebrow}>YOUR ACCOUNT, PROTECTED</Text>
-        <Text style={ui.title}>Peace of mind. In your hands.</Text>
-        <Text style={ui.body}>
-          Manage your password and the devices signed in to your account.
-        </Text>
-      </View>
       <Message text={error} error />
       {!selected && !passwordOpen && <Message text={actionError} error />}
-      <View style={ui.card}>
-        <View style={ui.row}>
-          <Text style={ui.h2}>{session.account?.displayName}</Text>
-          <Ionicons
-            name="shield-checkmark-outline"
-            size={28}
-            color={colors.green}
-          />
+      <View style={ui.group}>
+        <View style={[ui.row, { justifyContent: "flex-start", padding: 16 }]}>
+          <Avatar name={session.account?.displayName || "Account"} size={48} />
+          <View style={{ flex: 1, gap: 2 }}>
+            <Text style={ui.h3}>{session.account?.displayName}</Text>
+            <Text style={ui.caption}>{session.account?.email}</Text>
+          </View>
         </View>
-        <Text style={ui.body}>{session.account?.email}</Text>
-        <Button
+        <View style={{ height: 1, backgroundColor: colors.line }} />
+        <ListRow
+          icon="key-outline"
           title="Change my password"
-          subtle
+          subtitle="Signs out every device"
           onPress={() => {
             setActionError("");
             setCurrent("");
@@ -119,61 +129,84 @@ export default function Security() {
             setPasswordOpen(true);
           }}
         />
-        <Button title="Sign out" subtle onPress={() => setSignOutOpen(true)} />
+        <ListRow
+          last
+          icon="log-out-outline"
+          tone="danger"
+          title="Sign out"
+          onPress={() => setSignOutOpen(true)}
+        />
       </View>
-      <View style={ui.card}>
-        <Text style={ui.eyebrow}>SIGNED-IN DEVICES</Text>
-        <Text style={ui.h2}>Know where you’re connected.</Text>
-        {data?.items.map((d) => (
-          <View
-            key={d.id}
-            style={{
-              gap: 12,
-              paddingVertical: 12,
-              borderBottomWidth: 1,
-              borderColor: colors.line,
-            }}
-          >
-            <View style={ui.row}>
-              <Text style={{ color: colors.text, fontWeight: "600", flex: 1 }}>
-                {d.deviceName}
-              </Text>
-              {d.current && <Text style={ui.badge}>This device</Text>}
-            </View>
-            <Text style={[ui.body, { fontSize: 12 }]}>
-              Signed in {date(d.createdAt)} · Expires {date(d.expiresAt)}
-            </Text>
-            <Button
-              title={
-                d.current ? "Sign out this device" : "Revoke device access"
-              }
-              subtle
-              onPress={() => {
-                setActionError("");
-                setSelected(d);
+      <SectionHeader title="Signed-in devices" />
+      <Text style={[ui.body, { fontSize: 14, marginTop: -8 }]}>
+        Know where you’re connected.
+      </Text>
+      {data && data.items.length > 0 && (
+        <View style={ui.group}>
+          {data.items.map((d, i) => (
+            <View
+              key={d.id}
+              style={{
+                gap: 8,
+                padding: 16,
+                borderBottomWidth: i === data.items.length - 1 ? 0 : 1,
+                borderColor: colors.line,
               }}
-            />
-          </View>
-        ))}
-        <Text style={[ui.body, { fontSize: 11 }]}>
-          Device names are labels supplied at sign-in. Revoke sessions you do
-          not recognize. Sessions expire automatically.
-        </Text>
-        <View style={ui.row}>
-          <Button
-            title="Previous devices"
-            subtle
-            disabled={!offset || loading}
-            onPress={() => setOffset(Math.max(0, offset - 25))}
-          />
-          <Button
-            title="More devices"
-            subtle
-            disabled={!data?.hasMore || loading}
-            onPress={() => setOffset(offset + 25)}
-          />
+            >
+              <View style={[ui.row, { justifyContent: "flex-start" }]}>
+                <IconTile
+                  size={38}
+                  icon={d.current ? "phone-portrait" : "phone-portrait-outline"}
+                  tone={d.current ? "success" : "neutral"}
+                />
+                <Text style={[ui.h3, { flex: 1, fontSize: 15 }]}>
+                  {d.deviceName}
+                </Text>
+                {d.current && <Badge text="This device" tone="success" />}
+              </View>
+              <Text style={ui.caption}>
+                Signed in {date(d.createdAt)} · Expires {date(d.expiresAt)}
+              </Text>
+              <Button
+                title={
+                  d.current ? "Sign out this device" : "Revoke device access"
+                }
+                variant="ghost"
+                style={{
+                  alignSelf: "flex-start",
+                  minHeight: 40,
+                  paddingVertical: 8,
+                  paddingHorizontal: 0,
+                }}
+                onPress={() => {
+                  setActionError("");
+                  setSelected(d);
+                }}
+              />
+            </View>
+          ))}
         </View>
-      </View>
+      )}
+      <InfoLink
+        sheetTitle="About signed-in devices"
+        paragraphs={[
+          "Device names are labels supplied at sign-in.",
+          "Revoke sessions you do not recognize. Sessions expire automatically.",
+        ]}
+      />
+      <Pager
+        hasPrevious={offset > 0}
+        hasNext={Boolean(data?.hasMore)}
+        disabled={loading}
+        previous={{
+          title: "Previous devices",
+          onPress: () => setOffset(Math.max(0, offset - 25)),
+        }}
+        next={{
+          title: "More devices",
+          onPress: () => setOffset(offset + 25),
+        }}
+      />
       <Sheet
         title="Revoke this device?"
         visible={Boolean(selected)}

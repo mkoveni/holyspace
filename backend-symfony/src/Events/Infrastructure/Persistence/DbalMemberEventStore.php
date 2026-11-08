@@ -18,12 +18,13 @@ final readonly class DbalMemberEventStore implements MemberEventReader, MemberOf
 {
     private const string SELECT = "SELECT o.id, o.event_id, e.title, e.description, o.starts_at, o.ends_at, o.time_zone, o.venue_name, o.venue_address, o.status,
             p.open AS policy_open, p.waitlist_enabled, p.capacity, e.active AS event_active, COALESCE(m.enabled, FALSE) AS offered,
-            r.id AS r_id, r.status AS r_status, r.version AS r_version, a.status AS a_status,
+            r.id AS r_id, r.status AS r_status, r.version AS r_version, a.status AS a_status, ci.image_id AS cover_image_id,
             (SELECT COUNT(*) FROM event_registrations c WHERE c.occurrence_id = o.id AND c.status = 'CONFIRMED') AS confirmed_count
         FROM event_occurrences o
         JOIN event_definitions e ON e.id = o.event_id
         JOIN event_registration_policies p ON p.occurrence_id = o.id
         LEFT JOIN event_member_offers m ON m.event_id = e.id
+        LEFT JOIN event_cover_images ci ON ci.event_id = e.id
         LEFT JOIN event_registrations r ON r.occurrence_id = o.id AND r.person_id = :person
         LEFT JOIN event_attendance a ON a.registration_id = r.id";
 
@@ -91,6 +92,7 @@ final readonly class DbalMemberEventStore implements MemberEventReader, MemberOf
             (bool) $row['waitlist_enabled'],
             null === $capacity ? null : max(0, $capacity - (int) $row['confirmed_count']),
             null === $row['r_id'] ? null : new MemberBooking((string) $row['r_id'], (string) $row['r_status'], (int) $row['r_version'], null === $row['a_status'] ? null : (string) $row['a_status']),
+            null === $row['cover_image_id'] ? null : (string) $row['cover_image_id'],
         );
     }
 }

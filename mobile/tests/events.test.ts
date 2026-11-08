@@ -5,6 +5,7 @@ import {
   attendanceQr,
   attendanceAvailability,
   canRegister,
+  eventDay,
 } from "../src/core/events.ts";
 import type { MemberEvent } from "../src/core/models.ts";
 const now = Date.parse("2026-10-28T08:00:00Z");
@@ -23,6 +24,7 @@ const event: MemberEvent = {
   waitlistEnabled: true,
   remainingPlaces: 0,
   booking: null,
+  coverImageUrl: null,
 };
 test("Booking choices distinguish capacity, waitlists and closed dates", () => {
   assert.equal(canRegister(event, now), true);
@@ -115,5 +117,22 @@ test("Disabled attendance codes explain the exact opening time in the gathering 
   assert.match(
     attendanceAvailability(booked, Date.parse(event.endsAt)),
     /event has ended/,
+  );
+});
+
+test("eventDay splits the start into calendar-tile parts in the event time zone", () => {
+  assert.deepEqual(
+    eventDay({
+      startsAt: "2026-11-08T07:30:00Z",
+      timeZone: "Africa/Johannesburg",
+    }),
+    { weekday: "Sun", day: "8", month: "Nov", time: "09:30" },
+  );
+  assert.equal(
+    eventDay({
+      startsAt: "2026-11-08T23:30:00Z",
+      timeZone: "Africa/Johannesburg",
+    }).day,
+    "9",
   );
 });

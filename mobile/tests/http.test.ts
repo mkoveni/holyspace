@@ -4,6 +4,7 @@ import {
   ApiError,
   SessionChanged,
   apiOrigin,
+  coverImageSource,
   createApi,
   safeHandoff,
 } from "../src/core/http.ts";
@@ -100,4 +101,31 @@ test("late responses and late JSON bodies cannot cross an account change", async
       },
     }) as Response;
   await assert.rejects(() => api("/api/member/profile"), SessionChanged);
+});
+test("cover images resolve only to the API's own public image route", () => {
+  const origin = "https://api.example.org";
+  const id = "0b6f8f1e-6c1a-4d2e-9f3a-2b7c8d9e0f12";
+  assert.equal(coverImageSource(null, origin), null);
+  assert.equal(coverImageSource("", origin), null);
+  assert.equal(
+    coverImageSource(`/api/public/cover-images/${id}`, origin),
+    `${origin}/api/public/cover-images/${id}`,
+  );
+  assert.equal(
+    coverImageSource(`${origin}/api/public/cover-images/${id}`, origin),
+    `${origin}/api/public/cover-images/${id}`,
+  );
+  for (const value of [
+    `https://evil.example/api/public/cover-images/${id}`,
+    `//evil.example/api/public/cover-images/${id}`,
+    `/api/public/cover-images/${id}?token=secret`,
+    `/api/public/cover-images/${id}#x`,
+    `https://user:pw@api.example.org/api/public/cover-images/${id}`,
+    `/api/public/cover-images/${id}/../../member/events`,
+    "/api/member/events",
+    "/api/public/cover-images/not-an-id",
+    "javascript:alert(1)",
+    "data:image/png;base64,AAAA",
+  ])
+    assert.equal(coverImageSource(value, origin), null, value);
 });

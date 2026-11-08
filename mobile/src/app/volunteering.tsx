@@ -12,8 +12,21 @@ import { canRespond } from "@/core/volunteering";
 import { useLoad } from "@/hooks/use-load";
 import { AvailabilityEditor } from "@/ui/availability-editor";
 import { DutyCard } from "@/ui/duty-card";
-import { Button, Message, Screen, Sheet } from "@/ui/components";
+import { success } from "@/ui/haptics";
+import {
+  Badge,
+  Button,
+  EmptyState,
+  IconTile,
+  Message,
+  PageHeader,
+  Pager,
+  Screen,
+  SectionHeader,
+  Sheet,
+} from "@/ui/components";
 import { ui } from "@/ui/theme";
+import { SkeletonList } from "@/ui/skeleton";
 export default function Volunteering() {
   const { api } = useSession(),
     [offset, setOffset] = useState(0);
@@ -44,6 +57,7 @@ export default function Volunteering() {
         "POST",
         { expectedVersion: selected.invitation.version, decision },
       );
+      success();
       setNotice(
         decision === "ACCEPTED"
           ? "Invitation accepted. Readiness is checked separately."
@@ -96,19 +110,16 @@ export default function Volunteering() {
         setEditing(null);
         void reload();
       }}
+      back={{ label: "Back to home", onPress: () => router.navigate("/") }}
     >
-      <Button
-        title="Back to home"
-        subtle
-        onPress={() => router.navigate("/")}
+      <PageHeader
+        eyebrow="Your time, your impact"
+        title="My volunteering"
+        intro="Your next 90 days of serving, with everything you need to feel prepared."
       />
-      <Text style={ui.eyebrow}>YOUR TIME, YOUR IMPACT</Text>
-      <Text style={ui.title}>My volunteering</Text>
-      <Text style={ui.body}>
-        Your next 90 days of serving, with everything you need to feel prepared.
-      </Text>
       <Message text={error} error />
       <Message text={notice} />
+      {!data && !error && <SkeletonList count={2} />}
       {data && !data.permitted && (
         <Message text="Ask your church office to enable volunteer self-service access for your account." />
       )}
@@ -118,13 +129,26 @@ export default function Volunteering() {
       {data?.linked && (
         <>
           <View style={[ui.card, { gap: 12 }]}>
-            <Text style={ui.h2}>Make space to serve</Text>
+            <View
+              style={{ flexDirection: "row", gap: 12, alignItems: "center" }}
+            >
+              <IconTile icon="calendar-clear-outline" tone="gold" />
+              <Text style={[ui.h2, { flex: 1 }]}>Make space to serve</Text>
+              <Badge
+                text={(data.status ?? "")
+                  .toLowerCase()
+                  .replace(/^./, (c) => c.toUpperCase())}
+                tone={data.status === "ACTIVE" ? "success" : "warning"}
+              />
+            </View>
             <Text style={ui.body}>
               Profile: {data.status?.toLowerCase()}. Keep your weekly
               availability and time away up to date.
             </Text>
             <Button
               title="Manage availability"
+              variant="secondary"
+              icon="create-outline"
               disabled={data.status !== "ACTIVE"}
               onPress={() => {
                 setMutationError("");
@@ -135,9 +159,12 @@ export default function Volunteering() {
               <Message text="Your volunteer profile is paused or archived. Contact your coordinator to resume serving." />
             )}
           </View>
-          <Text style={ui.eyebrow}>UPCOMING DUTIES</Text>
+          <SectionHeader title="Upcoming duties" />
           {!data.items.length && (
-            <Message text="No duties on this page. Your coordinator will add assignments and send invitations when a response is needed." />
+            <EmptyState
+              icon="hand-left-outline"
+              text="No duties on this page. Your coordinator will add assignments and send invitations when a response is needed."
+            />
           )}
           {data.items.map((duty) => (
             <DutyCard
@@ -154,21 +181,20 @@ export default function Volunteering() {
               }
             />
           ))}
-          <View style={ui.row}>
-            <Button
-              title="Previous duties"
-              subtle
-              disabled={offset === 0 || loading}
-              onPress={() => setOffset(Math.max(0, offset - 10))}
-            />
-            <Text style={ui.body}>Page {offset / 10 + 1}</Text>
-            <Button
-              title="More duties"
-              subtle
-              disabled={!data.hasMore || loading}
-              onPress={() => setOffset(offset + 10)}
-            />
-          </View>
+          <Pager
+            hasPrevious={offset > 0}
+            hasNext={data.hasMore}
+            disabled={loading}
+            page={`Page ${offset / 10 + 1}`}
+            previous={{
+              title: "Previous duties",
+              onPress: () => setOffset(Math.max(0, offset - 10)),
+            }}
+            next={{
+              title: "More duties",
+              onPress: () => setOffset(offset + 10),
+            }}
+          />
         </>
       )}
       {selected &&
@@ -182,19 +208,26 @@ export default function Volunteering() {
               if (!busy) setSelected(null);
             }}
           >
-            <Text style={ui.h2}>
-              {selected.team} · {selected.role}
-            </Text>
+            <View
+              style={{ flexDirection: "row", gap: 12, alignItems: "center" }}
+            >
+              <IconTile icon="hand-left-outline" tone="gold" />
+              <Text style={[ui.h2, { flex: 1 }]}>
+                {selected.team} · {selected.role}
+              </Text>
+            </View>
             <Message text="Accepting confirms your commitment. Outstanding readiness requirements still need your coordinator’s attention. Declining releases your place." />
             <Button
               title="Accept duty"
+              variant="gold"
+              icon="checkmark"
               busy={busy}
               disabled={!canRespond(selected, now)}
               onPress={() => void respond("ACCEPTED")}
             />
             <Button
               title="Decline duty"
-              danger
+              variant="ghost"
               disabled={busy || !canRespond(selected, now)}
               onPress={() => void respond("DECLINED")}
             />

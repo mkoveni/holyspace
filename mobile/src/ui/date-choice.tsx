@@ -81,7 +81,11 @@ export function DateChoice({
                     date === value ? colors.green : "transparent",
                 }}
               >
-                <Text style={{ color: date === value ? "#fff" : colors.text }}>
+                <Text
+                  style={{
+                    color: date === value ? colors.onPrimary : colors.text,
+                  }}
+                >
                   {i + 1}
                 </Text>
               </Pressable>

@@ -1,12 +1,19 @@
 import { PushPreferences } from "@/ui/push-preferences";
 import { useState } from "react";
-import { Text, View } from "react-native";
+import { View } from "react-native";
 import { router } from "expo-router";
 import type { NotificationPreference } from "@/core/models";
 import { notificationTopic } from "@/core/notifications";
 import { useSession } from "@/core/session";
 import { useLoad } from "@/hooks/use-load";
-import { Button, Message, Screen } from "@/ui/components";
+import {
+  Message,
+  PageHeader,
+  InfoLink,
+  Screen,
+  SectionHeader,
+  ToggleRow,
+} from "@/ui/components";
 import { ui } from "@/ui/theme";
 export default function NotificationPreferences() {
   const { api } = useSession();
@@ -37,38 +44,49 @@ export default function NotificationPreferences() {
     }
   }
   return (
-    <Screen refreshing={loading} onRefresh={() => void reload()}>
-      <Button
-        title="Back to inbox"
-        subtle
-        onPress={() => router.navigate("/inbox")}
+    <Screen
+      refreshing={loading}
+      onRefresh={() => void reload()}
+      back={{
+        label: "Back to inbox",
+        onPress: () => router.navigate("/inbox"),
+      }}
+    >
+      <PageHeader
+        eyebrow="Make it yours"
+        title="Notification preferences"
+        intro="Choose which future updates appear in your inbox."
       />
-      <Text style={ui.eyebrow}>MAKE IT YOURS</Text>
-      <Text style={ui.title}>Notification preferences</Text>
-      <Text style={ui.body}>
-        Choose which future updates appear in your inbox.
-      </Text>
       <Message text={error || failure} error />
-      {data?.map((item) => (
-        <View key={item.topic} style={[ui.card, { gap: 14 }]}>
-          <Text style={ui.h2}>{notificationTopic(item.topic)}</Text>
-          <Text style={ui.body}>
-            {item.topic === "VOLUNTEERING"
-              ? "Duty assignments, plan changes and invitations to serve."
-              : "Updates when you book or cancel an event in the app."}
-          </Text>
-          <Text style={ui.eyebrow}>
-            {item.enabled ? "Inbox updates on" : "Inbox updates off"}
-          </Text>
-          <Button
-            title={`${item.enabled ? "Turn off" : "Turn on"} ${notificationTopic(item.topic)}`}
-            subtle
-            disabled={busy || loading}
-            onPress={() => void toggle(item)}
-          />
+      <SectionHeader title="In your inbox" />
+      {data && data.length > 0 && (
+        <View style={ui.group}>
+          {data.map((item, i) => (
+            <ToggleRow
+              key={item.topic}
+              last={i === data.length - 1}
+              title={notificationTopic(item.topic)}
+              description={
+                item.topic === "VOLUNTEERING"
+                  ? "Duty assignments, plan changes and invitations to serve."
+                  : "Updates when you book or cancel an event in the app."
+              }
+              status={item.enabled ? "Inbox updates on" : "Inbox updates off"}
+              on={item.enabled}
+              actionLabel={`${item.enabled ? "Turn off" : "Turn on"} ${notificationTopic(item.topic)}`}
+              disabled={busy || loading}
+              onPress={() => void toggle(item)}
+            />
+          ))}
         </View>
-      ))}
-      <Message text="Changes apply to future inbox notices. Your existing updates, bookings and duties stay available. Email and device push preferences are separate." />
+      )}
+      <InfoLink
+        sheetTitle="About inbox preferences"
+        paragraphs={[
+          "Changes apply to future inbox notices. Your existing updates, bookings and duties stay available.",
+          "Email and device push preferences are separate.",
+        ]}
+      />
       <PushPreferences />
     </Screen>
   );

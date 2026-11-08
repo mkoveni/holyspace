@@ -43,7 +43,7 @@
   import { useAuthStore } from '@/stores/auth'
   import { imagePresets } from './image-uploader/crop'
   import ImageUploader from './ImageUploader.vue'
-  const props = defineProps<{ target: 'person' | 'family' | 'event' | 'form', ownerId?: string, label: string, editable?: boolean, publicToken?: string, width?: number, height?: number }>()
+  const props = defineProps<{ target: 'person' | 'family' | 'event' | 'community' | 'form', ownerId?: string, label: string, editable?: boolean, publicToken?: string, width?: number, height?: number }>()
   const dimensions = computed(() => ({ width: props.width ?? imagePresets[props.target].width, height: props.height ?? imagePresets[props.target].height }))
   const auth = useAuthStore()
   const source = ref('')

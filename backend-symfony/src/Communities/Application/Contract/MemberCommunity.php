@@ -18,6 +18,8 @@ final readonly class MemberCommunity
         public ?string $parentName,
         public DateTimeImmutable $joinedAt,
         public string $role,
+        /** The community's cover image id, served publicly by id (Shared `CoverImageController`), or null. */
+        public ?string $coverImageId,
     ) {
     }
 }

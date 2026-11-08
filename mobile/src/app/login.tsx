@@ -1,10 +1,8 @@
 import { useState } from "react";
 import { Text, View } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
 import { useSession } from "@/core/session";
 import { Button, Field, Message, Screen, Sheet } from "@/ui/components";
-import { ui } from "@/ui/theme";
+import { colors, ui } from "@/ui/theme";
 export default function Login() {
   const session = useSession(),
     [identifier, setIdentifier] = useState(""),
@@ -26,34 +24,27 @@ export default function Login() {
     }
   }
   return (
-    <Screen>
-      <LinearGradient
-        colors={["#244B3C", "#376B50"]}
-        style={{
-          padding: 28,
-          borderRadius: 28,
-          minHeight: 220,
-          justifyContent: "space-between",
-          overflow: "hidden",
-        }}
-      >
-        <Ionicons name="sparkles-outline" size={35} color="#D3DCC7" />
-        <View>
-          <Text style={[ui.eyebrow, { color: "#CBCEA9", marginBottom: 14 }]}>
+    <Screen
+      hero={
+        <View style={{ gap: 12, paddingTop: 28, paddingBottom: 12 }}>
+          <Text style={[ui.eyebrow, { color: colors.goldBright }]}>
             A PLACE TO BELONG
           </Text>
-          <Text style={[ui.title, { color: "#fff", fontSize: 36 }]}>
-            Your church. A little closer.
+          <Text
+            accessibilityRole="header"
+            style={[
+              ui.title,
+              { color: colors.onDark, fontSize: 40, lineHeight: 46 },
+            ]}
+          >
+            Your church.{"\n"}A little closer.
+          </Text>
+          <Text style={[ui.body, { color: colors.onDarkMuted }]}>
+            Stay connected to your church, wherever life takes you.
           </Text>
         </View>
-      </LinearGradient>
-      <View style={{ gap: 10 }}>
-        <Text style={ui.eyebrow}>WELCOME TO HOLYSPACE</Text>
-        <Text style={ui.h2}>Make yourself at home.</Text>
-        <Text style={ui.body}>
-          Stay connected to your church, wherever life takes you.
-        </Text>
-      </View>
+      }
+    >
       <Message text={session.notice} />
       <Message text={error} error />
       <View style={ui.card}>
@@ -77,17 +68,18 @@ export default function Login() {
         />
         <Button
           title="Sign in"
+          variant="gold"
           busy={busy}
           disabled={!identifier.trim() || !password}
           onPress={() => void signIn()}
         />
         <Button
           title="Need help signing in?"
-          subtle
+          variant="ghost"
           onPress={() => setHelp(true)}
         />
       </View>
-      <Text style={[ui.body, { fontSize: 12, textAlign: "center" }]}>
+      <Text style={[ui.caption, { textAlign: "center" }]}>
         Your account is provided by your church. Member and giving access are
         verified separately.
       </Text>

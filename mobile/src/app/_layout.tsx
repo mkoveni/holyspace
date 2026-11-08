@@ -1,4 +1,9 @@
 import { DevicePushProvider } from "@/core/device-push";
+import {
+  Fraunces_500Medium,
+  Fraunces_500Medium_Italic,
+} from "@expo-google-fonts/fraunces";
+import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { ActivityIndicator, View, Text } from "react-native";
@@ -9,13 +14,24 @@ import { Button, Message } from "@/ui/components";
 import { colors, ui } from "@/ui/theme";
 function Routes() {
   const session = useSession();
-  if (!session.ready)
+  const [fontsLoaded, fontError] = useFonts({
+    Fraunces_500Medium,
+    Fraunces_500Medium_Italic,
+  });
+  if (!session.ready || (!fontsLoaded && !fontError))
     return (
       <View
-        style={[ui.screen, { justifyContent: "center", alignItems: "center" }]}
+        style={[
+          ui.screen,
+          {
+            justifyContent: "center",
+            alignItems: "center",
+            backgroundColor: colors.hero,
+          },
+        ]}
       >
-        <ActivityIndicator color={colors.green} size="large" />
-        <Text style={[ui.body, { marginTop: 16 }]}>
+        <ActivityIndicator color={colors.goldBright} size="large" />
+        <Text style={[ui.body, { marginTop: 16, color: colors.onDarkMuted }]}>
           Opening your Holyspace…
         </Text>
       </View>
@@ -38,7 +54,12 @@ function Routes() {
       </View>
     );
   return (
-    <Stack screenOptions={{ headerShown: false }}>
+    <Stack
+      screenOptions={{
+        headerShown: false,
+        contentStyle: { backgroundColor: colors.bg },
+      }}
+    >
       <Stack.Protected guard={!session.account}>
         <Stack.Screen name="login" />
       </Stack.Protected>
@@ -64,7 +85,7 @@ export default function Layout() {
       <KeyboardProvider preload={false}>
         <SessionProvider>
           <DevicePushProvider>
-            <StatusBar style="dark" />
+            <StatusBar style="auto" />
             <Routes />
           </DevicePushProvider>
         </SessionProvider>

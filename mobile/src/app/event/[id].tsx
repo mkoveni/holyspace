@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { AppState, Text, View } from "react-native";
 import { Image } from "expo-image";
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
@@ -11,14 +11,29 @@ import {
   attendanceQr,
   attendanceAvailability,
   canRegister,
+  eventDay,
   eventTime,
 } from "@/core/events";
 import { label } from "@/core/money";
 import { useLoad } from "@/hooks/use-load";
-import { Button, Message, Screen, Sheet } from "@/ui/components";
-import { ui } from "@/ui/theme";
+import {
+  Badge,
+  Button,
+  InfoRow,
+  Message,
+  Screen,
+  Sheet,
+} from "@/ui/components";
+import { CoverBanner } from "@/ui/cover-image";
+import { DateTile } from "@/ui/event-card";
+import { success } from "@/ui/haptics";
+import { colors, ui } from "@/ui/theme";
+import { SkeletonBlock } from "@/ui/skeleton";
 export default function EventDetail() {
-  const { id } = useLocalSearchParams<{ id: string }>(),
+  const { id, pass: openPass } = useLocalSearchParams<{
+      id: string;
+      pass?: string;
+    }>(),
     { api } = useSession();
   const { data, loading, error, reload } = useLoad(
     () => api<MemberEvent>(`/api/member/events/${encodeURIComponent(id)}`),
@@ -53,6 +68,13 @@ export default function EventDetail() {
       clearInterval(timer);
     };
   }, []);
+  // Arriving from the Home "Show attendance QR" shortcut issues one code, once.
+  const autoPass = useRef(openPass === "1");
+  useEffect(() => {
+    if (!autoPass.current || !data || !admissionOpen(data, now)) return;
+    autoPass.current = false;
+    queueMicrotask(() => void showPass());
+  });
   async function refresh() {
     setPass(null);
     await reload();
@@ -77,6 +99,7 @@ export default function EventDetail() {
           expectedVersion: data.booking!.version,
         });
       }
+      success();
       setConfirm(null);
       await reload();
     } catch (e) {
@@ -114,43 +137,80 @@ export default function EventDetail() {
     ? Math.max(0, Math.ceil((new Date(pass.expiresAt).getTime() - now) / 1000))
     : 0;
   return (
-    <Screen refreshing={loading} onRefresh={() => void refresh()}>
-      <Button title="Back to events" subtle onPress={() => router.back()} />
+    <Screen
+      refreshing={loading}
+      onRefresh={() => void refresh()}
+      back={{ label: "Back to events", onPress: () => router.back() }}
+    >
       <Message text={error} error />
       {!confirm && <Message text={actionError} error />}
+      {!data && !error && <SkeletonBlock />}
       {data && (
         <>
-          <View style={{ gap: 12 }}>
-            <Text style={ui.eyebrow}>{eventTime(data)}</Text>
-            <Text style={ui.title}>{data.title}</Text>
-            <Text style={ui.body}>
-              {data.timeZone} · {data.venueName}
-            </Text>
+          <CoverBanner
+            url={data.coverImageUrl}
+            label={`Cover image for ${data.title}`}
+          />
+          <View style={{ flexDirection: "row", gap: 16, alignItems: "center" }}>
+            <DateTile startsAt={data.startsAt} timeZone={data.timeZone} />
+            <View style={{ flex: 1, gap: 6 }}>
+              <Text style={ui.eyebrow}>{eventTime(data)}</Text>
+              <Text
+                accessibilityRole="header"
+                style={[ui.title, { fontSize: 28, lineHeight: 34 }]}
+              >
+                {data.title}
+              </Text>
+            </View>
+          </View>
+          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+            {data.status === "CANCELLED" && (
+              <Badge text="Gathering cancelled" tone="danger" />
+            )}
+            {data.booking && (
+              <Badge
+                tone={
+                  data.booking.attendance === "PRESENT" ||
+                  data.booking.status === "CONFIRMED"
+                    ? "success"
+                    : data.booking.status === "CANCELLED"
+                      ? "danger"
+                      : "gold"
+                }
+                text={
+                  data.booking.attendance === "PRESENT"
+                    ? "Checked in"
+                    : `Your booking · ${label(data.booking.status)}`
+                }
+              />
+            )}
+          </View>
+          <View style={ui.group}>
+            <InfoRow
+              icon="time-outline"
+              title={`${eventDay(data).time} – ${new Date(
+                data.endsAt,
+              ).toLocaleTimeString("en-ZA", {
+                timeZone: data.timeZone,
+                hour: "2-digit",
+                minute: "2-digit",
+              })}`}
+              subtitle={data.timeZone}
+            />
+            <InfoRow
+              last
+              icon="location-outline"
+              title={data.venueName}
+              subtitle={data.venueAddress}
+            />
           </View>
           <View style={ui.card}>
             <Text style={ui.h2}>A place to come together.</Text>
             <Text style={ui.body}>
               {data.description || "We look forward to gathering with you."}
             </Text>
-            <Text style={ui.body}>{data.venueAddress}</Text>
-            <Text style={ui.body}>
-              Ends{" "}
-              {new Date(data.endsAt).toLocaleTimeString("en-ZA", {
-                timeZone: data.timeZone,
-                hour: "2-digit",
-                minute: "2-digit",
-              })}{" "}
-              · {data.timeZone}
-            </Text>
             {data.status === "CANCELLED" && (
               <Message text="This gathering has been cancelled." />
-            )}
-            {data.booking && (
-              <Text style={ui.badge}>
-                {data.booking.attendance === "PRESENT"
-                  ? "Checked in"
-                  : `Your booking · ${label(data.booking.status)}`}
-              </Text>
             )}
             {data.booking?.status === "WAITLISTED" && (
               <Message text="You’re on the waitlist. Your place is not confirmed yet. Refresh to check for an available place." />
@@ -164,6 +224,8 @@ export default function EventDetail() {
                       ? "Join waitlist"
                       : "Reserve my place"
                 }
+                variant="gold"
+                icon="ticket-outline"
                 busy={busy}
                 onPress={() => setConfirm("register")}
               />
@@ -184,7 +246,7 @@ export default function EventDetail() {
               new Date(data.endsAt).getTime() > now && (
                 <Button
                   title="Cancel my booking"
-                  subtle
+                  variant="ghost"
                   disabled={busy}
                   onPress={() => setConfirm("cancel")}
                 />
@@ -193,29 +255,49 @@ export default function EventDetail() {
           {data.booking?.status === "CONFIRMED" &&
             data.booking.attendance !== "PRESENT" &&
             data.status === "SCHEDULED" && (
-              <View style={ui.card}>
-                <Text style={ui.h2}>A warm welcome starts here.</Text>
-                <Text style={ui.body}>
+              <View
+                style={{
+                  backgroundColor: colors.hero,
+                  borderRadius: 26,
+                  padding: 20,
+                  gap: 14,
+                }}
+              >
+                <Text style={[ui.eyebrow, { color: colors.goldBright }]}>
+                  YOUR ATTENDANCE PASS
+                </Text>
+                <Text style={[ui.h2, { color: colors.onDark }]}>
+                  A warm welcome starts here.
+                </Text>
+                <Text style={[ui.body, { color: colors.onDarkMuted }]}>
                   Show your attendance QR to the welcome team. Available from
                   two hours before the event until it ends. This code is for
                   your event arrival only.
                 </Text>
                 <Message text={attendanceAvailability(data, now)} />
                 {pass && seconds > 0 ? (
-                  <>
+                  <View
+                    style={{
+                      backgroundColor: "#FFFFFF",
+                      borderRadius: 22,
+                      padding: 16,
+                      alignItems: "center",
+                      gap: 10,
+                    }}
+                  >
                     <Image
                       accessibilityLabel="Event attendance QR code"
                       source={{ uri: pass.image }}
                       cachePolicy="none"
-                      style={{ width: 246, height: 246, alignSelf: "center" }}
+                      style={{ width: 230, height: 230 }}
                       contentFit="contain"
                     />
-                    <Text style={[ui.body, { textAlign: "center" }]}>
+                    <Text style={[ui.caption, { textAlign: "center" }]}>
                       Valid for {Math.floor(seconds / 60)}:
                       {String(seconds % 60).padStart(2, "0")}. Keep this code
                       private.
                     </Text>
-                  </>
+                  </View>
                 ) : (
                   pass && (
                     <Message text="This code has expired. Generate a new code when you reach the welcome team." />
@@ -225,6 +307,8 @@ export default function EventDetail() {
                   title={
                     pass ? "Refresh attendance code" : "Show attendance code"
                   }
+                  variant="gold"
+                  icon="qr-code-outline"
                   onPress={() => void showPass()}
                   disabled={!admissionOpen(data, now)}
                   busy={busy}

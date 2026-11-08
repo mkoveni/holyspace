@@ -39,6 +39,13 @@
     />
 
     <template v-if="community">
+      <PortalImage
+        :editable="manage"
+        label="Cover image"
+        :owner-id="community.id"
+        target="community"
+      />
+
       <div class="d-flex flex-wrap ga-2 mb-5">
         <v-chip>{{ community.kind === 'GROUP' ? 'Group' : 'Ministry' }}</v-chip>
 
@@ -805,6 +812,7 @@
   import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
   import { useRoute } from 'vue-router'
   import DateSelector from '@/components/common/DateSelector.vue'
+  import PortalImage from '@/components/common/PortalImage.vue'
   import DirectoryHeading from '@/directory/components/DirectoryHeading.vue'
   import PersonPicker from '@/directory/components/PersonPicker.vue'
   import VenuePicker from '@/events/components/VenuePicker.vue'

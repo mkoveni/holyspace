@@ -1,12 +1,13 @@
 import { Tabs } from "expo-router/js-tabs";
 import { Ionicons } from "@expo/vector-icons";
-import { colors } from "@/ui/theme";
-const icons: Record<string, keyof typeof Ionicons.glyphMap> = {
-  index: "home-outline",
-  giving: "heart-outline",
-  events: "calendar-outline",
-  groups: "people-outline",
-  profile: "person-outline",
+import { colors, fonts } from "@/ui/theme";
+type IconName = keyof typeof Ionicons.glyphMap;
+const icons: Record<string, [IconName, IconName]> = {
+  index: ["home-outline", "home"],
+  giving: ["heart-outline", "heart"],
+  events: ["calendar-outline", "calendar"],
+  groups: ["people-outline", "people"],
+  profile: ["person-outline", "person"],
 };
 export default function TabLayout() {
   return (
@@ -14,20 +15,31 @@ export default function TabLayout() {
       screenOptions={({ route }) => ({
         headerShown: false,
         tabBarHideOnKeyboard: true,
-        tabBarActiveTintColor: colors.green,
-        tabBarInactiveTintColor: "#8C978F",
+        tabBarActiveTintColor: colors.ink,
+        tabBarInactiveTintColor: colors.muted,
         tabBarStyle: {
-          backgroundColor: colors.bg,
+          backgroundColor: colors.card,
           borderTopColor: colors.line,
           minHeight: 72,
-          paddingTop: 9,
+          paddingTop: 8,
           paddingBottom: 9,
         },
-        tabBarLabelStyle: { fontSize: 10, fontWeight: "600", marginTop: 4 },
-        tabBarIcon: ({ color, size }) => (
+        tabBarLabelStyle: {
+          fontSize: 11,
+          fontWeight: "600",
+          marginTop: 3,
+          fontFamily: fonts.sans,
+        },
+        tabBarIcon: ({ color, size, focused }) => (
           <Ionicons
-            name={icons[route.name]}
-            color={typeof color === "string" ? color : colors.green}
+            name={icons[route.name][focused ? 1 : 0]}
+            color={
+              focused
+                ? colors.green
+                : typeof color === "string"
+                  ? color
+                  : colors.muted
+            }
             size={size}
           />
         ),

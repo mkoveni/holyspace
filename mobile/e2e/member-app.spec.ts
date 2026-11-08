@@ -232,7 +232,9 @@ async function signIn(page: Page) {
   await page.getByLabel("Email or username", { exact: true }).fill("solly");
   await page.getByLabel("Password", { exact: true }).fill("a-private-password");
   await page.getByRole("button", { name: "Sign in", exact: true }).click();
-  await expect(page.getByText(/Welcome home,/)).toBeVisible();
+  await expect(
+    page.getByText(/Good (morning|afternoon|evening), /),
+  ).toBeVisible();
 }
 async function tab(page: Page, name: string) {
   await page.getByRole("tab", { name: new RegExp(name) }).click();
@@ -243,7 +245,7 @@ test("Holyspace sign-in and home are usable on a phone and retain no browser cre
   const { errors, requests } = await fixture(page);
   await signIn(page);
   await expect(
-    page.getByText("A little space for what matters most."),
+    page.getByText(/Good (morning|afternoon|evening), Solly/),
   ).toBeVisible();
   expect(
     requests.find((r) => r.path === "/api/login_check")?.body.deviceName,
@@ -469,8 +471,31 @@ test("Giving explains missing online funds and keeps history available", async (
   expect(errors).toEqual([]);
 });
 
-async function eventFixture(page: Page, full = false) {
+const coverImageUrl =
+  "/api/public/cover-images/0b6f8f1e-6c1a-4d2e-9f3a-2b7c8d9e0f12";
+// A 1x1 PNG, served the way the Symfony API serves cover images.
+const coverPng = Buffer.from(
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
+  "base64",
+);
+async function eventFixture(page: Page, full = false, cover = false) {
   const base = await fixture(page);
+  const coverRequests: { url: string; authorization?: string }[] = [];
+  await page.route("**/api/public/cover-images/**", (route) => {
+    coverRequests.push({
+      url: route.request().url(),
+      authorization: route.request().headers()["authorization"],
+    });
+    return route.fulfill({
+      status: 200,
+      body: coverPng,
+      headers: {
+        "Content-Type": "image/png",
+        "Access-Control-Allow-Origin": "*",
+        "Cache-Control": "public, max-age=31536000, immutable",
+      },
+    });
+  });
   const gathering = {
     id: "f6ef4648-3ca1-4b08-8fde-4e04440c6511",
     eventId: "f6ef4648-3ca1-4b08-8fde-4e04440c6512",
@@ -491,6 +516,7 @@ async function eventFixture(page: Page, full = false) {
       version: number;
       attendance: string | null;
     },
+    coverImageUrl: cover ? coverImageUrl : null,
   };
   const bookingRequests: any[] = [];
   let uncertain = false;
@@ -548,6 +574,7 @@ async function eventFixture(page: Page, full = false) {
     ...base,
     gathering,
     bookingRequests,
+    coverRequests,
     uncertainBooking: () => {
       uncertain = true;
     },
@@ -557,13 +584,17 @@ async function eventFixture(page: Page, full = false) {
 test("Members browse events, book, display a QR and cancel explicitly", async ({
   page,
 }) => {
-  const { errors, bookingRequests } = await eventFixture(page);
+  const { errors, bookingRequests, coverRequests } = await eventFixture(page);
   await signIn(page);
   await tab(page, "Events");
   await page
     .getByRole("button", { name: "View A Sunday together", exact: true })
     .click();
   await expect(page.getByText("10 Church Road", { exact: true })).toBeVisible();
+  await expect(page.getByRole("img", { name: /^Cover image for/ })).toHaveCount(
+    0,
+  );
+  expect(coverRequests).toEqual([]);
   await page
     .getByRole("button", { name: "Reserve my place", exact: true })
     .click();
@@ -603,6 +634,38 @@ test("Members browse events, book, display a QR and cancel explicitly", async ({
   await expect(
     page.getByText("Your upcoming bookings will appear here.", { exact: true }),
   ).toBeVisible();
+  expect(errors).toEqual([]);
+});
+
+test("Event covers load from the API's public image route without credentials", async ({
+  page,
+}) => {
+  const { errors, coverRequests } = await eventFixture(page, false, true);
+  await signIn(page);
+  await tab(page, "Events");
+  await expect(
+    page.getByRole("button", { name: "View A Sunday together", exact: true }),
+  ).toBeVisible();
+  await expect.poll(() => coverRequests.length).toBeGreaterThan(0);
+  await page
+    .getByRole("button", { name: "View A Sunday together", exact: true })
+    .click();
+  await expect(
+    page.getByRole("img", {
+      name: "Cover image for A Sunday together",
+      exact: true,
+    }),
+  ).toBeVisible();
+  await page.screenshot({
+    path: "test-results/member-event-cover-390.png",
+    fullPage: true,
+  });
+  for (const request of coverRequests) {
+    const url = new URL(request.url);
+    expect(url.pathname).toBe(coverImageUrl);
+    expect(url.search).toBe("");
+    expect(request.authorization).toBeUndefined();
+  }
   expect(errors).toEqual([]);
 });
 
@@ -712,6 +775,7 @@ async function communityFixture(page: Page, linked = true) {
     parentName: "Care ministry",
     joinedAt: "2025-01-01T00:00:00Z",
     role: "MEMBER",
+    coverImageUrl: null as string | null,
   };
   const ministry = {
     ...group,
@@ -1099,7 +1163,7 @@ test("My volunteering shows readiness, lets me decline an invitation and pages m
 }) => {
   const { errors, requests } = await volunteeringFixture(page);
   await signIn(page);
-  await expect(page.getByText("YOUR NEXT DUTY")).toBeVisible();
+  await expect(page.getByText("Your next duty", { exact: true })).toBeVisible();
   await page
     .getByRole("button", { name: "My volunteering", exact: true })
     .click();

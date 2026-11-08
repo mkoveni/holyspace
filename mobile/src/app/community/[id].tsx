@@ -5,9 +5,20 @@ import type { MyCommunity, MyMeetings } from "@/core/models";
 import { communityRole } from "@/core/communities";
 import { useSession } from "@/core/session";
 import { useLoad } from "@/hooks/use-load";
-import { Button, Message, Screen } from "@/ui/components";
+import {
+  Avatar,
+  Badge,
+  EmptyState,
+  Message,
+  PageHeader,
+  Pager,
+  Screen,
+  SectionHeader,
+} from "@/ui/components";
+import { CoverBanner } from "@/ui/cover-image";
 import { MeetingCard } from "@/ui/meeting-card";
-import { ui } from "@/ui/theme";
+import { colors, ui } from "@/ui/theme";
+import { SkeletonBlock } from "@/ui/skeleton";
 export default function CommunityDetail() {
   const { id } = useLocalSearchParams<{ id: string }>(),
     { api } = useSession();
@@ -35,77 +46,91 @@ export default function CommunityDetail() {
         void details.reload();
         void meetings.reload();
       }}
+      back={{ label: "Back to my groups", onPress: () => router.back() }}
     >
-      <Button title="Back to my groups" subtle onPress={() => router.back()} />
       <Message text={details.error} error />
+      {!details.data && !details.error && <SkeletonBlock />}
       {community && (
         <>
-          <View style={{ gap: 12 }}>
-            <Text style={ui.eyebrow}>
-              {community.kind === "MINISTRY" ? "MY MINISTRY" : "MY GROUP"}
-            </Text>
-            <Text style={ui.title}>{community.name}</Text>
-            <Text style={ui.body}>{community.campus}</Text>
-          </View>
+          <CoverBanner
+            url={community.coverImageUrl}
+            label={`Cover image for ${community.name}`}
+          />
+          <PageHeader
+            eyebrow={community.kind === "MINISTRY" ? "My ministry" : "My group"}
+            title={community.name}
+            intro={community.campus || undefined}
+            icon={
+              community.kind === "MINISTRY" ? "leaf-outline" : "people-outline"
+            }
+          />
           <View style={ui.card}>
             <Text style={ui.h2}>A shared purpose.</Text>
             <Text style={ui.body}>
               {community.description || "A place to belong and grow together."}
             </Text>
-            {community.parentName && (
+            {Boolean(community.parentName) && (
               <Text style={ui.body}>Part of {community.parentName}</Text>
             )}
-            <Text style={ui.badge}>
-              Your role · {communityRole(community.role)}
-            </Text>
-            <Text style={ui.body}>
-              Member since{" "}
-              {new Date(community.joinedAt).toLocaleDateString("en-ZA", {
-                day: "numeric",
-                month: "long",
-                year: "numeric",
-              })}
-            </Text>
+            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+              <Badge
+                tone="gold"
+                text={`Your role · ${communityRole(community.role)}`}
+              />
+              <Badge
+                text={`Member since ${new Date(
+                  community.joinedAt,
+                ).toLocaleDateString("en-ZA", {
+                  day: "numeric",
+                  month: "long",
+                  year: "numeric",
+                })}`}
+              />
+            </View>
           </View>
-          <View style={ui.card}>
-            <Text style={ui.eyebrow}>HERE TO WALK WITH YOU</Text>
-            <Text style={ui.h2}>Your leaders</Text>
-            {!details.data!.leaders.length && (
-              <Text style={ui.body}>
-                No current leaders to show on this page. The church office can
-                help you find the right person.
-              </Text>
-            )}
-            {details.data!.leaders.map((leader, index) => (
-              <View
-                key={`${leader.name}:${leader.role}:${index}`}
-                style={[ui.row, { flexWrap: "wrap" }]}
-              >
-                <Text style={[ui.h2, { fontSize: 17 }]}>{leader.name}</Text>
-                <Text style={ui.badge}>{communityRole(leader.role)}</Text>
-              </View>
-            ))}
-            {(leaderOffset > 0 || details.data!.hasMoreLeaders) && (
-              <View style={ui.row}>
-                <Button
-                  title="Previous leaders"
-                  subtle
-                  disabled={leaderOffset === 0 || details.loading}
-                  onPress={() =>
-                    setLeaderOffset(Math.max(0, leaderOffset - 25))
-                  }
-                />
-                <Button
-                  title="More leaders"
-                  subtle
-                  disabled={!details.data!.hasMoreLeaders || details.loading}
-                  onPress={() => setLeaderOffset(leaderOffset + 25)}
-                />
-              </View>
-            )}
-          </View>
-          <Text style={ui.eyebrow}>UPCOMING MEETINGS</Text>
-          <Text style={ui.body}>
+          <SectionHeader title="Your leaders" />
+          {!details.data!.leaders.length ? (
+            <EmptyState
+              icon="person-outline"
+              text="No current leaders to show on this page. The church office can help you find the right person."
+            />
+          ) : (
+            <View style={ui.group}>
+              {details.data!.leaders.map((leader, index, all) => (
+                <View
+                  key={`${leader.name}:${leader.role}:${index}`}
+                  style={[
+                    ui.row,
+                    {
+                      justifyContent: "flex-start",
+                      padding: 14,
+                      borderBottomWidth: index === all.length - 1 ? 0 : 1,
+                      borderColor: colors.line,
+                    },
+                  ]}
+                >
+                  <Avatar name={leader.name} />
+                  <Text style={[ui.h3, { flex: 1 }]}>{leader.name}</Text>
+                  <Badge text={communityRole(leader.role)} tone="gold" />
+                </View>
+              ))}
+            </View>
+          )}
+          <Pager
+            hasPrevious={leaderOffset > 0}
+            hasNext={details.data!.hasMoreLeaders}
+            disabled={details.loading}
+            previous={{
+              title: "Previous leaders",
+              onPress: () => setLeaderOffset(Math.max(0, leaderOffset - 25)),
+            }}
+            next={{
+              title: "More leaders",
+              onPress: () => setLeaderOffset(leaderOffset + 25),
+            }}
+          />
+          <SectionHeader title="Upcoming meetings" />
+          <Text style={[ui.body, { fontSize: 14, marginTop: -8 }]}>
             Your gatherings over the next six months. Attendance is recorded by
             your group leader.
           </Text>
@@ -114,32 +139,25 @@ export default function CommunityDetail() {
             <MeetingCard key={meeting.id} meeting={meeting} />
           ))}
           {meetings.data?.items.length === 0 && (
-            <View style={ui.card}>
-              <Text style={ui.h2}>A little space in the calendar.</Text>
-              <Text style={ui.body}>
-                No upcoming meetings to show. Check back soon or contact your
-                leader.
-              </Text>
-            </View>
+            <EmptyState
+              icon="calendar-outline"
+              title="A little space in the calendar."
+              text="No upcoming meetings to show. Check back soon or contact your leader."
+            />
           )}
-          {(meetingOffset > 0 || meetings.data?.hasMore) && (
-            <View style={ui.row}>
-              <Button
-                title="Previous meetings"
-                subtle
-                disabled={meetingOffset === 0 || meetings.loading}
-                onPress={() =>
-                  setMeetingOffset(Math.max(0, meetingOffset - 25))
-                }
-              />
-              <Button
-                title="More meetings"
-                subtle
-                disabled={!meetings.data?.hasMore || meetings.loading}
-                onPress={() => setMeetingOffset(meetingOffset + 25)}
-              />
-            </View>
-          )}
+          <Pager
+            hasPrevious={meetingOffset > 0}
+            hasNext={Boolean(meetings.data?.hasMore)}
+            disabled={meetings.loading}
+            previous={{
+              title: "Previous meetings",
+              onPress: () => setMeetingOffset(Math.max(0, meetingOffset - 25)),
+            }}
+            next={{
+              title: "More meetings",
+              onPress: () => setMeetingOffset(meetingOffset + 25),
+            }}
+          />
         </>
       )}
     </Screen>

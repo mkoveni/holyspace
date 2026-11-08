@@ -15,6 +15,7 @@ use App\Communities\Application\Query\ListMyCommunities\ListMyCommunitiesHandler
 use App\Communities\Application\Query\ListMyCommunities\ListMyCommunitiesQuery;
 use App\Communities\Application\Query\ListMyGroupMeetings\ListMyGroupMeetingsHandler;
 use App\Communities\Application\Query\ListMyGroupMeetings\ListMyGroupMeetingsQuery;
+use App\Shared\Presentation\CoverImageHttp;
 use App\Shared\Presentation\Json;
 use App\Shared\Presentation\PathUuid;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -100,6 +101,7 @@ final readonly class MemberCommunitiesController
             'parentName' => $c->parentName,
             'joinedAt' => Json::instant($c->joinedAt),
             'role' => $c->role,
+            'coverImageUrl' => CoverImageHttp::url($c->coverImageId),
         ];
     }
 

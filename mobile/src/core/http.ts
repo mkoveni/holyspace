@@ -38,6 +38,35 @@ export function safeHandoff(value: string, origin: string): string {
     );
   return url.href;
 }
+const coverPath =
+  /^\/api\/public\/cover-images\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+/**
+ * Resolves a member `coverImageUrl` against the API origin. Only the API's own public cover-image route is accepted, with
+ * no credentials, query or fragment, so a response can never point the image loader at another host or carry a token.
+ * Anything else is treated as no image.
+ */
+export function coverImageSource(
+  value: string | null | undefined,
+  origin: string,
+): string | null {
+  if (!value) return null;
+  let url: URL;
+  try {
+    url = new URL(value, origin);
+  } catch {
+    return null;
+  }
+  if (
+    url.origin !== origin ||
+    url.username ||
+    url.password ||
+    url.search ||
+    url.hash ||
+    !coverPath.test(url.pathname)
+  )
+    return null;
+  return url.href;
+}
 export function createApi(
   origin: string,
   token: () => string | null,
