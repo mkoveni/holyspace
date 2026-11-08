@@ -105,11 +105,15 @@ jobs:
           APP_DEBUG: '0'
           APP_SECRET: build-only-not-a-secret
         run: |
+          set -o pipefail
           id="$(date -u +%Y%m%d%H%M%S)-${GITHUB_SHA::12}"
           build="$RUNNER_TEMP/release"
           mkdir -p "$build"
           # Committed files only, then production dependencies on the same PHP version as the server.
-          git archive "$GITHUB_SHA:backend-symfony" | tar -x -C "$build"
+          # Run from the repository root: inside a subdirectory, git archive limits itself to that path and the
+          # "<sha>:backend-symfony" tree comes out empty.
+          git -C "$GITHUB_WORKSPACE" archive "$GITHUB_SHA:backend-symfony" | tar -x -C "$build"
+          [[ -f "$build/composer.json" && -f "$build/composer.lock" ]] || { echo "::error::The release tree is empty." >&2; exit 1; }
           composer install --working-dir="$build" --no-dev --classmap-authoritative --no-interaction --no-progress
           # Smoke test the production kernel: container compiles and every service is wired.
           (cd "$build" && php bin/console cache:warmup && php bin/console lint:container)
