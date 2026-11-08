@@ -1,4 +1,4 @@
-# Holyspace: Getting started
+# Divine Community Space: Getting started
 
 A practical guide for church staff and ministry leaders using the Church Management Portal.
 

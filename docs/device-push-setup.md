@@ -1,13 +1,13 @@
 # Enable device push notifications
 
-The implementation is installed, but live push remains disabled until Holyspace
+The implementation is installed, but live push remains disabled until Divine Community Space
 has an Expo/EAS project and platform credentials. Inbox notifications keep working.
 Nothing in this setup requires importing PHP data.
 
 ## 1. Link the mobile app to Expo/EAS
 
 From `mobile`, sign in to the intended church Expo account and create/link the
-Holyspace project:
+Divine Community Space project:
 
 ```sh
 npx eas-cli@latest login
@@ -28,7 +28,7 @@ See [Expo push setup](https://docs.expo.dev/push-notifications/push-notification
 
 ## 2. Configure Android Firebase credentials
 
-In Firebase, register an Android application with package `app.holyspace.member`.
+In Firebase, register an Android application with package `app.divinecommunityspace.member`.
 Download its client `google-services.json` into the ignored `mobile` directory.
 For local builds add this to `mobile/.env.local`:
 
@@ -51,7 +51,7 @@ same Firebase project. The service-account key stays in EAS; do not put it in th
 mobile bundle, repository or Java API requests.
 
 Follow [Expo's FCM v1 credential guide](https://docs.expo.dev/push-notifications/fcm-credentials/).
-For iOS, configure the matching `app.holyspace.member` app identifier, APNs key
+For iOS, configure the matching `app.divinecommunityspace.member` app identifier, APNs key
 and provisioning through EAS credentials before building the iOS app.
 
 ## 3. Configure the Java deployment

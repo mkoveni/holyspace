@@ -13,5 +13,5 @@
 </template>
 
 <script lang="ts" setup>
-  withDefaults(defineProps<{ title: string, subtitle?: string, eyebrow?: string }>(), { eyebrow: 'Holyspace workspace' })
+  withDefaults(defineProps<{ title: string, subtitle?: string, eyebrow?: string }>(), { eyebrow: 'Divine Community Space workspace' })
 </script>

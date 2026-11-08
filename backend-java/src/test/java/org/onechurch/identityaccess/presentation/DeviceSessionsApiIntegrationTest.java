@@ -15,7 +15,7 @@ class DeviceSessionsApiIntegrationTest extends IdentityIntegrationTestSupport {
     void setupSessions() throws Exception {
         account = createUser("member", "member@example.org", "Member");
         Response login = request("POST", "/api/login_check", null,
-            Map.of("username", "member", "password", PASSWORD, "deviceName", "Holyspace · Android"));
+            Map.of("username", "member", "password", PASSWORD, "deviceName", "Divine Community Space · Android"));
         assertThat(login.status()).isEqualTo(200);
         mobile = (String) login.data().get("token");
         other = login("member", PASSWORD);
@@ -24,7 +24,7 @@ class DeviceSessionsApiIntegrationTest extends IdentityIntegrationTestSupport {
     void sessionsAreScopedRedactedAndCanBeRevokedWithoutStaffPermissions() throws Exception {
         Response listed = request("GET", "/api/me/sessions", mobile, null);
         assertThat(listed.status()).isEqualTo(200);
-        assertThat(listed.body()).contains("Holyspace · Android", "Web browser", "\"current\":true")
+        assertThat(listed.body()).contains("Divine Community Space · Android", "Web browser", "\"current\":true")
             .doesNotContain("tokenHash", mobile, other);
         UUID otherSession = db.select(ACCOUNT_SESSIONS.ID)
             .from(ACCOUNT_SESSIONS)

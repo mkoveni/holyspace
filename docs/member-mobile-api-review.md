@@ -1,4 +1,4 @@
-# Holyspace member app: foundation and API review
+# Divine Community Space member app: foundation and API review
 
 ## Initial delivery
 

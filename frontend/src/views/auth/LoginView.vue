@@ -5,7 +5,7 @@
         <v-icon color="secondary" icon="mdi-church" size="22" />
       </div>
 
-      <span class="font-heading text-h6 font-weight-bold">Holyspace</span>
+      <span class="font-heading text-h6 font-weight-bold">Divine Community Space</span>
     </div>
 
     <div class="mb-8">

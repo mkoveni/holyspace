@@ -27,9 +27,9 @@ final class EventSecretsTest extends TestCase
     public static function carriers(): iterable
     {
         $now = new DateTimeImmutable('2026-07-05T10:00:00Z');
-        yield 'scan command' => [new ScanMemberAttendanceCommand(self::ID, self::ID, self::ID, 'holyspace:event:v1:'.self::SECRET)];
-        yield 'scan request' => [new ScanMemberRequest(self::ID, 'holyspace:event:v1:'.self::SECRET)];
-        yield 'issued pass' => [new IssuedPass('holyspace:event:v1:'.self::SECRET, $now)];
+        yield 'scan command' => [new ScanMemberAttendanceCommand(self::ID, self::ID, self::ID, 'divinecommunityspace:event:v1:'.self::SECRET)];
+        yield 'scan request' => [new ScanMemberRequest(self::ID, 'divinecommunityspace:event:v1:'.self::SECRET)];
+        yield 'issued pass' => [new IssuedPass('divinecommunityspace:event:v1:'.self::SECRET, $now)];
         yield 'admission pass' => [new AdmissionPass(self::SECRET, self::ID, self::ID, self::ID, 1, 1, 0, $now)];
         yield 'approve command' => [new ApproveEventNotificationCommand(self::ID, self::ID, self::ID, self::ID, 'REMINDER', self::SECRET, 'hash', self::SECRET)];
         yield 'approve request' => [new ApproveEventNotificationRequest(self::ID, self::ID, 'REMINDER', self::SECRET, 'hash', self::SECRET)];

@@ -15,7 +15,7 @@ final class DeviceSessionsApiTest extends IdentityApiTestCase
     {
         parent::setUp();
         $this->account('member');
-        $this->call('POST', '/api/login_check', null, ['username' => 'member', 'password' => self::PASSWORD, 'deviceName' => 'Holyspace · Android']);
+        $this->call('POST', '/api/login_check', null, ['username' => 'member', 'password' => self::PASSWORD, 'deviceName' => 'Divine Community Space · Android']);
         $this->mobile = (string) $this->json()['token'];
         $this->web = $this->login('member');
     }
@@ -32,8 +32,8 @@ final class DeviceSessionsApiTest extends IdentityApiTestCase
         self::assertSame(200, $this->code());
         self::assertStringContainsString('no-store', (string) $this->client->getResponse()->headers->get('Cache-Control'));
         $items = $this->json()['items'];
-        self::assertEqualsCanonicalizing(['Holyspace · Android', 'Web browser'], array_column($items, 'deviceName'));
-        self::assertSame(['Holyspace · Android'], array_column(array_filter($items, static fn (array $item): bool => $item['current']), 'deviceName'));
+        self::assertEqualsCanonicalizing(['Divine Community Space · Android', 'Web browser'], array_column($items, 'deviceName'));
+        self::assertSame(['Divine Community Space · Android'], array_column(array_filter($items, static fn (array $item): bool => $item['current']), 'deviceName'));
         $body = (string) $this->client->getResponse()->getContent();
         self::assertStringNotContainsString($this->mobile, $body);
         self::assertStringNotContainsString($this->web, $body);
@@ -89,6 +89,6 @@ final class DeviceSessionsApiTest extends IdentityApiTestCase
 
         $this->call('GET', '/api/me/sessions', $this->mobile);
 
-        self::assertSame(['Holyspace · Android'], array_column($this->json()['items'], 'deviceName'));
+        self::assertSame(['Divine Community Space · Android'], array_column($this->json()['items'], 'deviceName'));
     }
 }

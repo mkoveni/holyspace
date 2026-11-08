@@ -61,7 +61,7 @@ test('staff create a person, find them through backend autocomplete, and plan a 
   await expect(roster.getByRole('row').filter({ hasText: `${name} Browser` })).toContainText('confirmed')
   const waitingName = `Waiting${Date.now()}`
   const created = await page.evaluate(async (firstName) => {
-    const response = await fetch('/api/people', { method: 'POST', headers: { Authorization: `Bearer ${localStorage.getItem('holyspace.auth.token')}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ firstName, lastName: 'Browser' }) })
+    const response = await fetch('/api/people', { method: 'POST', headers: { Authorization: `Bearer ${localStorage.getItem('divinecommunityspace.auth.token')}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ firstName, lastName: 'Browser' }) })
     return response.status
   }, waitingName)
   expect(created).toBe(201)
@@ -90,7 +90,7 @@ test('read-only staff cannot create records or reach manager areas', async ({ pa
   await page.goto('/events')
   await expect(page.getByRole('button', { name: 'Create event', exact: true })).toHaveCount(0)
   const status = await page.evaluate(async () => {
-    const token = localStorage.getItem('holyspace.auth.token')
+    const token = localStorage.getItem('divinecommunityspace.auth.token')
     const response = await fetch('/api/people', { method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ firstName: 'Denied', lastName: 'Write' }) })
     return response.status
   })
@@ -145,7 +145,7 @@ test('staff generate a donor statement, export CSV and correct a pledge assignme
   const name = `Donor${Date.now()}`
   const fixtures = await page.evaluate(async (firstName) => {
     async function post (path: string, payload: unknown) {
-      const response = await fetch(path, {method: 'POST', headers: {Authorization: `Bearer ${localStorage.getItem('holyspace.auth.token')}`, 'Content-Type':'application/json'}, body: JSON.stringify(payload)})
+      const response = await fetch(path, {method: 'POST', headers: {Authorization: `Bearer ${localStorage.getItem('divinecommunityspace.auth.token')}`, 'Content-Type':'application/json'}, body: JSON.stringify(payload)})
       if (!response.ok) throw new Error(`Fixture creation failed: ${response.status}`)
       return await response.json() as {id: string}
     }
@@ -197,7 +197,7 @@ test('a linked group leader records only their own meeting attendance and loses 
   await signIn(page, 'admin')
   const label = `Group${Date.now()}`
   const fixtures = await page.evaluate(async ({label, password}) => {
-    const headers = {Authorization:`Bearer ${localStorage.getItem('holyspace.auth.token')}`, 'Content-Type':'application/json'}
+    const headers = {Authorization:`Bearer ${localStorage.getItem('divinecommunityspace.auth.token')}`, 'Content-Type':'application/json'}
     async function post (path: string, payload: unknown = {}) {
       const response = await fetch(path, {method:'POST', headers, body:JSON.stringify(payload)})
       if (!response.ok) throw new Error(`${path}: ${response.status}`)
@@ -247,11 +247,11 @@ test('a linked group leader records only their own meeting attendance and loses 
     await leaderPage.getByRole('dialog').getByRole('button', {name:'Save change', exact:true}).click()
     await expect(leaderPage.getByRole('dialog')).not.toBeVisible()
     const denied = await leaderPage.evaluate(async (otherId) => {
-      const headers = {Authorization:`Bearer ${localStorage.getItem('holyspace.auth.token')}`}
+      const headers = {Authorization:`Bearer ${localStorage.getItem('divinecommunityspace.auth.token')}`}
       return [(await fetch(`/api/groups/${otherId}`, {headers})).status, (await fetch('/api/attendance', {headers})).status, (await fetch('/api/permissions', {headers})).status]
     }, fixtures.other.id)
     expect(denied).toEqual([403,403,403])
-    const removed = await page.evaluate(async (id) => (await fetch(`/api/ministries/memberships/${id}/role`, {method:'POST', headers:{Authorization:`Bearer ${localStorage.getItem('holyspace.auth.token')}`, 'Content-Type':'application/json'}, body:JSON.stringify({role:'member'})})).status, fixtures.membership.id)
+    const removed = await page.evaluate(async (id) => (await fetch(`/api/ministries/memberships/${id}/role`, {method:'POST', headers:{Authorization:`Bearer ${localStorage.getItem('divinecommunityspace.auth.token')}`, 'Content-Type':'application/json'}, body:JSON.stringify({role:'member'})})).status, fixtures.membership.id)
     expect(removed).toBe(200)
     await leaderPage.reload()
     await expect(leaderPage.getByText(/No groups are available/)).toBeVisible()
@@ -262,7 +262,7 @@ test('an eligible volunteer accepts their invitation and sees only their publish
   await signIn(page,'admin')
   const tag = `Serve${Date.now()}`
   const fixtures = await page.evaluate(async ({tag,password}) => {
-    const headers = {Authorization:`Bearer ${localStorage.getItem('holyspace.auth.token')}`, 'Content-Type':'application/json'}
+    const headers = {Authorization:`Bearer ${localStorage.getItem('divinecommunityspace.auth.token')}`, 'Content-Type':'application/json'}
     async function post (path:string,payload:unknown = {}) {const r = await fetch(path,{method:'POST',headers,body:JSON.stringify(payload)}); if (!r.ok) throw new Error(`${path}: ${r.status}`); return r.status === 204 ? null : await r.json()}
     const person = await post('/api/people',{firstName:tag,lastName:'Volunteer'})
     const role = await post('/api/volunteering/roles',{name:`Welcome ${tag}`,requiresScreening:true})
@@ -313,7 +313,7 @@ test('an eligible volunteer accepts their invitation and sees only their publish
     await volunteer.getByRole('link',{name:'View service order',exact:true}).click()
     await expect(volunteer.getByText('Welcome and prayer · 10 minutes',{exact:true})).toBeVisible()
     await expect(volunteer.getByRole('button',{name:'Edit order',exact:true})).toHaveCount(0)
-    const status = await volunteer.evaluate(async () => (await fetch('/api/volunteer-rota',{headers:{Authorization:`Bearer ${localStorage.getItem('holyspace.auth.token')}`}})).status)
+    const status = await volunteer.evaluate(async () => (await fetch('/api/volunteer-rota',{headers:{Authorization:`Bearer ${localStorage.getItem('divinecommunityspace.auth.token')}`}})).status)
     expect(status).toBe(403)
   } finally {await context.close().catch(() => {})}
 })
@@ -322,7 +322,7 @@ test('a restricted children operator prints paired labels and verifies authorise
   await signIn(page,'admin')
   const tag = 'Kids' + Date.now()
   const fixtures = await page.evaluate(async ({tag,password}) => {
-    const headers = {Authorization:'Bearer ' + localStorage.getItem('holyspace.auth.token'), 'Content-Type':'application/json'}
+    const headers = {Authorization:'Bearer ' + localStorage.getItem('divinecommunityspace.auth.token'), 'Content-Type':'application/json'}
     async function post (path:string,payload:unknown = {}) {const r = await fetch(path,{method:'POST',headers,body:JSON.stringify(payload)}); if (!r.ok) throw new Error(path + ': ' + r.status + ' ' + await r.text()); return r.status === 204 ? null : await r.json()}
     const staff = await post('/api/people',{firstName:tag,lastName:'Supervisor',dateOfBirth:'1980-01-01'})
     const child = await post('/api/people',{firstName:tag,lastName:'Child',dateOfBirth:'2020-01-01'})
@@ -377,7 +377,7 @@ test('a restricted children operator prints paired labels and verifies authorise
     await expect(dialog).not.toBeVisible()
     await expect(station.getByRole('button',{name:'Collect',exact:true})).toHaveCount(0)
     const denied = await station.evaluate(async (sessionId) => {
-      const headers = {Authorization:'Bearer ' + localStorage.getItem('holyspace.auth.token')}
+      const headers = {Authorization:'Bearer ' + localStorage.getItem('divinecommunityspace.auth.token')}
       return [(await fetch('/api/children',{headers})).status,(await fetch('/api/people/search?q=Kids',{headers})).status,(await fetch('/api/children-station/sessions/' + sessionId,{headers})).status]
     },fixtures.sessionId)
     expect(denied).toEqual([403,403,200])
@@ -399,7 +399,7 @@ test('a member enrols MFA, accesses only their records, and recovers with a one-
   await signIn(page,'admin')
   const tag = 'Portal' + Date.now()
   const fixtures = await page.evaluate(async ({tag,password}) => {
-    const headers = {Authorization:'Bearer ' + localStorage.getItem('holyspace.auth.token'), 'Content-Type':'application/json'}
+    const headers = {Authorization:'Bearer ' + localStorage.getItem('divinecommunityspace.auth.token'), 'Content-Type':'application/json'}
     async function post (path:string,payload:unknown = {}) {const r = await fetch(path,{method:'POST',headers,body:JSON.stringify(payload)}); if (!r.ok) throw new Error(path + ': ' + r.status + ' ' + await r.text()); return r.status === 204 ? null : await r.json()}
     const person = await post('/api/people',{firstName:tag,lastName:'Member',dateOfBirth:'1980-01-01',email:'member@example.test'})
     const other = await post('/api/people',{firstName:tag,lastName:'Other',dateOfBirth:'1980-01-01'})
@@ -437,7 +437,7 @@ test('a member enrols MFA, accesses only their records, and recovers with a one-
     await expect(member.getByPlaceholder('you@yourchurch.org')).toBeVisible()
     await member.getByPlaceholder('you@yourchurch.org').fill(fixtures.username); await member.locator('input[type=password]').fill(password)
     await member.getByRole('button',{name:/sign in/i}).click(); await expect(member).toHaveURL(/account-security/)
-    const beforeMfa = await member.evaluate(async () => (await fetch('/api/member',{headers:{Authorization:'Bearer ' + localStorage.getItem('holyspace.auth.token')}})).status)
+    const beforeMfa = await member.evaluate(async () => (await fetch('/api/member',{headers:{Authorization:'Bearer ' + localStorage.getItem('divinecommunityspace.auth.token')}})).status)
     expect(beforeMfa).toBe(403)
     await member.getByLabel('Current password',{exact:true}).fill(password)
     await member.getByRole('button',{name:'Start authenticator setup',exact:true}).click()
@@ -457,7 +457,7 @@ test('a member enrols MFA, accesses only their records, and recovers with a one-
     const provisioning = new URL(scanned!.data)
     expect(provisioning.protocol).toBe('otpauth:')
     expect(provisioning.hostname).toBe('totp')
-    expect(provisioning.searchParams.get('issuer')).toBe('Holyspace')
+    expect(provisioning.searchParams.get('issuer')).toBe('Divine Community Space')
     const secret = provisioning.searchParams.get('secret')!
     expect(secret).toBe(await member.locator('.setup-secret').innerText())
     await member.getByLabel('Authenticator code',{exact:true}).fill(authenticatorCode(secret))
@@ -485,7 +485,7 @@ test('a member enrols MFA, accesses only their records, and recovers with a one-
     await expect(member.getByText('Not configured',{exact:true})).toHaveCount(2)
     await expect(member.getByRole('heading',{name:'My payment history',exact:true})).toBeVisible()
     await expect(member.getByRole('button',{name:'Save online giving funds',exact:true})).toHaveCount(0)
-    expect(await member.evaluate(async()=> (await fetch('/api/payments',{headers:{Authorization:'Bearer '+localStorage.getItem('holyspace.auth.token')}})).status)).toBe(403)
+    expect(await member.evaluate(async()=> (await fetch('/api/payments',{headers:{Authorization:'Bearer '+localStorage.getItem('divinecommunityspace.auth.token')}})).status)).toBe(403)
     await member.goto('/member')
     await member.getByLabel('My phone',{exact:true}).fill('+27820001234')
     await member.getByRole('button',{name:'Save contact details',exact:true}).click()
@@ -493,7 +493,7 @@ test('a member enrols MFA, accesses only their records, and recovers with a one-
     await member.getByRole('button',{name:'Load my statement',exact:true}).click()
     await expect(member.locator('.member-statement')).toContainText(/123[.,]45/)
     const scope = await member.evaluate(async (fixtures) => {
-      const headers = {Authorization:'Bearer ' + localStorage.getItem('holyspace.auth.token'),'Content-Type':'application/json'}
+      const headers = {Authorization:'Bearer ' + localStorage.getItem('divinecommunityspace.auth.token'),'Content-Type':'application/json'}
       const statement = await (await fetch('/api/member/giving?from=' + new Date().getUTCFullYear() + '-01-01&to=' + new Date().toISOString().slice(0,10) + '&donorId=' + fixtures.otherId,{headers})).json()
       return {donor:statement.donor.id,entries:statement.entries.length,denied:[(await fetch('/api/people',{headers})).status,(await fetch('/api/giving',{headers})).status,(await fetch('/api/member/registrations/' + fixtures.otherBookingId + '/cancel',{method:'POST',headers,body:JSON.stringify({expectedVersion:1})})).status]}
     },fixtures)
@@ -514,7 +514,7 @@ test('a member enrols MFA, accesses only their records, and recovers with a one-
       return {login:login.status,denied,verification:verification.status,granted,replay}
     },{username:fixtures.username,password,code:authenticatorCode(secret,30)})
     expect(passwordSession).toEqual({login:200,denied:403,verification:200,granted:200,replay:409})
-    const oldToken = await member.evaluate(() => localStorage.getItem('holyspace.auth.token'))
+    const oldToken = await member.evaluate(() => localStorage.getItem('divinecommunityspace.auth.token'))
     await member.goto('/recover')
     await member.getByLabel('Username',{exact:true}).fill(fixtures.username)
     await member.getByLabel('Offline recovery code',{exact:true}).fill(enabled.recoveryCodes[0])
@@ -535,7 +535,7 @@ test('staff save a segment, export a report, and assign an idempotent follow-up 
   await signIn(page,'admin')
   const tag = 'Reports' + Date.now()
   const fixtures = await page.evaluate(async ({tag,password}) => {
-    const headers = {Authorization:'Bearer ' + localStorage.getItem('holyspace.auth.token'),'Content-Type':'application/json'}
+    const headers = {Authorization:'Bearer ' + localStorage.getItem('divinecommunityspace.auth.token'),'Content-Type':'application/json'}
     async function post (path:string,payload:unknown = {}) {const r = await fetch(path,{method:'POST',headers,body:JSON.stringify(payload)}); if (!r.ok) throw new Error(path + ': ' + r.status); return r.status === 204 ? null : await r.json()}
     const person = await post('/api/people',{firstName:tag,lastName:'Contact',dateOfBirth:'1980-01-01'})
     await post('/api/people/' + person.id + '/status',{status:'inactive'})
@@ -621,13 +621,13 @@ test('staff save a segment, export a report, and assign an idempotent follow-up 
     await expect(outcome).not.toBeVisible()
     await expect(operator.getByText(/completed · due/)).toBeVisible()
     const denied = await operator.evaluate(async (id) => {
-      const headers = {Authorization:'Bearer ' + localStorage.getItem('holyspace.auth.token')}
+      const headers = {Authorization:'Bearer ' + localStorage.getItem('divinecommunityspace.auth.token')}
       return [(await fetch('/api/followups/' + id,{headers})).status,(await fetch('/api/reports/summary?from=2026-01-01&to=2026-10-12',{headers})).status]
     },fixtures.hiddenTaskId)
     expect(denied).toEqual([403,403])
     await ruleRow.getByRole('button',{name:'Evaluate now',exact:true}).click()
     const taskCount = await page.evaluate(async () => {
-      const headers = {Authorization:'Bearer ' + localStorage.getItem('holyspace.auth.token')}
+      const headers = {Authorization:'Bearer ' + localStorage.getItem('divinecommunityspace.auth.token')}
       return (await (await fetch('/api/followups',{headers})).json()).items.filter((t:{ruleId:string | null}) => t.ruleId !== null).length
     })
     expect(taskCount).toBe(1)
@@ -639,7 +639,7 @@ test('staff enable online funds and paid ticket prices while restricted accounts
   await signIn(page, 'admin')
   const label = 'Online' + Date.now()
   const fixtures = await page.evaluate(async (label) => {
-    const headers = {Authorization:'Bearer '+localStorage.getItem('holyspace.auth.token'),'Content-Type':'application/json'}
+    const headers = {Authorization:'Bearer '+localStorage.getItem('divinecommunityspace.auth.token'),'Content-Type':'application/json'}
     const fundResponse = await fetch('/api/giving/funds',{method:'POST',headers,body:JSON.stringify({name:label})})
     const fund = await fundResponse.json()
     const eventResponse = await fetch('/api/events',{method:'POST',headers,body:JSON.stringify({title:label+' Dinner',type:'other',startsAt:'2035-01-10T18:00',endsAt:'2035-01-10T20:00',location:'Church hall',timezone:'Africa/Johannesburg'})})
@@ -672,21 +672,21 @@ test('staff enable online funds and paid ticket prices while restricted accounts
   await page.getByRole('button',{name:'Save ticket price',exact:true}).click()
   await expect(page.getByText(/This event uses member hosted checkout/)).toBeVisible()
   await expect(page.getByRole('button',{name:'Register attendee',exact:true})).toHaveCount(0)
-  const settings = await page.evaluate(async (f)=> (await (await fetch('/api/events/'+f.eventId+'/occurrences/'+f.occurrenceId+'/registrations',{headers:{Authorization:'Bearer '+localStorage.getItem('holyspace.auth.token')}})).json()).settings,fixtures)
+  const settings = await page.evaluate(async (f)=> (await (await fetch('/api/events/'+f.eventId+'/occurrences/'+f.occurrenceId+'/registrations',{headers:{Authorization:'Bearer '+localStorage.getItem('divinecommunityspace.auth.token')}})).json()).settings,fixtures)
   expect(settings.ticketPriceMinor).toBe(2500)
   await page.getByRole('button',{name:/pilot.admin/}).click()
   await page.getByText('Sign out',{exact:true}).click()
   await signIn(page,'reader')
   await page.goto('/payments')
   await expect(page).toHaveURL(/forbidden$/)
-  expect(await page.evaluate(async()=> (await fetch('/api/payments',{headers:{Authorization:'Bearer '+localStorage.getItem('holyspace.auth.token')}})).status)).toBe(403)
+  expect(await page.evaluate(async()=> (await fetch('/api/payments',{headers:{Authorization:'Bearer '+localStorage.getItem('divinecommunityspace.auth.token')}})).status)).toBe(403)
 })
 
 test('staff upload portal pictures and published form banners remain scoped to the form', async ({ page, browser }) => {
   test.setTimeout(60000)
   await signIn(page, 'admin')
   const fixtures = await page.evaluate(async () => {
-    const headers = { Authorization: 'Bearer ' + localStorage.getItem('holyspace.auth.token'), 'Content-Type': 'application/json' }
+    const headers = { Authorization: 'Bearer ' + localStorage.getItem('divinecommunityspace.auth.token'), 'Content-Type': 'application/json' }
     const post = async (path: string, body: unknown) => { const response = await fetch(path, { method: 'POST', headers, body: JSON.stringify(body) }); if (!response.ok) throw new Error(path + ': ' + response.status); return response.json() }
     const person = await post('/api/people', { firstName: 'Picture', lastName: 'Pilot' })
     const family = await post('/api/families', { name: 'Picture pilot household' })

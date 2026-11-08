@@ -93,7 +93,7 @@ export async function ministryFixture (
   await page.addInitScript(() => {
     if (window.top !== window) return
     localStorage.setItem(
-      'holyspace.java.auth.token',
+      'divinecommunityspace.java.auth.token',
       'children-ui-test-session',
     )
   })

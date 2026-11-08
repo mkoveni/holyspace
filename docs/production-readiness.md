@@ -1,6 +1,6 @@
 # Production readiness tracker
 
-Scope: Java API, PostgreSQL, Vue staff workspace and Holyspace member application.
+Scope: Java API, PostgreSQL, Vue staff workspace and Divine Community Space member application.
 A completed development feature or test suite is not production approval. PHP
 migration and legacy feature parity are outside this release.
 

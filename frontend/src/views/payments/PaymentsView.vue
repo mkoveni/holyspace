@@ -197,7 +197,7 @@
     member?: boolean
   }>(), { member: false })
   const auth = useAuthStore(), data = ref<Data | null>(null), error = ref(''), busy = ref(false), fundIds = ref<string[]>([]), fundId = ref<string | null>(null), amount = ref(''), provider = ref<string | null>(null), recurring = ref(false)
-  const requestStorageKey = 'holyspace.payment-request.' + (auth.user?.personId ?? 'unlinked')
+  const requestStorageKey = 'divinecommunityspace.payment-request.' + (auth.user?.personId ?? 'unlinked')
   const pendingRequest = ref<CheckoutRequest | null>(null)
   try {
     const cached = sessionStorage.getItem(requestStorageKey)

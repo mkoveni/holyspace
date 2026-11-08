@@ -51,7 +51,7 @@ describe('authentication and private data', () => {
     }
     await auth.bootstrap()
     expect(auth.token).toBeNull()
-    expect(localStorage.getItem('holyspace.auth.token')).toBeNull()
+    expect(localStorage.getItem('divinecommunityspace.auth.token')).toBeNull()
     expect(useRolesStore().roles).toEqual([])
   })
 

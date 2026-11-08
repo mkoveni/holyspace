@@ -559,7 +559,7 @@
         cancelConfirmed = ref(false)
   const paymentOffset = ref(0),
         giftOffset = ref(0)
-  const requestKey = `holyspace.payment-request.donor.${auth.user?.id}`
+  const requestKey = `divinecommunityspace.payment-request.donor.${auth.user?.id}`
   let requestId: string
     = sessionStorage.getItem(requestKey) || crypto.randomUUID()
   let overviewGeneration = 0,

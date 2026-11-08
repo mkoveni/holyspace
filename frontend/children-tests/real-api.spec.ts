@@ -49,7 +49,7 @@ test('sets up a programme and completes family consent, session planning and a s
   await person(`Solly${suffix}`, '1980-02-12')
   const worker = await person(`Naledi${suffix}`, '1985-03-16')
   await page.addInitScript(
-    value => localStorage.setItem('holyspace.java.auth.token', value),
+    value => localStorage.setItem('divinecommunityspace.java.auth.token', value),
     token,
   )
   await page.goto('/children')
@@ -331,7 +331,7 @@ test('creates welcoming spaces and records team clearance through the forms', as
   })
   expect(account.status()).toBe(201)
   await page.addInitScript(
-    value => localStorage.setItem('holyspace.java.auth.token', value),
+    value => localStorage.setItem('divinecommunityspace.java.auth.token', value),
     token,
   )
   await page.goto('/children/settings')

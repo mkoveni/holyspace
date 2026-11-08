@@ -1222,7 +1222,7 @@ verification evidence. Donors need a live account session and verified link, wit
 staff finance permissions. See `../docs/java-payments.md` for the ownership,
 revocation, retry and monthly-cancellation rules.
 
-General member access and the Holyspace mobile foundation are documented in
+General member access and the Divine Community Space mobile foundation are documented in
 `../docs/member-mobile-api-review.md`. Verify account/person identity under
 **Administration → Member access** (`identity.manage` plus `people.manage`).
 This does not grant donor, household or guardian access. The new own-profile API

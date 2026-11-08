@@ -31,7 +31,7 @@ for (const kind of ['arrival', 'collection'] as const) {
       .click()
     await page
       .getByLabel('Family QR reference', { exact: true })
-      .fill(`holyspace:event:v1:wrong-type`)
+      .fill(`divinecommunityspace:event:v1:wrong-type`)
     await page
       .getByRole('button', { name: 'Use reference', exact: true })
       .click()
@@ -42,7 +42,7 @@ for (const kind of ['arrival', 'collection'] as const) {
     const value = kind === 'arrival' ? child : 'a'.repeat(22)
     await page
       .getByLabel('Family QR reference', { exact: true })
-      .fill(`holyspace:child-${kind}:v1:${resource}:${value}`)
+      .fill(`divinecommunityspace:child-${kind}:v1:${resource}:${value}`)
     await page
       .getByRole('button', { name: 'Use reference', exact: true })
       .click()
@@ -77,7 +77,7 @@ test('collection scanner decodes a QR photo but waits for explicit use', async (
     .click()
   const QRCode = await import('qrcode')
   const image = await QRCode.toBuffer(
-    `holyspace:child-collection:v1:${resource}:${'a'.repeat(22)}`,
+    `divinecommunityspace:child-collection:v1:${resource}:${'a'.repeat(22)}`,
     { width: 500 },
   )
   await page

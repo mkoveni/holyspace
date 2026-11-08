@@ -21,7 +21,7 @@ final readonly class TotpAuthenticator implements Authenticator
     {
         $otp = TOTP::generate($this->clock);
         $otp->setLabel($username);
-        $otp->setIssuer('Holyspace');
+        $otp->setIssuer('Divine Community Space');
 
         return ['secret' => $otp->getSecret(), 'uri' => $otp->getProvisioningUri()];
     }

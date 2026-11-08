@@ -72,7 +72,7 @@ the final image after removing the helper, superseding its earlier scan.
 | Lockfile audit | Low | Moderate | High | Critical |
 | --- | ---: | ---: | ---: | ---: |
 | Vue staff workspace | 0 | 25 | 0 | 0 |
-| Holyspace mobile | 4 | 25 | 0 | 0 |
+| Divine Community Space mobile | 4 | 25 | 0 | 0 |
 
 Compatible Vite/Vitest and `follow-redirects` updates were applied. Mobile uses
 Expo SDK 58.0.22 with React Native 0.88.1, aligned through Expo's installer.

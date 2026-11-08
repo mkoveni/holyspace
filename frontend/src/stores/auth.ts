@@ -14,7 +14,7 @@ import { useRolesStore } from '@/stores/roles'
 import { useUserAccountsStore } from '@/stores/userAccounts'
 import { useWorkflowsStore } from '@/stores/workflows'
 
-const TOKEN_STORAGE_KEY = isJavaApi ? 'holyspace.java.auth.token' : 'holyspace.auth.token'
+const TOKEN_STORAGE_KEY = isJavaApi ? 'divinecommunityspace.java.auth.token' : 'divinecommunityspace.auth.token'
 
 export const useAuthStore = defineStore('auth', () => {
   const token = ref<string | null>(localStorage.getItem(TOKEN_STORAGE_KEY))
@@ -51,7 +51,7 @@ export const useAuthStore = defineStore('auth', () => {
     localStorage.removeItem(TOKEN_STORAGE_KEY)
     if (typeof sessionStorage !== 'undefined') {
       for (const key of Object.keys(sessionStorage)) {
-        if (key.startsWith('holyspace.payment-request.')) {
+        if (key.startsWith('divinecommunityspace.payment-request.')) {
           sessionStorage.removeItem(key)
         }
       }
