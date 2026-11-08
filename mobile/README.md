@@ -145,13 +145,13 @@ Before the first release, set the remaining public values in the matching EAS
 environment (they are bundled into the app, so never secrets):
 
 ```sh
-npx eas-cli@latest env:create --environment production --name EXPO_PUBLIC_EAS_PROJECT_ID --value <project-uuid> --visibility plaintext
 npx eas-cli@latest env:create --environment production --name GOOGLE_SERVICES_JSON --type file --value ./google-services.json --visibility secret
 ```
 
 `app.config.js` fails `preview` and `production` builds when the API origin is not
 HTTPS or the EAS project ID is missing, instead of shipping an app that cannot
-sign in. Release builds block Expo's default `SYSTEM_ALERT_WINDOW` and legacy
+sign in. The EAS project, `@mkoveni/divinecommunityspace`, is linked in `app.json`
+(`extra.eas.projectId`); the backend's `PUSH_PROJECT_ID` must use the same UUID. Release builds block Expo's default `SYSTEM_ALERT_WINDOW` and legacy
 storage permissions, disable Android backup (tokens live in SecureStore) and
 declare iOS export compliance as exempt (HTTPS only).
 

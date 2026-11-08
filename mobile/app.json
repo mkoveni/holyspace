@@ -55,6 +55,12 @@
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "00c47c68-26f3-48f6-a6e4-d639736d3f4e"
+      }
+    },
+    "owner": "mkoveni"
   }
 }

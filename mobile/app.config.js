@@ -3,7 +3,7 @@
 // Store-bound builds must point at a public HTTPS API origin. The app rejects anything else
 // at start-up, so fail the build here instead of shipping a binary that cannot sign in.
 const releaseProfiles = new Set(["preview", "production"]);
-function assertReleaseConfig(profile) {
+function assertReleaseConfig(profile, projectId) {
   if (!releaseProfiles.has(profile)) return;
   const value = process.env.EXPO_PUBLIC_API_URL;
   let url;
@@ -23,15 +23,18 @@ function assertReleaseConfig(profile) {
     throw new Error(
       `EXPO_PUBLIC_API_URL must be an HTTPS origin without a path for the "${profile}" build.`,
     );
-  if (!process.env.EXPO_PUBLIC_EAS_PROJECT_ID)
+  if (!projectId)
     throw new Error(
-      `EXPO_PUBLIC_EAS_PROJECT_ID must be set for the "${profile}" build.`,
+      `An EAS project ID (app.json extra.eas.projectId) is required for the "${profile}" build.`,
     );
 }
 
 module.exports = ({ config }) => {
-  assertReleaseConfig(process.env.EAS_BUILD_PROFILE);
   const projectId = process.env.EXPO_PUBLIC_EAS_PROJECT_ID;
+  assertReleaseConfig(
+    process.env.EAS_BUILD_PROFILE,
+    projectId || config.extra?.eas?.projectId,
+  );
   const googleServicesFile = process.env.GOOGLE_SERVICES_JSON;
   return {
     ...config,
