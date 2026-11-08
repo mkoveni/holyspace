@@ -3,20 +3,22 @@
 # Run on the server as root:  sudo bash setup-server.sh [options]
 #
 #   --domain NAME          Public web host name (default holyspace.rivalani.dev).
+#   --api-domain NAME      API host the build calls (default holyspace-api.rivalani.dev); deploys check it answers and
+#                          allows this origin.
 #   --certbot-email EMAIL  Obtain a Let's Encrypt certificate for --domain with the webroot method.
 #   --ci-key "ssh-ed25519 ..."  Public key GitHub Actions deploys with. Creates the onechurch-web-deploy user, whose
 #                          key can only run deploy/ci-receive.sh (no shell, no forwarding). bootstrap-ci.sh passes it.
 #
-# The API must be set up first (backend-symfony/deploy/setup-server.sh): this site sends /api/* to its PHP-FPM pool
-# through the fastcgi snippet that script installs. Nothing here touches the API, other sites or existing releases.
+# The API has its own host and site (backend-symfony/deploy/setup-server.sh). Nothing here touches the API, other
+# sites or existing releases.
 set -euo pipefail
 
 APP=onechurch-web
 BASE=/srv/$APP
-API_SNIPPET=/etc/nginx/snippets/onechurch-api-fastcgi.conf
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 DOMAIN=holyspace.rivalani.dev
+API_DOMAIN=holyspace-api.rivalani.dev
 CERTBOT_EMAIL=
 CI_KEY=
 
@@ -30,6 +32,7 @@ set -- "${args[@]}"
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --domain) DOMAIN="$2"; shift 2 ;;
+        --api-domain) API_DOMAIN="$2"; shift 2 ;;
         --certbot-email) CERTBOT_EMAIL="$2"; shift 2 ;;
         --ci-key) CI_KEY="$2"; shift 2 ;;
         *) echo "Unknown option: $1" >&2; exit 2 ;;
@@ -38,14 +41,11 @@ done
 
 [[ $EUID -eq 0 ]] || { echo "Run as root (sudo)." >&2; exit 1; }
 [[ "$DOMAIN" =~ ^[A-Za-z0-9.-]+$ ]] || { echo "Invalid domain." >&2; exit 2; }
+[[ "$API_DOMAIN" =~ ^[A-Za-z0-9.-]+$ ]] || { echo "Invalid API domain." >&2; exit 2; }
 if [[ -n "$CI_KEY" ]]; then
     [[ "$CI_KEY" =~ ^ssh-ed25519\ [A-Za-z0-9+/=]+(\ [A-Za-z0-9@._-]+)?$ ]] || { echo "--ci-key must be one ssh-ed25519 public key." >&2; exit 2; }
 fi
 command -v nginx >/dev/null || { echo "nginx is not installed." >&2; exit 1; }
-[[ -f "$API_SNIPPET" ]] || {
-    echo "$API_SNIPPET is missing: set up the API first (backend-symfony/deploy/setup-server.sh)." >&2
-    exit 1
-}
 
 log() { printf '\n==> %s\n' "$*"; }
 export DEBIAN_FRONTEND=noninteractive
@@ -55,6 +55,7 @@ log "Creating $BASE (setup-server.sh $(sha256sum "${BASH_SOURCE[0]}" | cut -c1-1
 install -d -o root -g root -m 0755 "$BASE" "$BASE/releases" "$BASE/shared"
 cat > "$BASE/shared/deploy.conf" <<EOF
 DOMAIN=$DOMAIN
+API_DOMAIN=$API_DOMAIN
 EOF
 chmod 0644 "$BASE/shared/deploy.conf"
 

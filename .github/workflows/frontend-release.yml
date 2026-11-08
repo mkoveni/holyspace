@@ -44,13 +44,10 @@ jobs:
       - name: Check nginx configuration syntax
         run: |
           work="$(mktemp -d)"
-          mkdir -p "$work/snippets" "$work/certs"
+          mkdir -p "$work/certs"
           openssl req -x509 -newkey rsa:2048 -nodes -days 1 -subj /CN=ci -keyout "$work/certs/privkey.pem" -out "$work/certs/fullchain.pem" 2>/dev/null
           sed -E 's|/etc/letsencrypt/live/[^/]+|/certs|' deploy/nginx/onechurch-web.conf > "$work/site.conf"
-          # The API's snippet, as backend-symfony ships it, pointed at a TCP address the container can resolve.
-          sed 's|unix:/run/php/onechurch-api.sock|127.0.0.1:9000|' ../backend-symfony/deploy/nginx/onechurch-api-fastcgi.conf > "$work/snippets/onechurch-api-fastcgi.conf"
-          docker run --rm -v "$work/site.conf:/etc/nginx/conf.d/default.conf:ro" -v "$work/snippets:/etc/nginx/snippets:ro" \
-            -v "$work/certs:/certs:ro" nginx:stable nginx -t
+          docker run --rm -v "$work/site.conf:/etc/nginx/conf.d/default.conf:ro" -v "$work/certs:/certs:ro" nginx:stable nginx -t
 
   package:
     name: Build the production release

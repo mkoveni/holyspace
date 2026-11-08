@@ -15,7 +15,7 @@
 set -euo pipefail
 
 usage() {
-    echo "usage: bootstrap-ci.sh user@host [--domain NAME] [--certbot-email EMAIL]" >&2
+    echo "usage: bootstrap-ci.sh user@host [--domain NAME] [--api-domain NAME] [--certbot-email EMAIL]" >&2
     exit 2
 }
 HOST=
@@ -27,6 +27,8 @@ while [[ $# -gt 0 ]]; do
         --domain) [[ $# -ge 2 ]] || usage; DOMAIN="$2"; shift 2 ;;
         --certbot-email) [[ $# -ge 2 ]] || usage; SETUP_ARGS+=("$1" "$2"); shift 2 ;;
         --certbot-email=*) SETUP_ARGS+=("$1"); shift ;;
+        --api-domain) [[ $# -ge 2 ]] || usage; SETUP_ARGS+=("$1" "$2"); shift 2 ;;
+        --api-domain=*) SETUP_ARGS+=("$1"); shift ;;
         --ci-key|--ci-key=*) echo "bootstrap-ci.sh generates the CI key itself; do not pass --ci-key." >&2; exit 2 ;;
         -h|--help) usage ;;
         -*) echo "Unknown option: $1" >&2; usage ;;

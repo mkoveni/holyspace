@@ -11,6 +11,14 @@ import { useAuthStore } from '@/stores/auth'
 
 let instance: AxiosInstance | null = null
 
+/**
+ * Absolute or root-relative URL of an API path, for calls made without the
+ * shared client (plain fetch). Production sets VITE_API_BASE_URL to the API host.
+ */
+export function apiUrl (path: string): string {
+  return (import.meta.env.VITE_API_BASE_URL ?? '/').replace(/\/+$/, '') + path
+}
+
 function createApiClient(): AxiosInstance {
   const client = axios.create({
     baseURL: import.meta.env.VITE_API_BASE_URL ?? '/',

@@ -1,17 +1,17 @@
 # Production deployment of the web app (holyspace.rivalani.dev)
 
-The frontend is a static Vite build served by the host nginx on the same VPS as the Symfony API. The web host also
-answers `/api/*` and `/health/ready` by passing them straight to the API's PHP-FPM pool, so the browser talks to one
-origin: no CORS, and the relative `/api/...` URLs used throughout the app work unchanged.
+The frontend is a static Vite build served by the host nginx on the same VPS as the Symfony API. The browser loads
+the app from `holyspace.rivalani.dev` and calls the API at its own host, `holyspace-api.rivalani.dev` (cross-origin,
+bearer tokens, no cookies).
 
 ```
-browser ──HTTPS──▶ nginx holyspace.rivalani.dev ──┬── /assets, /, client routes ──▶ /srv/onechurch-web/current (static)
-                                                  └── /api/*, /health/ready ──unix socket──▶ php-fpm "onechurch-api"
-mobile, payment webhooks ──HTTPS──▶ nginx holyspace-api.rivalani.dev ──────────────────────▶ php-fpm "onechurch-api"
+browser ──HTTPS──▶ nginx holyspace.rivalani.dev ─────▶ /srv/onechurch-web/current (static files)
+   └────HTTPS /api/*──▶ nginx holyspace-api.rivalani.dev ──unix socket──▶ php-fpm "onechurch-api"
 ```
 
 The build targets the Symfony port of the Java API contract (`VITE_BACKEND=java`, the same as `npm run build:java`)
-with `VITE_API_BASE_URL=/`. Source maps are removed from the release.
+with `VITE_API_BASE_URL=https://holyspace-api.rivalani.dev` (set `API_URL=https://...` for `build.sh` to change it;
+then pass the same host to `setup-server.sh --api-domain`). Source maps are removed from the release.
 
 | File | Purpose / installed as |
 | --- | --- |
@@ -30,7 +30,7 @@ Server layout:
 /srv/onechurch-web/
   current -> releases/20261108093000-a1b61ed0c4f2   (atomic symlink switch; no nginx reload needed)
   releases/<utc-timestamp>-<sha>/                   (last 5 kept; root-owned, read-only to nginx)
-  shared/deploy.conf                                (domain)
+  shared/deploy.conf                                (web and API domains)
 ```
 
 Each release also serves the hashed `/assets/*` files of the two releases before it, so a tab opened before a
@@ -39,14 +39,13 @@ with a one-year immutable cache.
 
 ## Before you start
 
-- The API is set up on this VPS (`backend-symfony/deploy/setup-server.sh`): this site reuses its
-  `/etc/nginx/snippets/onechurch-api-fastcgi.conf` and PHP-FPM socket, and the setup stops if they are missing.
+- The API runs at `https://holyspace-api.rivalani.dev` (`backend-symfony/deploy`).
 - DNS: an `A` record for `holyspace.rivalani.dev` pointing at the VPS.
 - Locally for `release.sh`: Node `^22.22.2 || >=24.15.0`, git, ssh.
-- In the API's `/srv/onechurch-api/shared/.env.local`, then redeploy the API:
+- In the API's `/srv/onechurch-api/shared/.env.local`, then redeploy the API (values are compiled per release):
+  - `CORS_ALLOW_ORIGIN='^https://holyspace\.rivalani\.dev$'`. **Required**: without it the browser blocks every API
+    call, including sign-in. Each web deploy checks this and prints a warning if the API does not allow the origin.
   - `PAYMENTS_PUBLIC_URL=https://holyspace.rivalani.dev` (payment return pages are on the web app).
-  - `CORS_ALLOW_ORIGIN` does not need the web origin (same origin), but keep it to the exact origins that do call the
-    API host cross-origin, for example `'^https://holyspace\.rivalani\.dev$'` if you prefer to list it anyway.
 
 ## 1. Prepare the server (once)
 
@@ -58,7 +57,7 @@ scp -r frontend/deploy you@your-vps:/tmp/onechurch-web-deploy
 ssh -t you@your-vps 'sudo bash /tmp/onechurch-web-deploy/setup-server.sh --certbot-email you@example.org'
 ```
 
-`--domain` defaults to `holyspace.rivalani.dev`. It creates `/srv/onechurch-web`, installs the deploy commands and
+`--domain` defaults to `holyspace.rivalani.dev` and `--api-domain` to `holyspace-api.rivalani.dev`. It creates `/srv/onechurch-web`, installs the deploy commands and
 the nginx site (HTTP-only until a certificate exists), obtains the certificate with certbot's webroot method and then
 enables the HTTPS site. It never touches the API site, other sites or existing releases.
 
@@ -73,7 +72,8 @@ frontend/deploy/release.sh you@your-vps
 or a tag or commit: `frontend/deploy/release.sh you@your-vps v1.0.0`. It runs `npm test`, type-checks and builds,
 uploads the archive and installs it: unpack, carry earlier assets, switch `current`, then check over HTTPS that `/`,
 `/login` and the entry bundle are served by the new release. If that fails it switches back to the previous release.
-It also reports whether `/health/ready` (the API, through this host) is UP, without failing the web deploy for it.
+It also reports whether the API's `/health/ready` is UP and whether its CORS allows the web origin, without failing
+the web deploy for either.
 
 ## CI/CD: automatic deploys from `main`
 
@@ -114,8 +114,8 @@ A commit that changes `remote-install.sh` or `ci-receive.sh` makes the deploy jo
 
 - [ ] `https://holyspace.rivalani.dev/` loads the sign-in page; `http://` redirects to `https://`.
 - [ ] A deep link such as `https://holyspace.rivalani.dev/people` reloads without a 404.
-- [ ] Sign-in works, and the browser's network tab shows `/api/...` requests on `holyspace.rivalani.dev`.
-- [ ] `https://holyspace.rivalani.dev/health/ready` returns `{"status":"UP"}`.
+- [ ] Sign-in works, and the browser's network tab shows `/api/...` requests going to `holyspace-api.rivalani.dev`
+      with no CORS errors in the console.
 - [ ] A public form link (`/forms/public/<token>`) opens signed out, with its banner image.
 - [ ] A test-mode payment returns to the web app (`PAYMENTS_PUBLIC_URL`).
 - [ ] After a second deploy, a tab left open from before can still open a page it had not visited.

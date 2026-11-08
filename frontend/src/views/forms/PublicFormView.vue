@@ -158,6 +158,7 @@
 <script setup lang="ts">
   import type { FormField, PublicForm } from '@/types/forms'
   import { computed, nextTick, onBeforeUnmount, reactive, ref, watch } from 'vue'
+  import { apiUrl } from '@/composables/useApi'
   const props = defineProps<{ token: string }>()
   const form = ref<PublicForm | null>(null)
   const answers = reactive<Record<string, string | boolean>>({})
@@ -174,7 +175,7 @@
   let submissionKey = ''
   let readyTimer: ReturnType<typeof setTimeout> | undefined
   let sequence = 0
-  const base = () => `/api/public/forms/${encodeURIComponent(props.token)}`
+  const base = () => apiUrl(`/api/public/forms/${encodeURIComponent(props.token)}`)
   const bannerSource = computed(() => `${base()}/${form.value?.event && !useFormBanner.value ? 'event-banner' : 'banner'}`)
   function bannerFailed () {
     if (form.value?.event && !useFormBanner.value) useFormBanner.value = true

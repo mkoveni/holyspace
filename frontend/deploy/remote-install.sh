@@ -105,11 +105,23 @@ if [[ -f "$CERT" ]]; then
         fi
         sleep 2
     done
-    # The API is deployed on its own; only report it here.
-    if check /health/ready 2>/dev/null | grep -q '"UP"'; then
-        echo "API reachable through https://$DOMAIN/api/ (health UP)."
-    else
-        echo "Warning: https://$DOMAIN/health/ready is not UP. The web app is live but the API behind it is not answering."
+    # The API is deployed on its own; only report on it. It must answer and accept this origin (CORS).
+    if [[ -n "${API_DOMAIN:-}" ]]; then
+        api() { curl -sS --max-time 5 --resolve "$API_DOMAIN:443:127.0.0.1" "$@"; }
+        if api -f "https://$API_DOMAIN/health/ready" 2>/dev/null | grep -q '"UP"'; then
+            echo "API https://$API_DOMAIN is UP."
+        else
+            echo "Warning: https://$API_DOMAIN/health/ready is not UP. The web app is live but cannot reach its API."
+        fi
+        allowed="$(api -o /dev/null -D - -X OPTIONS "https://$API_DOMAIN/api/me" -H "Origin: https://$DOMAIN" \
+            -H 'Access-Control-Request-Method: GET' -H 'Access-Control-Request-Headers: authorization' 2>/dev/null \
+            | tr -d '\r' | awk -F': ' 'tolower($1) == "access-control-allow-origin" { print $2 }')"
+        if [[ "$allowed" == "https://$DOMAIN" ]]; then
+            echo "The API accepts requests from https://$DOMAIN (CORS)."
+        else
+            echo "Warning: the API does not allow the origin https://$DOMAIN. Add it to CORS_ALLOW_ORIGIN in"
+            echo "  /srv/onechurch-api/shared/.env.local, e.g. '^https://$(sed 's/\./\\./g' <<< "$DOMAIN")\$', and redeploy the API."
+        fi
     fi
 else
     echo "No certificate for $DOMAIN yet; skipping the HTTPS check."

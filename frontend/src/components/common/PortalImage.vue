@@ -39,7 +39,7 @@
 </template>
 <script setup lang="ts">
   import { computed, onBeforeUnmount, ref, watch } from 'vue'
-  import { extractErrorMessage, useApi } from '@/composables/useApi'
+  import { apiUrl, extractErrorMessage, useApi } from '@/composables/useApi'
   import { useAuthStore } from '@/stores/auth'
   import { imagePresets } from './image-uploader/crop'
   import ImageUploader from './ImageUploader.vue'
@@ -66,7 +66,7 @@
     try {
       let blob: Blob
       if (props.publicToken) {
-        const response = await fetch(`/api/public/forms/${encodeURIComponent(props.publicToken)}/banner`, { cache: 'no-store', credentials: 'omit' })
+        const response = await fetch(apiUrl(`/api/public/forms/${encodeURIComponent(props.publicToken)}/banner`), { cache: 'no-store', credentials: 'omit' })
         if (response.status === 404) return
         if (!response.ok) throw new Error('Unable to load the form banner.')
         blob = await response.blob()
