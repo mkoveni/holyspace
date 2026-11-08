@@ -36,7 +36,7 @@ public class MobileCheckoutController implements MobileCheckoutApi {
     @Override
     public ResponseEntity<String> landing(String token) {
         return page(
-            "<h1>Continue your gift.</h1><p>Your payment is handled securely by the provider. After payment, close this browser and refresh Holyspace.</p><form method='post'><button type='submit'>Continue to secure payment</button></form>",
+            "<h1>Continue your gift.</h1><p>Your payment is handled securely by the provider. After payment, close this browser and refresh Divine Community Space.</p><form method='post'><button type='submit'>Continue to secure payment</button></form>",
             "'self'");
     }
     @Override
@@ -48,7 +48,7 @@ public class MobileCheckoutController implements MobileCheckoutApi {
                 throw error;
             }
             ResponseEntity<String> expired = page(
-                "<h1>Let’s reopen your checkout.</h1><p>This secure link expired or is no longer available. Return to Holyspace, refresh your payment and open a fresh checkout link for the same gift.</p>",
+                "<h1>Let’s reopen your checkout.</h1><p>This secure link expired or is no longer available. Return to Divine Community Space, refresh your payment and open a fresh checkout link for the same gift.</p>",
                 "'none'");
             return ResponseEntity.status(410).headers(expired.getHeaders()).body(expired.getBody());
         }
@@ -85,7 +85,7 @@ public class MobileCheckoutController implements MobileCheckoutApi {
     }
     private ResponseEntity<String> page(String body, String formOrigin) {
         String html =
-            "<!doctype html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>Holyspace · Secure giving</title><style>body{font:17px/1.6 system-ui;color:#183c34;background:#f6f8f4;margin:0;padding:48px 24px}main{max-width:480px;margin:8vh auto;background:white;padding:32px;border-radius:24px;border:1px solid #e1e8df}h1{line-height:1.15}button{background:#235846;color:white;border:0;border-radius:14px;padding:16px 22px;font:inherit;cursor:pointer;width:100%}small{letter-spacing:.18em;color:#718579}</style></head><body><main><small>HOLYSPACE</small>"
+            "<!doctype html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>Divine Community Space · Secure giving</title><style>body{font:17px/1.6 system-ui;color:#183c34;background:#f6f8f4;margin:0;padding:48px 24px}main{max-width:480px;margin:8vh auto;background:white;padding:32px;border-radius:24px;border:1px solid #e1e8df}h1{line-height:1.15}button{background:#235846;color:white;border:0;border-radius:14px;padding:16px 22px;font:inherit;cursor:pointer;width:100%}small{letter-spacing:.18em;color:#718579}</style></head><body><main><small>DIVINE COMMUNITY SPACE</small>"
                 + body + "</main></body></html>";
         return ResponseEntity.ok()
             .cacheControl(CacheControl.noStore())

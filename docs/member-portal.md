@@ -16,7 +16,7 @@ There is no public account registration or automatic person linking by matching 
 
 ## Enable an authenticator
 
-Open **Account security**, enter your current password and select **Start authenticator setup**. In your authenticator app, choose **Add account → Scan QR code** and scan the displayed code. The QR code is generated locally in your browser from the server’s setup details. If you cannot scan it, enter the displayed manual key instead and choose time-based codes, issuer Holyspace, six digits, 30 seconds and SHA1. Enter the code and select **Enable authenticator**.
+Open **Account security**, enter your current password and select **Start authenticator setup**. In your authenticator app, choose **Add account → Scan QR code** and scan the displayed code. The QR code is generated locally in your browser from the server’s setup details. If you cannot scan it, enter the displayed manual key instead and choose time-based codes, issuer Divine Community Space, six digits, 30 seconds and SHA1. Enter the code and select **Enable authenticator**.
 
 The setup expires after ten minutes. Keep the setup key private. Eight recovery codes appear once after successful enrolment. Download them and store them offline, preferably separately from the device with your authenticator. Confirm that you saved them, then continue to **My church**.
 

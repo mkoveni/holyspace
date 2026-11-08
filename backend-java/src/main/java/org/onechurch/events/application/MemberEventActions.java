@@ -162,15 +162,15 @@ public final class MemberEventActions {
             passes.insert(
                 new AdmissionPass(tokens.hash(token), booking.id(), actor, current.current().orElseThrow().sessionId(),
                     member.version(), booking.version(), event.scheduleRevision(), expiry, null));
-            return new Pass("holyspace:event:v1:" + token, expiry);
+            return new Pass("divinecommunityspace:event:v1:" + token, expiry);
         });
     }
     public UUID scan(UUID actor, UUID occurrence, UUID request, String credential) {
         auth.requirePermission(actor, "events.attendance.manage");
-        if (credential == null || !credential.matches("holyspace:event:v1:[A-Za-z0-9_-]{20,200}")) {
-            throw EventException.invalid("Scan a Holyspace event attendance code.");
+        if (credential == null || !credential.matches("divinecommunityspace:event:v1:[A-Za-z0-9_-]{20,200}")) {
+            throw EventException.invalid("Scan a Divine Community Space event attendance code.");
         }
-        String hash = tokens.hash(credential.substring("holyspace:event:v1:".length()));
+        String hash = tokens.hash(credential.substring("divinecommunityspace:event:v1:".length()));
         AdmissionPass before = passes.find(hash).orElseThrow(() -> EventException.missing("Attendance pass"));
         return tx.execute(() -> {
             eventLock(occurrence);

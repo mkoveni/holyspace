@@ -3,6 +3,7 @@ import { router } from "expo-router";
 import { Text, View } from "react-native";
 import type { Device } from "@/core/models";
 import { useSession } from "@/core/session";
+import { appName } from "@/core/brand";
 import { date } from "@/core/money";
 import { useLoad } from "@/hooks/use-load";
 import {
@@ -263,7 +264,7 @@ export default function Security() {
         />
       </Sheet>
       <Sheet
-        title="Sign out of Holyspace?"
+        title={`Sign out of ${appName}?`}
         visible={signOutOpen}
         onClose={() => !busy && setSignOutOpen(false)}
       >

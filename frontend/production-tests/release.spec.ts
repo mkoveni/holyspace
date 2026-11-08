@@ -50,7 +50,7 @@ test('built Java workspace supports a private authenticated journey under its pr
     () => document.documentElement.scrollWidth <= innerWidth,
   )).toBe(true)
   const token = await page.evaluate(() =>
-    localStorage.getItem('holyspace.java.auth.token'),
+    localStorage.getItem('divinecommunityspace.java.auth.token'),
   )
   expect(token).toBeTruthy()
   await page.getByRole('button', { name: 'Account menu', exact: true }).click()
@@ -60,7 +60,7 @@ test('built Java workspace supports a private authenticated journey under its pr
   ).toBeVisible()
   expect(
     await page.evaluate(() =>
-      localStorage.getItem('holyspace.java.auth.token'),
+      localStorage.getItem('divinecommunityspace.java.auth.token'),
     ),
   ).toBeNull()
   const response = await request.get('/api/me', {

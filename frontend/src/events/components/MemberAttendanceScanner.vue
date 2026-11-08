@@ -18,7 +18,7 @@
 
       <v-card-text>
         <p class="directory-muted mb-4">
-          Scan the member’s Holyspace event attendance QR. The server checks
+          Scan the member’s Divine Community Space event attendance QR. The server checks
           their booking for this gathering before recording an arrival.
           Children’s collection codes cannot be used here.
         </p>
@@ -144,7 +144,7 @@
   const video = ref<HTMLVideoElement>(),
         file = ref<HTMLInputElement>()
   const valid = computed(() =>
-    /^holyspace:event:v1:[\w-]{20,200}$/.test(credential.value),
+    /^divinecommunityspace:event:v1:[\w-]{20,200}$/.test(credential.value),
   )
   let stream: MediaStream | undefined,
       timer: ReturnType<typeof setTimeout> | undefined,
@@ -161,8 +161,8 @@
     success.value = false
   }
   function accept (value: string) {
-    if (!/^holyspace:event:v1:[\w-]{20,200}$/.test(value)) {
-      error.value = 'This is not a Holyspace event attendance QR.'
+    if (!/^divinecommunityspace:event:v1:[\w-]{20,200}$/.test(value)) {
+      error.value = 'This is not a Divine Community Space event attendance QR.'
       return false
     }
     credential.value = value

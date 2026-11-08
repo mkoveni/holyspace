@@ -22,7 +22,7 @@ function fixture() {
     store: new SessionStore(
       "https://api.example.org",
       storage,
-      "Holyspace · Test device",
+      "Divine Community Space · Test device",
     ),
   };
 }
@@ -39,7 +39,7 @@ test("native storage receives only the opaque session, never the password or acc
     if (String(url).endsWith("/api/login_check")) {
       assert.equal(
         JSON.parse(String(init?.body)).deviceName,
-        "Holyspace · Test device",
+        "Divine Community Space · Test device",
       );
       return Response.json({ token: "opaque" });
     }
@@ -51,23 +51,23 @@ test("native storage receives only the opaque session, never the password or acc
 });
 test("a revoked saved session clears access during restoration", async () => {
   const { saved, store } = fixture();
-  saved.set("holyspace.member.session", "revoked");
+  saved.set("divinecommunityspace.member.session", "revoked");
   globalThis.fetch = async () => new Response("{}", { status: 401 });
   await store.retry();
   assert.equal(store.getSnapshot().account, null);
-  assert.equal(saved.has("holyspace.member.session"), false);
+  assert.equal(saved.has("divinecommunityspace.member.session"), false);
   assert.equal(store.getSnapshot().ready, true);
 });
 test("offline restoration keeps the credential but exposes no account data", async () => {
   const { saved, store } = fixture();
-  saved.set("holyspace.member.session", "still-valid");
+  saved.set("divinecommunityspace.member.session", "still-valid");
   globalThis.fetch = async () => {
     throw new Error("offline");
   };
   await store.retry();
   assert.equal(store.getSnapshot().account, null);
   assert.match(store.getSnapshot().error, /connection/);
-  assert.equal(saved.get("holyspace.member.session"), "still-valid");
+  assert.equal(saved.get("divinecommunityspace.member.session"), "still-valid");
 });
 test("failed credential storage revokes the newly issued session and leaves no authenticated account", async () => {
   const { storage } = fixture();

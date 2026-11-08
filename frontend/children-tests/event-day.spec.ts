@@ -56,7 +56,7 @@ test('staff can decode a QR photo and explicitly record an event arrival',async(
  const {requests,errors}=await fixture(page)
  await page.goto('/events/occurrences/occurrence-1')
  await page.getByRole('button',{name:'Scan member QR',exact:true}).click()
- const dialog=page.getByRole('dialog'),code='holyspace:event:v1:abcdefghijklmnopqrstuvwxyz0123456789'
+ const dialog=page.getByRole('dialog'),code='divinecommunityspace:event:v1:abcdefghijklmnopqrstuvwxyz0123456789'
  await dialog.getByLabel('Upload event QR photo',{exact:true}).setInputFiles({name:'event-attendance.png',mimeType:'image/png',buffer:await QRCode.toBuffer(code,{width:400,margin:4})})
  await expect(dialog.getByLabel('Event attendance code',{exact:true})).toHaveValue(code)
  expect(requests.filter(r=>r.path.endsWith('/scan-member'))).toHaveLength(0)

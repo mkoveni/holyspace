@@ -9,7 +9,7 @@ const person: PersonProfile = {
 for (const mobile of [false, true]) {
   test(`read-only profile and directory are accessible at ${mobile ? 'mobile' : 'desktop'} width`, async ({ page }) => {
     await page.setViewportSize({ width: mobile ? 390 : 1440, height: 1000 })
-    await page.addInitScript(() => localStorage.setItem('holyspace.java.auth.token', 'isolated-test-session'))
+    await page.addInitScript(() => localStorage.setItem('divinecommunityspace.java.auth.token', 'isolated-test-session'))
     const unexpected: string[] = []; const errors: string[] = []
     page.on('pageerror', error => errors.push(error.message))
     await page.route('**/api/**', async route => {

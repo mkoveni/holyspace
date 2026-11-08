@@ -37,9 +37,9 @@ public final class ExpoPushTransport implements PushTransport {
     }
     public Result send(String token, UUID notificationId) {
         return request("send",
-            Map.of("to", token, "title", "Holyspace", "body", "You have a new update in your inbox.", "sound",
+            Map.of("to", token, "title", "Divine Community Space", "body", "You have a new update in your inbox.", "sound",
                 "default", "channelId", "member-updates", "ttl", 3600, "data",
-                Map.of("type", "holyspace.member-update.v1", "notificationId", notificationId.toString())),
+                Map.of("type", "divinecommunityspace.member-update.v1", "notificationId", notificationId.toString())),
             null);
     }
     public Result receipt(String ticketId) {

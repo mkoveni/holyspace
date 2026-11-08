@@ -2,7 +2,7 @@
   <v-app>
     <v-main class="not-found">
       <div class="not-found__card">
-        <div class="detail-label">HOLYSPACE · PAGE NOT FOUND</div>
+        <div class="detail-label">DIVINE COMMUNITY SPACE · PAGE NOT FOUND</div>
         <span class="not-found__number">404<span>.</span></span>
         <h1>A little off the path.</h1>
         <p>This page may have moved, or the address may be incorrect. Your workspace is just a click away.</p>

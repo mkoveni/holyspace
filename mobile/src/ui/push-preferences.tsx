@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Text, View } from "react-native";
 import { useSession } from "@/core/session";
+import { appName } from "@/core/brand";
 import { useDevicePush } from "@/core/device-push";
 import type { PushSettings } from "@/core/push";
 import { notificationTopic } from "@/core/notifications";
@@ -41,7 +42,7 @@ export function PushPreferences() {
     <View style={{ gap: 16 }}>
       <SectionHeader title="On this device" />
       <Text style={[ui.body, { fontSize: 14, marginTop: -6 }]}>
-        A gentle heads-up, even when Holyspace is closed. Personal details stay
+        A gentle heads-up, even when {appName} is closed. Personal details stay
         inside the app.
       </Text>
       <Message text={failure || error} error />

@@ -1,43 +1,38 @@
 # Enable device push notifications
 
-The implementation is installed, but live push remains disabled until Holyspace
+The implementation is installed, but live push remains disabled until Divine Community Space
 has an Expo/EAS project and platform credentials. Inbox notifications keep working.
 Nothing in this setup requires importing PHP data.
 
-## 1. Link the mobile app to Expo/EAS
+## 1. Expo/EAS project
 
-From `mobile`, sign in to the intended church Expo account and create/link the
-Holyspace project:
-
-```sh
-npx eas-cli@latest login
-npx eas-cli@latest init
-```
-
-Record its public project UUID. Put it in ignored `mobile/.env.local`:
-
-```dotenv
-EXPO_PUBLIC_EAS_PROJECT_ID=your-project-uuid
-```
-
-`mobile/app.config.js` maps this value to `extra.eas.projectId`. The backend uses
-the same UUID. The project ID is public build configuration; push credentials and
-server encryption keys are private deployment settings.
+The mobile app is linked to the EAS project `@mkoveni/divinecommunityspace`
+(ID `00c47c68-26f3-48f6-a6e4-d639736d3f4e`), recorded in `mobile/app.json` as
+`extra.eas.projectId`. The project ID is public build configuration; the backend's
+`PUSH_PROJECT_ID` must use the same UUID. `EXPO_PUBLIC_EAS_PROJECT_ID` overrides it
+only to build against a different project. Push credentials and server encryption
+keys are private deployment settings.
 
 See [Expo push setup](https://docs.expo.dev/push-notifications/push-notifications-setup/).
 
-## 2. Configure Android Firebase credentials
+## 2. Android Firebase credentials
 
-In Firebase, register an Android application with package `app.holyspace.member`.
-Download its client `google-services.json` into the ignored `mobile` directory.
-For local builds add this to `mobile/.env.local`:
+The Firebase project `divine-community-space` has an Android application with
+package `app.divinecommunityspace.member`. Its client `google-services.json` is
+stored in EAS as the secret file variable `GOOGLE_SERVICES_JSON` in the `preview`
+and `production` environments, so `mobile/app.config.js` receives its path on the
+EAS builder. For local native builds, download it into the ignored `mobile`
+directory and add this to `mobile/.env.local`:
 
 ```dotenv
 GOOGLE_SERVICES_JSON=./google-services.json
 ```
 
-For EAS builds, supply this client configuration as an EAS file environment
-variable named `GOOGLE_SERVICES_JSON`, so the dynamic app config receives its path.
+To replace it, download a new copy from Firebase and run, for each environment:
+
+```sh
+npx eas-cli@latest env:set production --name GOOGLE_SERVICES_JSON --type file --value ./google-services.json --visibility secret
+```
 
 Configure the corresponding FCM v1 service-account credential in EAS:
 
@@ -51,7 +46,7 @@ same Firebase project. The service-account key stays in EAS; do not put it in th
 mobile bundle, repository or Java API requests.
 
 Follow [Expo's FCM v1 credential guide](https://docs.expo.dev/push-notifications/fcm-credentials/).
-For iOS, configure the matching `app.holyspace.member` app identifier, APNs key
+For iOS, configure the matching `app.divinecommunityspace.member` app identifier, APNs key
 and provisioning through EAS credentials before building the iOS app.
 
 ## 3. Configure the Java deployment

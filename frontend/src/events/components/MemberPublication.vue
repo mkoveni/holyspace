@@ -5,7 +5,7 @@
 
     <p class="directory-muted">
       Publish this event and its scheduled gatherings to verified members in
-      Holyspace. Registration settings still control bookings. Withdrawn events
+      Divine Community Space. Registration settings still control bookings. Withdrawn events
       remain visible to people who already booked.
     </p>
 

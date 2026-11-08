@@ -39,12 +39,12 @@ final readonly class ExpoPushTransport implements PushTransport
     {
         return $this->request('send', [
             'to' => $token,
-            'title' => 'Holyspace',
+            'title' => 'Divine Community Space',
             'body' => 'You have a new update in your inbox.',
             'sound' => 'default',
             'channelId' => 'member-updates',
             'ttl' => 3600,
-            'data' => ['type' => 'holyspace.member-update.v1', 'notificationId' => $notificationId],
+            'data' => ['type' => 'divinecommunityspace.member-update.v1', 'notificationId' => $notificationId],
         ], null);
     }
 

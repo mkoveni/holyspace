@@ -3,7 +3,7 @@
     <v-main class="auth-main">
       <div class="auth-shell">
         <section class="auth-visual d-none d-md-flex">
-          <div class="auth-brand"><span><v-icon icon="mdi-church" size="24" /></span><strong>Holyspace</strong></div>
+          <div class="auth-brand"><span><v-icon icon="mdi-church" size="24" /></span><strong>Divine Community Space</strong></div>
 
           <div class="auth-copy">
             <div class="auth-eyebrow">PEOPLE. FAMILIES. SHARED MOMENTS.</div>

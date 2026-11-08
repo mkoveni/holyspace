@@ -1,25 +1,33 @@
 {
   "expo": {
-    "name": "Holyspace",
-    "slug": "holyspace",
+    "name": "Divine Community Space",
+    "slug": "divinecommunityspace",
     "version": "0.1.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "holyspace",
+    "scheme": "divinecommunityspace",
     "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "app.holyspace.member"
+      "bundleIdentifier": "app.divinecommunityspace.member",
+      "config": {
+        "usesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#12241C",
+        "backgroundColor": "#F7F4EC",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
-        "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "app.holyspace.member"
+      "package": "app.divinecommunityspace.member",
+      "allowBackup": false,
+      "blockedPermissions": [
+        "android.permission.SYSTEM_ALERT_WINDOW",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE"
+      ]
     },
     "web": {
       "output": "single",
@@ -31,11 +39,12 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#12241C",
+          "backgroundColor": "#F7F4EC",
           "image": "./assets/images/splash-icon.png",
-          "imageWidth": 120,
+          "imageWidth": 160,
+          "resizeMode": "contain",
           "dark": {
-            "backgroundColor": "#12241C",
+            "backgroundColor": "#F7F4EC",
             "image": "./assets/images/splash-icon.png"
           }
         }
@@ -50,6 +59,12 @@
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "00c47c68-26f3-48f6-a6e4-d639736d3f4e"
+      }
+    },
+    "owner": "mkoveni"
   }
 }

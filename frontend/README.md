@@ -1,4 +1,4 @@
-# Holyspace Admin Panel
+# Divine Community Space Admin Panel
 
 A Vue 3 + Vuetify 3 administration panel for the Church Management Portal. It authenticates
 against the Symfony backend and gives administrators a single place to manage the bounded

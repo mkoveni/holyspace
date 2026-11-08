@@ -44,7 +44,7 @@ class ExpoPushTransportTest {
         UUID id = UUID.randomUUID();
         PushTransport.Result result = transport.send("ExpoPushToken[example_token]", id);
         assertThat(result.state()).isEqualTo("ACCEPTED");
-        assertThat(request).contains(id.toString(), "holyspace.member-update.v1", "member-updates")
+        assertThat(request).contains(id.toString(), "divinecommunityspace.member-update.v1", "member-updates")
             .doesNotContain("accountId", "childId", "destination", "credential");
     }
     @Test

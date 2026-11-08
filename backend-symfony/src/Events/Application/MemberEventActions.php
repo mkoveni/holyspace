@@ -36,7 +36,7 @@ use Psr\Clock\ClockInterface;
  */
 final readonly class MemberEventActions
 {
-    private const string PREFIX = 'holyspace:event:v1:';
+    private const string PREFIX = 'divinecommunityspace:event:v1:';
     private const int PASS_SECONDS = 300;
 
     public function __construct(
@@ -130,8 +130,8 @@ final readonly class MemberEventActions
     /** @return string the attendance id */
     public function scan(string $actorId, string $occurrenceId, string $requestId, ?string $credential): string
     {
-        if (null === $credential || 1 !== preg_match('/\Aholyspace:event:v1:[A-Za-z0-9_-]{20,200}\z/', $credential)) {
-            throw EventException::invalid('Scan a Holyspace event attendance code.');
+        if (null === $credential || 1 !== preg_match('/\Adivinecommunityspace:event:v1:[A-Za-z0-9_-]{20,200}\z/', $credential)) {
+            throw EventException::invalid('Scan a Divine Community Space event attendance code.');
         }
         $hash = $this->tokens->hash(substr($credential, \strlen(self::PREFIX)));
         $before = $this->passes->find($hash) ?? throw EventException::missing('Attendance pass');

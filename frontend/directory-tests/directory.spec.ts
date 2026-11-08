@@ -81,7 +81,7 @@ test.describe('Java directory integration', () => {
     await signIn(page)
     const name = `Conflict${Date.now().toString().slice(-6)}`
     const id = await createPerson(page, name)
-    const token = await page.evaluate(() => localStorage.getItem('holyspace.java.auth.token'))
+    const token = await page.evaluate(() => localStorage.getItem('divinecommunityspace.java.auth.token'))
     const headers = { Authorization: `Bearer ${token}` }
     await page.getByRole('button', { name: 'Edit profile', exact: true }).click()
     const profile = await (await request.get(`/api/people/${id}`, { headers })).json()

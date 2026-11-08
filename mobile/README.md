@@ -1,4 +1,4 @@
-# Holyspace mobile
+# Divine Community Space mobile
 
 Member application built with React Native, Expo SDK 58, Expo Router and TypeScript.
 The Java API remains the authority for identity, authorization, People and Giving.
@@ -126,10 +126,50 @@ permissions, routes, planned work and the payment-handoff rules. Expo API refere
 [SDK 58 WebBrowser](https://docs.expo.dev/versions/v58.0.0/sdk/webbrowser/),
 [protected routes](https://docs.expo.dev/router/advanced/protected/).
 
+## Production builds
+
+Builds use EAS with remote version numbers (`cli.appVersionSource: "remote"`); the
+`production` profile auto-increments `versionCode`/`buildNumber`. Bump the
+user-facing `version` in `app.json` for each store release. Profiles:
+
+| Profile | Output | EAS environment |
+| --- | --- | --- |
+| `development` | Dev client, internal | `development` |
+| `preview` | Android APK / iOS ad hoc, internal | `preview` |
+| `production` | Android App Bundle / iOS store build | `production` |
+
+The `preview` and `production` profiles point at the Symfony API,
+`https://holyspace-api.rivalani.dev`, through `EXPO_PUBLIC_API_URL` in `eas.json`.
+Mobile checkout requires the payment settings' backend URL to use this same origin.
+The Firebase client file is stored as the secret EAS file variable
+`GOOGLE_SERVICES_JSON` in `preview` and `production`. To replace it:
+
+```sh
+npx eas-cli@latest env:set production --name GOOGLE_SERVICES_JSON --type file --value ./google-services.json --visibility secret
+```
+
+`app.config.js` fails `preview` and `production` builds when the API origin is not
+HTTPS or the EAS project ID is missing, instead of shipping an app that cannot
+sign in. The EAS project, `@mkoveni/divinecommunityspace`, is linked in `app.json`
+(`extra.eas.projectId`); the backend's `PUSH_PROJECT_ID` must use the same UUID. Release builds block Expo's default `SYSTEM_ALERT_WINDOW` and legacy
+storage permissions, disable Android backup (tokens live in SecureStore) and
+declare iOS export compliance as exempt (HTTPS only).
+
+```sh
+npx eas-cli@latest build --profile production --platform android
+npx eas-cli@latest build --profile production --platform ios
+npx eas-cli@latest submit --profile production --platform android
+```
+
+Android submissions go to the Play internal track as drafts; promote them in
+Play Console after device acceptance. iOS submission needs the App Store Connect
+app and Apple team, chosen interactively or added under `submit.production.ios`.
+Application identifiers become permanent after the first store upload.
+
 ## Toolchain and dependency security
 
 Use Node 24 LTS; `mobile/.nvmrc` pins the runtime used by the release checks.
-With nvm, run `nvm install` and `nvm use` from this directory. SDK 58.0.22 and
+With nvm, run `nvm install` and `nvm use` from this directory. SDK 58.0.23 and
 React Native 0.88.1 are aligned using Expo's installer. The previous high-severity
 Zod finding is resolved with the supported SDK patch and Zod 4.6.7 within the
 ESLint dependencies' declared ranges. No dependency override or SDK downgrade is

@@ -8,7 +8,7 @@ export function parseFamilyQr (
   const parts = raw.trim().split(':')
   if (
     parts.length !== 5
-    || parts[0] !== 'holyspace'
+    || parts[0] !== 'divinecommunityspace'
     || parts[1] !== `child-${kind}`
     || parts[2] !== 'v1'
     || !uuid.test(parts[3] || '')

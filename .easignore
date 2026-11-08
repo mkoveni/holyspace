@@ -1,0 +1,34 @@
+# EAS Build uploads the whole repository. The mobile app depends on nothing outside
+# mobile/, so upload only that directory. When this file exists EAS ignores .gitignore,
+# so mobile/.gitignore's exclusions are repeated below.
+/*
+!/mobile
+
+# Mirrors mobile/.gitignore
+/mobile/node_modules
+/mobile/.expo
+/mobile/dist
+/mobile/web-build
+/mobile/expo-env.d.ts
+/mobile/.kotlin
+/mobile/ios
+/mobile/android
+/mobile/test-results
+/mobile/playwright-report
+*.orig.*
+*.jks
+*.p8
+*.p12
+*.key
+*.pem
+*.mobileprovision
+*.tsbuildinfo
+.metro-health-check*
+npm-debug.*
+.DS_Store
+.env*.local
+
+# Firebase client config is supplied by the GOOGLE_SERVICES_JSON EAS file variable;
+# service-account keys never belong in the upload.
+google-services.json
+*firebase-adminsdk*.json

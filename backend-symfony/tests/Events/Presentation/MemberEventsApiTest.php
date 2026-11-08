@@ -219,7 +219,7 @@ final class MemberEventsApiTest extends EventsApiTestCase
         $this->startsIn('1 hour');
         $this->call('POST', "/api/member/events/{$this->occurrence}/attendance-pass", $this->ada);
         self::assertSame(200, $this->code(), $this->message());
-        self::assertMatchesRegularExpression('/\Aholyspace:event:v1:[A-Za-z0-9_-]{43}\z/', $this->json()['credential']);
+        self::assertMatchesRegularExpression('/\Adivinecommunityspace:event:v1:[A-Za-z0-9_-]{43}\z/', $this->json()['credential']);
         self::assertStringContainsString('no-store', (string) $this->client->getResponse()->headers->get('Cache-Control'));
         $stored = $this->connection->fetchAssociative('SELECT * FROM event_admission_passes');
         self::assertIsArray($stored);
@@ -296,11 +296,11 @@ final class MemberEventsApiTest extends EventsApiTestCase
 
         $this->scan($credential, $otherOccurrence);
         self::assertSame(409, $this->code(), 'wrong gathering');
-        $this->scan('holyspace:event:v1:short');
+        $this->scan('divinecommunityspace:event:v1:short');
         self::assertSame(400, $this->code());
         $this->scan('not a code at all');
         self::assertSame(400, $this->code());
-        $unknown = 'holyspace:event:v1:'.str_repeat('a', 43);
+        $unknown = 'divinecommunityspace:event:v1:'.str_repeat('a', 43);
         $this->scan($unknown);
         self::assertSame(404, $this->code(), 'unknown pass');
         self::assertStringNotContainsString(str_repeat('a', 43), (string) $this->client->getResponse()->getContent(), 'the credential is never echoed');

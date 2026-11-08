@@ -4,7 +4,7 @@ for (const mode of ['desktop-editor', 'mobile-reader']) {
   test(`person profile balances information and preserves actions for ${mode}`, async ({ page }) => {
     const editing = mode === 'desktop-editor'
     await page.setViewportSize({ width: editing ? 1440 : 390, height: 1000 })
-    await page.addInitScript(() => localStorage.setItem('holyspace.auth.token', 'profile-test-session'))
+    await page.addInitScript(() => localStorage.setItem('divinecommunityspace.auth.token', 'profile-test-session'))
     const person = { id: 'person-layout', firstName: 'Naledi', lastName: 'Mokoena', email: 'naledi.mokoena@example.org', phone: '+27 82 123 4567', dateOfBirth: '1989-04-12', gender: 'female', status: 'active', createdAt: '2023-02-15T10:00:00Z', updatedAt: '2026-10-21T10:00:00Z' }
     await page.route('**/api/**', async route => {
       const path = new URL(route.request().url()).pathname

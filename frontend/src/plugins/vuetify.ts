@@ -2,7 +2,7 @@
  * plugins/vuetify.ts
  *
  * Vuetify instance, theme palette and component defaults for the
- * Holyspace admin panel.
+ * Divine Community Space admin panel.
  *
  * Framework documentation: https://vuetifyjs.com
  */
@@ -15,7 +15,7 @@ import 'vuetify/styles'
 
 // Church Management Portal brand palette, extended with tonal surfaces so the
 // UI reads as a cohesive, designed product rather than default Material colors.
-const holyspaceLight = {
+const divineCommunitySpaceLight = {
   dark: false,
   colors: {
     'background': '#F5F6F8',
@@ -49,9 +49,9 @@ const holyspaceLight = {
 // https://vuetifyjs.com/en/introduction/why-vuetify/#feature-guides
 export default createVuetify({
   theme: {
-    defaultTheme: 'holyspaceLight',
+    defaultTheme: 'divineCommunitySpaceLight',
     themes: {
-      holyspaceLight,
+      divineCommunitySpaceLight,
     },
   },
   defaults: {

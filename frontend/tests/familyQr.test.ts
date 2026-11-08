@@ -7,7 +7,7 @@ describe('Family QR references', () => {
   it('scopes arrivals to their selected session', () =>
     expect(
       parseFamilyQr(
-        `holyspace:child-arrival:v1:${session}:${child}`,
+        `divinecommunityspace:child-arrival:v1:${session}:${child}`,
         'arrival',
         session,
       ),
@@ -15,17 +15,17 @@ describe('Family QR references', () => {
   it('reads a collection label only for the selected attendance', () =>
     expect(
       parseFamilyQr(
-        `holyspace:child-collection:v1:${session}:${code}`,
+        `divinecommunityspace:child-collection:v1:${session}:${code}`,
         'collection',
         session,
       ),
     ).toEqual({ pickupCode: code }))
   it('rejects event, wrong attendance, malformed and mixed-purpose codes', () => {
     for (const raw of [
-      `holyspace:event:v1:${code}`,
-      `holyspace:child-collection:v1:${child}:${code}`,
-      `holyspace:child-arrival:v1:${session}:${child}`,
-      `holyspace:child-collection:v1:${session}:invalid`,
+      `divinecommunityspace:event:v1:${code}`,
+      `divinecommunityspace:child-collection:v1:${child}:${code}`,
+      `divinecommunityspace:child-arrival:v1:${session}:${child}`,
+      `divinecommunityspace:child-collection:v1:${session}:invalid`,
     ]) {
       expect(() => parseFamilyQr(raw, 'collection', session)).toThrow()
     }

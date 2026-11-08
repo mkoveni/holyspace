@@ -9,7 +9,7 @@ const id = "11111111-1111-4111-8111-111111111111";
 test("only typed own-notification identifiers can be resolved; routes and QR credentials are ignored", () => {
   assert.equal(
     pushNotificationId({
-      type: "holyspace.member-update.v1",
+      type: "divinecommunityspace.member-update.v1",
       notificationId: id,
     }),
     id,
@@ -17,7 +17,10 @@ test("only typed own-notification identifiers can be resolved; routes and QR cre
   for (const data of [
     null,
     { url: "https://evil.example" },
-    { type: "holyspace.member-update.v1", notificationId: "../other" },
+    {
+      type: "divinecommunityspace.member-update.v1",
+      notificationId: "../other",
+    },
     { type: "child-collection", notificationId: id },
   ])
     assert.equal(pushNotificationId(data), null);
@@ -42,7 +45,7 @@ test("automatic renewal never revives a remote revocation or another account's o
 
 test("push taps fetch the signed-in member's notice and ignore supplied URLs", async () => {
   const data = {
-    type: "holyspace.member-update.v1",
+    type: "divinecommunityspace.member-update.v1",
     notificationId: id,
     destination: "https://evil.example",
   };
@@ -82,7 +85,7 @@ test("a delayed notification lookup cannot navigate after sign-out or an account
   let current = true;
   let complete: (notice: { destination: string }) => void = () => {};
   const promise = resolvePushDestination(
-    { type: "holyspace.member-update.v1", notificationId: id },
+    { type: "divinecommunityspace.member-update.v1", notificationId: id },
     () =>
       new Promise((resolve) => {
         complete = resolve;
@@ -95,7 +98,7 @@ test("a delayed notification lookup cannot navigate after sign-out or an account
   let requests = 0;
   assert.equal(
     await resolvePushDestination(
-      { type: "holyspace.member-update.v1", notificationId: id },
+      { type: "divinecommunityspace.member-update.v1", notificationId: id },
       async () => {
         requests++;
         return { destination: "EVENTS" };

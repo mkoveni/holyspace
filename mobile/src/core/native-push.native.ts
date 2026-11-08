@@ -58,7 +58,10 @@ export const nativePush = {
       listener(event.notification.request.content.data);
     });
     const incoming = addNotificationReceivedListener((event) => {
-      if (event.request.content.data?.type === "holyspace.member-update.v1")
+      if (
+        event.request.content.data?.type ===
+        "divinecommunityspace.member-update.v1"
+      )
         received();
     });
     const token = addPushTokenListener(() => refresh());

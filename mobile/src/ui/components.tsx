@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { ComponentProps, ReactNode } from "react";
 import {
   ActivityIndicator,
+  Image,
   Modal,
   Platform,
   Pressable,
@@ -16,28 +17,56 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useFocusEffect } from "expo-router";
 import { setStatusBarStyle } from "expo-status-bar";
 import { Ionicons } from "@expo/vector-icons";
+import { appName } from "@/core/brand";
 import { select, tap } from "./haptics";
 import { colors, fonts, scheme, shadow, ui } from "./theme";
 type IconName = keyof typeof Ionicons.glyphMap;
 
+const logoMark = require("../../assets/images/logo-mark.png");
+
 function Brand({ light }: { light: boolean }) {
   return (
-    <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-      <Ionicons
-        name="leaf"
-        color={light ? colors.goldBright : colors.green}
-        size={18}
-      />
-      <Text
+    <View
+      accessible
+      accessibilityRole="header"
+      accessibilityLabel={appName}
+      style={{
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 10,
+        flexShrink: 1,
+      }}
+    >
+      <View
         style={{
-          fontSize: 13,
+          width: 30,
+          height: 30,
+          borderRadius: 9,
+          backgroundColor: colors.logoTile,
+          alignItems: "center",
+          justifyContent: "center",
+          borderWidth: light ? 0 : 1,
+          borderColor: colors.line,
+        }}
+      >
+        <Image
+          source={logoMark}
+          style={{ width: 22, height: 22 }}
+          resizeMode="contain"
+        />
+      </View>
+      <Text
+        numberOfLines={1}
+        style={{
+          flexShrink: 1,
+          fontSize: 12,
           fontWeight: "700",
-          letterSpacing: 2.6,
+          letterSpacing: 1.6,
           color: light ? colors.goldBright : colors.green,
           fontFamily: fonts.sans,
         }}
       >
-        HOLYSPACE
+        {appName.toUpperCase()}
       </Text>
     </View>
   );
@@ -163,6 +192,7 @@ export function Screen({
         >
           <Ionicons name="chevron-back" size={22} color={colors.green} />
           <Text
+            numberOfLines={1}
             style={{
               color: colors.green,
               fontSize: 15,

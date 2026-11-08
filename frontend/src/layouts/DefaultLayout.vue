@@ -17,7 +17,7 @@
 
         <div>
           <div class="app-drawer__wordmark">
-            Holyspace
+            Divine Community Space
             <span />
           </div>
 
@@ -326,7 +326,7 @@
     },
     { immediate: true },
   )
-  const pageTitle = computed(() => (route.meta.title as string) ?? 'Holyspace')
+  const pageTitle = computed(() => (route.meta.title as string) ?? 'Divine Community Space')
   const formattedDate = computed(() =>
     new Date().toLocaleDateString(undefined, {
       weekday: 'short',

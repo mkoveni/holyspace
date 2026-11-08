@@ -4,6 +4,8 @@ const light = {
   bg: "#F7F4EC",
   card: "#FFFFFF",
   sunken: "#F1ECE0",
+  // The arch logo is drawn for cream; it sits on this tile in both palettes.
+  logoTile: "#F7F4EC",
   // Forest greens: hero panels, strong headings, primary fills
   hero: "#12241C",
   ink: "#12241C",
@@ -38,6 +40,7 @@ const dark: typeof light = {
   bg: "#0C1511",
   card: "#15211B",
   sunken: "#1B2A23",
+  logoTile: "#F7F4EC",
   hero: "#102A20",
   ink: "#F2ECDD",
   dark: "#22392F",

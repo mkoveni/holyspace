@@ -11,7 +11,7 @@ test("only fixed member screens can be opened from a notification", () => {
   for (const input of [
     "https://evil.example",
     "/children",
-    "holyspace:child-collection:v1:secret",
+    "divinecommunityspace:child-collection:v1:secret",
     "javascript:alert(1)",
     "",
   ])

@@ -82,7 +82,7 @@ test("Attendance requires a confirmed booking within the half-open admission win
 });
 test("Event QR is generated locally and rejects child collection and URL credentials", () => {
   const image = attendanceQr(
-    "holyspace:event:v1:abcdefghijklmnopqrstuvwxyz0123456789",
+    "divinecommunityspace:event:v1:abcdefghijklmnopqrstuvwxyz0123456789",
   );
   assert.ok(image.startsWith("data:image/gif;base64,"));
   assert.equal(
