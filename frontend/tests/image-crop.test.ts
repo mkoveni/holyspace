@@ -5,10 +5,13 @@ describe('image crop geometry', () => {
   it('crops a landscape image into an exact person square without distortion', () => {
     expect(cropRectangle({ width: 1600, height: 900 }, imagePresets.person, { zoom: 1, x: 50, y: 50 })).toEqual({ x: 350, y: 0, width: 900, height: 900 })
   })
-  it('crops a portrait image into an event banner', () => {
+  it('crops a portrait image into a 16:9 event cover', () => {
     const crop = cropRectangle({ width: 900, height: 1600 }, imagePresets.event, { zoom: 1, x: 50, y: 50 })
-    expect(crop).toEqual({ x: 0, y: 687.5, width: 900, height: 225 })
-    expect(crop.width / crop.height).toBe(4)
+    expect(crop).toEqual({ x: 0, y: 546.875, width: 900, height: 506.25 })
+    expect(crop.width / crop.height).toBeCloseTo(16 / 9)
+  })
+  it('crops community covers to the same 16:9 shape as event covers', () => {
+    expect(imagePresets.community).toEqual(imagePresets.event)
   })
   it('keeps zoom and edge positions inside the original image', () => {
     for (const x of [-100, 0, 50, 100, 200]) {
@@ -18,7 +21,7 @@ describe('image crop geometry', () => {
         expect(crop.y).toBeGreaterThanOrEqual(0)
         expect(crop.x + crop.width).toBeLessThanOrEqual(640)
         expect(crop.y + crop.height).toBeLessThanOrEqual(480)
-        expect(crop.width / crop.height).toBe(4)
+        expect(crop.width / crop.height).toBeCloseTo(16 / 9)
       }
     }
   })
