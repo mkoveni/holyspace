@@ -169,7 +169,7 @@ Application identifiers become permanent after the first store upload.
 ## Toolchain and dependency security
 
 Use Node 24 LTS; `mobile/.nvmrc` pins the runtime used by the release checks.
-With nvm, run `nvm install` and `nvm use` from this directory. SDK 58.0.22 and
+With nvm, run `nvm install` and `nvm use` from this directory. SDK 58.0.23 and
 React Native 0.88.1 are aligned using Expo's installer. The previous high-severity
 Zod finding is resolved with the supported SDK patch and Zod 4.6.7 within the
 ESLint dependencies' declared ranges. No dependency override or SDK downgrade is
