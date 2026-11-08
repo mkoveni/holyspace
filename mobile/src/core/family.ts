@@ -55,8 +55,8 @@ export function familyQr(value: string): string {
   return qr.createDataURL(6, 4);
 }
 export function arrivalReference(child: string, session: string): string {
-  return `holyspace:child-arrival:v1:${session}:${child}`;
+  return `divinecommunityspace:child-arrival:v1:${session}:${child}`;
 }
 export function collectionReference(label: FamilyLabel): string {
-  return `holyspace:child-collection:v1:${label.attendanceId}:${label.pickupCode}`;
+  return `divinecommunityspace:child-collection:v1:${label.attendanceId}:${label.pickupCode}`;
 }

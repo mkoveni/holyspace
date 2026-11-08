@@ -31,7 +31,7 @@ export function admissionOpen(event: MemberEvent, now = Date.now()): boolean {
   );
 }
 export function attendanceQr(credential: string): string {
-  if (!/^holyspace:event:v1:[A-Za-z0-9_-]{20,200}$/.test(credential))
+  if (!/^divinecommunityspace:event:v1:[A-Za-z0-9_-]{20,200}$/.test(credential))
     throw new Error("Invalid event attendance code.");
   const code = createQr(0, "M");
   code.addData(credential, "Byte");

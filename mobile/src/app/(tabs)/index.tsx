@@ -68,10 +68,7 @@ export default function Home() {
     >
       <View style={{ gap: 9 }}>
         <Text style={ui.eyebrow}>YOUR CHURCH, YOUR COMMUNITY</Text>
-        <Text style={ui.title}>
-          Welcome home,
-          {first}.
-        </Text>
+        <Text style={ui.title}>Welcome home, {first}.</Text>
         <Text style={ui.body}>A little space for what matters most.</Text>
       </View>
       <Message text={error} error />
@@ -171,7 +168,7 @@ export default function Home() {
       {volunteering.data?.linked && !nextDuty && (
         <Text style={ui.body}>Your upcoming duties will appear here.</Text>
       )}
-      <Text style={ui.eyebrow}>YOUR HOLYSPACE</Text>
+      <Text style={ui.eyebrow}>YOUR DIVINE COMMUNITY SPACE</Text>
       {(
         [
           {

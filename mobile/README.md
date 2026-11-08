@@ -1,4 +1,4 @@
-# Holyspace mobile
+# Divine Community Space mobile
 
 Member application built with React Native, Expo SDK 58, Expo Router and TypeScript.
 The Java API remains the authority for identity, authorization, People and Giving.
@@ -125,6 +125,46 @@ permissions, routes, planned work and the payment-handoff rules. Expo API refere
 [SDK 58 SecureStore](https://docs.expo.dev/versions/v58.0.0/sdk/securestore/),
 [SDK 58 WebBrowser](https://docs.expo.dev/versions/v58.0.0/sdk/webbrowser/),
 [protected routes](https://docs.expo.dev/router/advanced/protected/).
+
+## Production builds
+
+Builds use EAS with remote version numbers (`cli.appVersionSource: "remote"`); the
+`production` profile auto-increments `versionCode`/`buildNumber`. Bump the
+user-facing `version` in `app.json` for each store release. Profiles:
+
+| Profile | Output | EAS environment |
+| --- | --- | --- |
+| `development` | Dev client, internal | `development` |
+| `preview` | Android APK / iOS ad hoc, internal | `preview` |
+| `production` | Android App Bundle / iOS store build | `production` |
+
+The `preview` and `production` profiles point at the Symfony API,
+`https://holyspace-api.rivalani.dev`, through `EXPO_PUBLIC_API_URL` in `eas.json`.
+Mobile checkout requires the payment settings' backend URL to use this same origin.
+Before the first release, set the remaining public values in the matching EAS
+environment (they are bundled into the app, so never secrets):
+
+```sh
+npx eas-cli@latest env:create --environment production --name EXPO_PUBLIC_EAS_PROJECT_ID --value <project-uuid> --visibility plaintext
+npx eas-cli@latest env:create --environment production --name GOOGLE_SERVICES_JSON --type file --value ./google-services.json --visibility secret
+```
+
+`app.config.js` fails `preview` and `production` builds when the API origin is not
+HTTPS or the EAS project ID is missing, instead of shipping an app that cannot
+sign in. Release builds block Expo's default `SYSTEM_ALERT_WINDOW` and legacy
+storage permissions, disable Android backup (tokens live in SecureStore) and
+declare iOS export compliance as exempt (HTTPS only).
+
+```sh
+npx eas-cli@latest build --profile production --platform android
+npx eas-cli@latest build --profile production --platform ios
+npx eas-cli@latest submit --profile production --platform android
+```
+
+Android submissions go to the Play internal track as drafts; promote them in
+Play Console after device acceptance. iOS submission needs the App Store Connect
+app and Apple team, chosen interactively or added under `submit.production.ios`.
+Application identifiers become permanent after the first store upload.
 
 ## Toolchain and dependency security
 

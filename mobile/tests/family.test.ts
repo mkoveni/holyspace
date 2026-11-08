@@ -48,7 +48,10 @@ test("Child arrival and collection QRs have distinct purposes and render locally
       expiresAt: "2026-11-01T09:00:00Z",
       attendanceVersion: 1,
     });
-  assert.equal(arrival, "holyspace:child-arrival:v1:session:child");
-  assert.equal(collection, "holyspace:child-collection:v1:attendance:secret");
+  assert.equal(arrival, "divinecommunityspace:child-arrival:v1:session:child");
+  assert.equal(
+    collection,
+    "divinecommunityspace:child-collection:v1:attendance:secret",
+  );
   assert.ok(familyQr(collection).startsWith("data:image/gif;base64,"));
 });

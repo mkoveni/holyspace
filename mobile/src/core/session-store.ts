@@ -11,7 +11,7 @@ interface Snapshot {
   error: string;
   notice: string;
 }
-const sessionKey = "holyspace.member.session";
+const sessionKey = "divinecommunityspace.member.session";
 export class SessionStore {
   private token: string | null = null;
   private epoch = 0;
@@ -66,7 +66,8 @@ export class SessionStore {
     this.token = null;
     this.publish({ account: null, ready: true, error: "", notice });
     try {
-      if (account) await this.storage.remove(`holyspace.pending.${account.id}`);
+      if (account)
+        await this.storage.remove(`divinecommunityspace.pending.${account.id}`);
     } finally {
       await this.persist(null);
     }
@@ -160,7 +161,7 @@ export class SessionStore {
   pending = async (): Promise<GiftIntent | null> => {
     const id = this.snapshot.account?.id;
     if (!id) return null;
-    const raw = await this.storage.read(`holyspace.pending.${id}`);
+    const raw = await this.storage.read(`divinecommunityspace.pending.${id}`);
     if (id !== this.snapshot.account?.id || !raw) return null;
     try {
       const parsed = JSON.parse(raw);
@@ -181,7 +182,10 @@ export class SessionStore {
     const id = this.snapshot.account?.id;
     if (!id) return;
     if (gift)
-      await this.storage.write(`holyspace.pending.${id}`, JSON.stringify(gift));
-    else await this.storage.remove(`holyspace.pending.${id}`);
+      await this.storage.write(
+        `divinecommunityspace.pending.${id}`,
+        JSON.stringify(gift),
+      );
+    else await this.storage.remove(`divinecommunityspace.pending.${id}`);
   };
 }

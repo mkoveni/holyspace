@@ -5,6 +5,7 @@ import { ActivityIndicator, View, Text } from "react-native";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { SessionProvider, useSession } from "@/core/session";
+import { appName } from "@/core/brand";
 import { Button, Message } from "@/ui/components";
 import { colors, ui } from "@/ui/theme";
 function Routes() {
@@ -15,9 +16,7 @@ function Routes() {
         style={[ui.screen, { justifyContent: "center", alignItems: "center" }]}
       >
         <ActivityIndicator color={colors.green} size="large" />
-        <Text style={[ui.body, { marginTop: 16 }]}>
-          Opening your Holyspace…
-        </Text>
+        <Text style={[ui.body, { marginTop: 16 }]}>Opening {appName}…</Text>
       </View>
     );
   if (session.error)

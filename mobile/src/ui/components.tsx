@@ -2,6 +2,7 @@ import { useState } from "react";
 import type { ComponentProps, ReactNode } from "react";
 import {
   ActivityIndicator,
+  Image,
   Modal,
   Pressable,
   Text,
@@ -11,7 +12,9 @@ import {
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
+import { appName } from "@/core/brand";
 import { colors, ui } from "./theme";
+const logoMark = require("../../assets/images/logo-mark.png");
 export function Screen({
   children,
   refreshing,
@@ -25,17 +28,30 @@ export function Screen({
   return (
     <View style={[ui.screen, { paddingTop: insets.top }]}>
       <View style={[ui.row, { paddingHorizontal: 24, paddingVertical: 18 }]}>
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-          <Ionicons name="leaf-outline" color={colors.green} size={23} />
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 8,
+            flexShrink: 1,
+          }}
+        >
+          <Image
+            source={logoMark}
+            style={{ width: 28, height: 28 }}
+            accessibilityIgnoresInvertColors
+          />
           <Text
+            numberOfLines={1}
             style={{
-              fontSize: 21,
+              flexShrink: 1,
+              fontSize: 19,
               fontWeight: "600",
-              letterSpacing: -0.6,
+              letterSpacing: -0.5,
               color: colors.green,
             }}
           >
-            Holyspace<Text style={{ color: colors.gold }}>·</Text>
+            {appName}
           </Text>
         </View>
         {onRefresh && (

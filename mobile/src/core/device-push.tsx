@@ -10,6 +10,7 @@ import {
 import { AppState, Platform } from "react-native";
 import { router, useRootNavigationState } from "expo-router";
 import type { MemberNotification } from "./models";
+import { appName } from "./brand";
 import { nativePush } from "./native-push";
 import { installation, setPushOptIn } from "./push-installation";
 import {
@@ -73,7 +74,7 @@ export function DevicePushProvider({ children }: { children: ReactNode }) {
             );
           if (explicit)
             throw new Error(
-              "Notifications are not allowed. You can enable Holyspace notifications in your device settings.",
+              `Notifications are not allowed. You can enable ${appName} notifications in your device settings.`,
             );
           return;
         }

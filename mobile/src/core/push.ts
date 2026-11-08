@@ -22,7 +22,7 @@ const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 export function pushNotificationId(data: unknown): string | null {
   if (!data || typeof data !== "object") return null;
   const value = data as Record<string, unknown>;
-  return value.type === "holyspace.member-update.v1" &&
+  return value.type === "divinecommunityspace.member-update.v1" &&
     typeof value.notificationId === "string" &&
     uuid.test(value.notificationId)
     ? value.notificationId

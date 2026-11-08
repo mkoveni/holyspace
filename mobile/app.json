@@ -1,25 +1,33 @@
 {
   "expo": {
-    "name": "Holyspace",
-    "slug": "holyspace",
+    "name": "Divine Community Space",
+    "slug": "divinecommunityspace",
     "version": "0.1.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "holyspace",
+    "scheme": "divinecommunityspace",
     "userInterfaceStyle": "light",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "app.holyspace.member"
+      "bundleIdentifier": "app.divinecommunityspace.member",
+      "config": {
+        "usesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#F6F5EF",
+        "backgroundColor": "#F7F4EC",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
-        "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "app.holyspace.member"
+      "package": "app.divinecommunityspace.member",
+      "allowBackup": false,
+      "blockedPermissions": [
+        "android.permission.SYSTEM_ALERT_WINDOW",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE"
+      ]
     },
     "web": {
       "output": "single",
@@ -31,7 +39,10 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#F6F5EF"
+          "backgroundColor": "#F6F5EF",
+          "image": "./assets/images/splash-icon.png",
+          "imageWidth": 160,
+          "resizeMode": "contain"
         }
       ],
       [

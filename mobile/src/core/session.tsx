@@ -9,6 +9,7 @@ import {
 import { Platform } from "react-native";
 import { deviceName, modelName } from "expo-device";
 import { apiOrigin } from "./http";
+import { appName } from "./brand";
 import { SessionStore } from "./session-store";
 import { vault } from "./vault";
 const origin = apiOrigin(
@@ -36,7 +37,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       new SessionStore(
         origin,
         vault,
-        `Holyspace · ${Platform.OS === "web" ? "Web preview" : deviceName || modelName || Platform.OS}`,
+        `${appName} · ${Platform.OS === "web" ? "Web preview" : deviceName || modelName || Platform.OS}`,
       ),
   );
   const state = useSyncExternalStore(

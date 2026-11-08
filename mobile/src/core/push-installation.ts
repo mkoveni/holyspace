@@ -5,7 +5,7 @@ type Installation = {
   secret: string;
   optedInAccount: string | null;
 };
-const key = "holyspace.push.installation";
+const key = "divinecommunityspace.push.installation";
 let pending: Promise<Installation> | null = null;
 let writes: Promise<void> = Promise.resolve();
 export function installation(): Promise<Installation> {

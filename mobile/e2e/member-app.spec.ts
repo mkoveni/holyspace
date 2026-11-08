@@ -196,7 +196,7 @@ async function fixture(page: Page, linked = true, offeredFunds = true) {
         items: [
           {
             id: "device-current",
-            deviceName: "Holyspace · Android",
+            deviceName: "Divine Community Space · Android",
             current: true,
             createdAt: "2026-10-28T10:00:00Z",
             expiresAt: "2026-10-28T18:00:00Z",
@@ -237,7 +237,7 @@ async function signIn(page: Page) {
 async function tab(page: Page, name: string) {
   await page.getByRole("tab", { name: new RegExp(name) }).click();
 }
-test("Holyspace sign-in and home are usable on a phone and retain no browser credentials", async ({
+test("Member sign-in and home are usable on a phone and retain no browser credentials", async ({
   page,
 }) => {
   const { errors, requests } = await fixture(page);
@@ -247,7 +247,7 @@ test("Holyspace sign-in and home are usable on a phone and retain no browser cre
   ).toBeVisible();
   expect(
     requests.find((r) => r.path === "/api/login_check")?.body.deviceName,
-  ).toBe("Holyspace · Web preview");
+  ).toBe("Divine Community Space · Web preview");
   expect(await page.evaluate(() => localStorage.length)).toBe(0);
   await expect
     .poll(() =>
@@ -255,7 +255,7 @@ test("Holyspace sign-in and home are usable on a phone and retain no browser cre
     )
     .toBe(true);
   await page.screenshot({
-    path: "test-results/holyspace-home-390.png",
+    path: "test-results/divinecommunityspace-home-390.png",
     fullPage: true,
   });
   expect(errors).toEqual([]);
@@ -539,7 +539,8 @@ async function eventFixture(page: Page, full = false) {
     }
     if (url.pathname.endsWith("/attendance-pass"))
       return respond({
-        credential: "holyspace:event:v1:abcdefghijklmnopqrstuvwxyz0123456789",
+        credential:
+          "divinecommunityspace:event:v1:abcdefghijklmnopqrstuvwxyz0123456789",
         expiresAt: new Date(Date.now() + 300000).toISOString(),
       });
     throw new Error("Unexpected member event route");

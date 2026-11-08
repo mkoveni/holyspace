@@ -48,7 +48,7 @@ export default function Login() {
         </View>
       </LinearGradient>
       <View style={{ gap: 10 }}>
-        <Text style={ui.eyebrow}>WELCOME TO HOLYSPACE</Text>
+        <Text style={ui.eyebrow}>WELCOME TO DIVINE COMMUNITY SPACE</Text>
         <Text style={ui.h2}>Make yourself at home.</Text>
         <Text style={ui.body}>
           Stay connected to your church, wherever life takes you.

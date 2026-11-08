@@ -4,6 +4,7 @@ import { Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import type { Device } from "@/core/models";
 import { useSession } from "@/core/session";
+import { appName } from "@/core/brand";
 import { date } from "@/core/money";
 import { useLoad } from "@/hooks/use-load";
 import { Button, Field, Message, Screen, Sheet } from "@/ui/components";
@@ -230,7 +231,7 @@ export default function Security() {
         />
       </Sheet>
       <Sheet
-        title="Sign out of Holyspace?"
+        title={`Sign out of ${appName}?`}
         visible={signOutOpen}
         onClose={() => !busy && setSignOutOpen(false)}
       >
