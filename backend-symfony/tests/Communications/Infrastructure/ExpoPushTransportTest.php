@@ -43,12 +43,12 @@ final class ExpoPushTransportTest extends TestCase
         $body = json_decode($sent, true);
         self::assertSame([
             'to' => 'ExpoPushToken[abcdefghij]',
-            'title' => 'Holyspace',
+            'title' => 'Divine Community Space',
             'body' => 'You have a new update in your inbox.',
             'sound' => 'default',
             'channelId' => 'member-updates',
             'ttl' => 3600,
-            'data' => ['type' => 'holyspace.member-update.v1', 'notificationId' => 'n-1'],
+            'data' => ['type' => 'divinecommunityspace.member-update.v1', 'notificationId' => 'n-1'],
         ], $body);
         self::assertContains('Authorization: Bearer expo-access', $headers);
     }
