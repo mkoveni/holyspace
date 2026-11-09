@@ -7,19 +7,16 @@ import Vuetify, { transformAssetUrls } from 'vite-plugin-vuetify'
 export default defineConfig(({ mode }) => {
   const environment = loadEnv(mode, process.cwd(), 'VITE_')
   const apiTarget
-    = process.env.VITE_API_PROXY_TARGET ?? environment.VITE_API_PROXY_TARGET ?? 'http://localhost:8081'
+    = process.env.VITE_API_PROXY_TARGET ?? environment.VITE_API_PROXY_TARGET ?? 'http://localhost:8083'
   const proxy: ProxyOptions = {
     target: apiTarget,
     changeOrigin: true,
     configure: server => {
       server.on('proxyReq', (outgoing, incoming) => {
-        // The Java development workspace uses a same-origin relay. Preserve foreign
+        // The development workspace uses a same-origin relay. Preserve foreign
         // origins so the API can still reject requests from untrusted sites.
         const origin = incoming.headers.origin
-        if (
-          environment.VITE_BACKEND === 'java'
-          && (origin === `http://${incoming.headers.host}` || origin === `https://${incoming.headers.host}`)
-        ) {
+        if (origin === `http://${incoming.headers.host}` || origin === `https://${incoming.headers.host}`) {
           outgoing.setHeader('Origin', new URL(apiTarget).origin)
         }
       })

@@ -10,6 +10,7 @@
         "ext-ctype": "*",
         "ext-iconv": "*",
         "doctrine/dbal": "^4.5",
+        "intervention/image": "^4.4",
         "nelmio/cors-bundle": "^2.6",
         "symfony/clock": "^8.1",
         "symfony/console": "8.1.*",

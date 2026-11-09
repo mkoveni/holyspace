@@ -14,8 +14,6 @@
     "test": "vitest run",
     "test:e2e": "playwright test",
     "test:components": "playwright test --config playwright.components.config.ts",
-    "dev:java": "vite --mode java --port 5175 --strictPort",
-    "build:java": "vue-tsc --build --force && vite build --mode java",
     "test:directory": "playwright test --config playwright.directory.config.ts",
     "test:children": "playwright test --config playwright.children.config.ts"
   },

@@ -8,6 +8,7 @@ use App\Communities\Application\Contract\LeaderEntry;
 use App\Communities\Application\Contract\MemberCommunity;
 use App\Communities\Application\Contract\MemberCommunityReader;
 use App\Communities\Application\Contract\MemberMeetingRow;
+use App\Media\Application\Contract\MediaImages;
 use App\Shared\Infrastructure\Persistence\Timestamps;
 use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
@@ -16,7 +17,7 @@ use Doctrine\DBAL\Query\QueryBuilder;
 /** Java `JooqMemberCommunityStore`: own-membership projections over V18, joined on the caller's current membership. */
 final readonly class DbalMemberCommunityReader implements MemberCommunityReader
 {
-    public function __construct(private Connection $connection)
+    public function __construct(private Connection $connection, private MediaImages $images)
     {
     }
 
@@ -27,14 +28,14 @@ final readonly class DbalMemberCommunityReader implements MemberCommunityReader
             $query->andWhere('c.kind = :kind')->setParameter('kind', $kind);
         }
 
-        return array_values(array_map(self::toCommunity(...), $query->fetchAllAssociative()));
+        return $this->communityList(array_values($query->fetchAllAssociative()));
     }
 
     public function community(string $personId, string $communityId, DateTimeImmutable $at): ?MemberCommunity
     {
         $row = $this->communityQuery($personId, $at)->andWhere('c.id = :id')->setParameter('id', $communityId)->fetchAssociative();
 
-        return false === $row ? null : self::toCommunity($row);
+        return false === $row ? null : $this->communityList([$row])[0];
     }
 
     public function leaders(string $personId, string $communityId, DateTimeImmutable $at, int $limit, int $offset): array
@@ -99,12 +100,11 @@ final readonly class DbalMemberCommunityReader implements MemberCommunityReader
     private function communityQuery(string $personId, DateTimeImmutable $at): QueryBuilder
     {
         $query = $this->connection->createQueryBuilder()
-            ->select('c.id', 'c.kind', 'c.name', 'c.description', 'c.campus', 'own.started_at', 'own_role.role', 'parent.name AS parent_name', 'cover.image_id AS cover_image_id')
+            ->select('c.id', 'c.kind', 'c.name', 'c.description', 'c.campus', 'own.started_at', 'own_role.role', 'parent.name AS parent_name')
             ->from('communities', 'c')
             ->join('c', 'community_memberships', 'own', 'own.community_id = c.id')
             ->leftJoin('own', 'community_leadership', 'own_role', 'own_role.membership_id = own.id AND own_role.started_at <= :at AND (own_role.ended_at IS NULL OR own_role.ended_at > :at)')
-            ->leftJoin('c', 'communities', 'parent', 'parent.id = c.parent_id AND parent.active = TRUE')
-            ->leftJoin('c', 'community_cover_images', 'cover', 'cover.community_id = c.id');
+            ->leftJoin('c', 'communities', 'parent', 'parent.id = c.parent_id AND parent.active = TRUE');
         $this->current($query, $personId, $at);
 
         return $query;
@@ -124,8 +124,20 @@ final readonly class DbalMemberCommunityReader implements MemberCommunityReader
         return $query;
     }
 
+    /**
+     * @param list<array<string, mixed>> $rows
+     *
+     * @return list<MemberCommunity>
+     */
+    private function communityList(array $rows): array
+    {
+        $covers = $this->images->fileIds('community', array_map(static fn (array $row): string => (string) $row['id'], $rows));
+
+        return array_map(static fn (array $row): MemberCommunity => self::toCommunity($row, $covers[strtolower((string) $row['id'])] ?? null), $rows);
+    }
+
     /** @param array<string, mixed> $row */
-    private static function toCommunity(array $row): MemberCommunity
+    private static function toCommunity(array $row, ?string $coverFileId): MemberCommunity
     {
         return new MemberCommunity(
             (string) $row['id'],
@@ -136,7 +148,7 @@ final readonly class DbalMemberCommunityReader implements MemberCommunityReader
             null === $row['parent_name'] ? null : (string) $row['parent_name'],
             Timestamps::fromDatabase((string) $row['started_at']),
             null === $row['role'] ? 'MEMBER' : (string) $row['role'],
-            null === $row['cover_image_id'] ? null : (string) $row['cover_image_id'],
+            $coverFileId,
         );
     }
 

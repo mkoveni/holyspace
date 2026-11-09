@@ -36,6 +36,7 @@ Server layout:
   shared/.env.local                                 (secrets, mode 0640)
   shared/var/share                                  (cache pools that survive releases: scheduler state, rate limits)
   shared/var/lock                                   (flock store shared by FPM and the worker)
+  shared/media                                      (uploaded images; MEDIA_STORAGE_PATH; back up with the database)
   shared/deploy.conf                                (PHP version and domain)
 /var/log/onechurch-api/                             (PHP errors, FPM slow log; logrotate weekly)
 ```
@@ -46,7 +47,7 @@ Server layout:
   works on the host.
 - Ubuntu with security updates, nginx already installed, a sudo-capable SSH user.
 - PHP **8.4.1 or newer** with `php8.4-fpm` and `php8.4-cli`, installed by you on the host (8.3 cannot run this
-  project: Symfony 8.1 and the code need 8.4). Required extensions: `pdo_pgsql`, `mbstring`, `ctype`, `iconv`,
+  project: Symfony 8.1 and the code need 8.4). Required extensions: `pdo_pgsql`, `mbstring`, `ctype`, `iconv`, `gd` (with JPEG, PNG and WebP) and `exif`,
   `openssl`; recommended: OPcache, `intl`, `curl`. Composer must be on the `PATH`. The setup script installs none of
   these; it checks them and lists anything missing.
 - PostgreSQL 13 or newer, already running on the host (yours is 16; nothing installs or upgrades it).

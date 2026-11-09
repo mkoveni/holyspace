@@ -40,7 +40,7 @@ use App\Events\Application\Contract\VenueView;
 use App\Events\Application\SchedulePreview;
 use App\Events\Application\WalkIn;
 use App\Events\Domain\ScheduleWindow;
-use App\Shared\Presentation\CoverImageHttp;
+use App\Shared\Presentation\ImageUrl;
 use App\Shared\Presentation\Json;
 
 /** Wire format of Events read models; field names match the Java API. */
@@ -416,7 +416,7 @@ final class EventsJson
             'waitlistEnabled' => $i->waitlistEnabled,
             'remainingPlaces' => $i->remainingPlaces,
             'booking' => null === $i->booking ? null : ['id' => $i->booking->id, 'status' => $i->booking->status, 'version' => $i->booking->version, 'attendance' => $i->booking->attendance],
-            'coverImageUrl' => CoverImageHttp::url($i->coverImageId),
+            'coverImageUrl' => ImageUrl::public($i->coverImageId),
         ];
     }
 

@@ -30,6 +30,10 @@ final class Schedule implements ScheduleProviderInterface
             ->add(RecurringMessage::every('15 seconds', new RunCommandMessage('app:communications:dispatch-due')))
             // Device pushes and their receipts, on the same worker (Java's PUSH_POLL_MS default). Off until PUSH_ENABLED.
             ->add(RecurringMessage::every('15 seconds', new RunCommandMessage('app:communications:dispatch-push')))
+            // Pictures replaced or removed are deleted from disk shortly after their change commits.
+            ->add(RecurringMessage::every('1 minute', new RunCommandMessage('app:media:delete-pending')))
+            // Files no database row records (a crash mid-upload) and stale temporary files, once a day.
+            ->add(RecurringMessage::every('1 day', new RunCommandMessage('app:media:gc')))
         ;
     }
 }

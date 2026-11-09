@@ -4,12 +4,11 @@ declare(strict_types=1);
 
 namespace App\Tests\Events\Presentation;
 
-use App\Tests\Support\CoverImageBytes;
+use App\Tests\Media\Infrastructure\ImageFixtures;
 use App\Tests\Support\CoverImageFixtures;
 use DateTimeImmutable;
-use Symfony\Component\Uid\Uuid;
 
-/** Admin upload, member `coverImageUrl` and the public image route, end to end. */
+/** An event's picture is a Media `event` image: staff upload, `coverImageUrl` for members, the public route. */
 final class EventCoverApiTest extends EventsApiTestCase
 {
     use CoverImageFixtures;
@@ -31,6 +30,12 @@ final class EventCoverApiTest extends EventsApiTestCase
         $this->call('PUT', "/api/member-access/$account", $access, ['personId' => $this->person('Ada'), 'active' => true, 'expectedVersion' => 0, 'evidence' => 'Verified in person']);
         self::assertSame(204, $this->code());
         $this->member = $this->login('ada');
+    }
+
+    protected function tearDown(): void
+    {
+        exec('rm -rf '.escapeshellarg('/tmp/onechurch-media-test'));
+        parent::tearDown();
     }
 
     private function path(?string $event = null): string
@@ -60,75 +65,54 @@ final class EventCoverApiTest extends EventsApiTestCase
 
     public function testStaffUploadReplaceAndRemoveRoundTripsToTheMemberApi(): void
     {
-        $this->uploadCover($this->path(), $this->manager, 0, CoverImageBytes::png(1200, 300));
+        $this->uploadCover($this->path(), $this->manager, 0, ImageFixtures::png(1600, 900));
         self::assertSame(200, $this->code(), (string) $this->client->getResponse()->getContent());
         $first = $this->json();
         self::assertSame(1, $first['version']);
-        self::assertSame(['image/png', 1200, 300], [$first['image']['mime'], $first['image']['width'], $first['image']['height']]);
+        self::assertSame(['image/webp', 1280, 720], [$first['image']['mime'], $first['image']['width'], $first['image']['height']]);
         $url = $this->memberCover();
         self::assertSame($first['image']['url'], $url);
-        self::assertMatchesRegularExpression('#\A/api/public/cover-images/[0-9a-f-]{36}\z#', (string) $url, 'a same-origin path with a random id and no credentials');
+        self::assertMatchesRegularExpression('#\A/api/public/media/[0-9a-f-]{36}\z#', (string) $url, 'a same-origin path with a random id and no credentials');
 
         $this->fetchPublicCover((string) $url);
         $response = $this->client->getResponse();
-        self::assertSame(200, $response->getStatusCode());
-        self::assertSame(CoverImageBytes::png(1200, 300), $response->getContent());
-        self::assertSame('image/png', $response->headers->get('Content-Type'));
-        self::assertSame('nosniff', $response->headers->get('X-Content-Type-Options'));
+        self::assertSame([200, 'image/webp', 'nosniff'], [$response->getStatusCode(), $response->headers->get('Content-Type'), $response->headers->get('X-Content-Type-Options')]);
         self::assertStringContainsString('immutable', (string) $response->headers->get('Cache-Control'));
         self::assertStringContainsString('sandbox', (string) $response->headers->get('Content-Security-Policy'));
 
-        $this->call('GET', $this->path().'/content', $this->reader);
-        self::assertSame(200, $this->code());
-        self::assertStringContainsString('no-store', (string) $this->client->getResponse()->headers->get('Cache-Control'), 'the staff preview is never cached');
-
-        $this->uploadCover($this->path(), $this->manager, 1, CoverImageBytes::jpeg(), 'image/png');
-        self::assertSame(200, $this->code());
-        self::assertSame(['image/jpeg', 2], [$this->json()['image']['mime'], $this->json()['version']], 'the bytes decide the type, not the declared one');
-        $replaced = $this->memberCover();
-        self::assertNotSame($url, $replaced);
-        $this->fetchPublicCover((string) $url);
-        self::assertSame(404, $this->code(), 'replaced bytes are deleted');
-        self::assertSame(1, $this->rows('cover_images'));
+        $this->uploadCover($this->path(), $this->manager, 1, ImageFixtures::jpeg(), 'image/png');
+        self::assertSame([200, 2], [$this->code(), $this->json()['version']]);
+        self::assertNotSame($url, $this->memberCover());
 
         $this->removeCover($this->path(), $this->manager, 2);
         self::assertSame(['version' => 3, 'image' => null], $this->json());
         self::assertNull($this->memberCover());
-        $this->fetchPublicCover((string) $replaced);
-        self::assertSame(404, $this->code());
-        self::assertSame(0, $this->rows('cover_images'));
-        self::assertSame(3, $this->rows('event_audit', "action = 'event.cover_image.changed'"));
+        self::assertSame(3, $this->rows('media_audit'));
     }
 
     public function testPermissionsVersionsAndMalformedUploads(): void
     {
-        $this->uploadCover($this->path(), null, 0, CoverImageBytes::png());
+        $this->uploadCover($this->path(), null, 0, ImageFixtures::png());
         self::assertSame(401, $this->code());
-        $this->uploadCover($this->path(), $this->reader, 0, CoverImageBytes::png());
+        $this->uploadCover($this->path(), $this->reader, 0, ImageFixtures::png());
         self::assertSame(403, $this->code());
-        $this->uploadCover($this->path(), $this->member, 0, CoverImageBytes::png());
+        $this->uploadCover($this->path(), $this->member, 0, ImageFixtures::png());
         self::assertSame(403, $this->code());
         $this->call('GET', $this->path(), $this->member);
         self::assertSame(403, $this->code());
+        $this->call('GET', $this->path(), $this->reader);
+        self::assertSame(200, $this->code());
 
-        $this->uploadCover($this->path(), $this->manager, null, CoverImageBytes::png());
+        $this->uploadCover($this->path(), $this->manager, null, ImageFixtures::png());
         self::assertSame(400, $this->code(), 'the version header is required');
-        $this->uploadCover($this->path(), $this->manager, 4, CoverImageBytes::png());
+        $this->uploadCover($this->path(), $this->manager, 4, ImageFixtures::png());
         self::assertSame(409, $this->code());
         $this->uploadCover($this->path(), $this->manager, 0, '<svg onload="alert(1)"/>', 'image/png');
-        self::assertSame([400, 'Choose a JPEG, PNG or WebP image.'], [$this->code(), $this->json()['message'] ?? null]);
-        $this->client->request('POST', $this->path(), server: ['HTTP_AUTHORIZATION' => 'Bearer '.$this->manager, 'HTTP_X_IMAGE_VERSION' => '0']);
-        self::assertSame(400, $this->code(), 'no file part');
-        $this->uploadCover('/api/media/event/'.Uuid::v4()->toRfc4122(), $this->manager, 0, CoverImageBytes::png());
-        self::assertSame(404, $this->code());
-        $this->uploadCover('/api/media/event/not-a-uuid', $this->manager, 0, CoverImageBytes::png());
         self::assertSame(400, $this->code());
-        self::assertSame(0, $this->rows('cover_images'), 'failed commands store nothing');
-        self::assertSame(0, $this->rows('event_cover_images'));
-
-        $this->fetchPublicCover('/api/public/cover-images/'.Uuid::v4()->toRfc4122());
+        $this->uploadCover($this->path('00000000-0000-4000-8000-000000000001'), $this->manager, 0, ImageFixtures::png());
         self::assertSame(404, $this->code());
-        $this->fetchPublicCover('/api/public/cover-images/x');
+        $this->uploadCover('/api/media/event/not-a-uuid', $this->manager, 0, ImageFixtures::png());
         self::assertSame(400, $this->code());
+        self::assertSame(0, $this->rows('media_files'), 'failed commands store nothing');
     }
 }

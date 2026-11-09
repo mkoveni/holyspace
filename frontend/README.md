@@ -185,23 +185,18 @@ Use this component for person selection instead of building a separate person dr
 
 ## Java People workspace
 
-The Java directory has its own deployment configuration. `npm run dev:java` uses the
-Java API contract, served by the Symfony port (`backend-symfony`, which matches the Java
-routes one for one). Start it with `make build && make up` in `backend-symfony`
+The frontend talks to the Symfony API (`backend-symfony`, which implements the Java API
+contract route for route). Start it with `make build && make up` in `backend-symfony`
 (`http://localhost:8083`), then start the frontend:
 
 ```sh
 npm install
-npm run dev:java -- --host 127.0.0.1
+npm run dev -- --host 127.0.0.1
 ```
 
-To use the original Java backend instead, run it at `http://localhost:8082` and start the
-frontend with `VITE_API_PROXY_TARGET=http://localhost:8082 npm run dev:java`.
+To use another API instance, set `VITE_API_PROXY_TARGET` (default `http://localhost:8083`).
 
-Open **http://localhost:5175** and sign in with a Java account. The existing
-administrator has the People permissions. Java sessions use a separate storage
-key; PHP tokens are not accepted. The default `npm run dev` continues to use the
-PHP configuration, with its existing screens and workflows.
+Open **http://localhost:5173** and sign in. The existing administrator has the People permissions.
 
 The Java workspace includes:
 
@@ -218,15 +213,14 @@ The Java workspace includes:
 - Read/manage controls, explicit end/archive confirmations, inline validation,
   loading/retry states and revision conflicts that require review before retrying.
 
-Routes/navigation in Java mode expose only supported Java capabilities. Legacy
-education/employment, media, life events, ministry and member-portal operations
-remain in the PHP workspace. Existing PHP data is not copied or modified.
+Routes and navigation expose only what the API supports (`src/router/supportedRoutes.ts`);
+any other route shows as unavailable.
 
 The development configuration uses Vite's same-origin relay to the Java API.
 Only an Origin matching the frontend host is rewritten to the upstream origin;
 foreign origins are preserved for API rejection. `VITE_API_PROXY_TARGET` can
-point a Java dev server at an isolated API. Production `npm run build:java`
-produces assets that expect `/api` to be reverse-proxied to Java on the same
+point a dev server at an isolated API. Production `npm run build`
+produces assets that expect `/api` to be reverse-proxied to the API on the same
 origin; set `VITE_API_BASE_URL` explicitly for a cross-origin deployment and
 configure that origin in the API's CORS settings.
 
@@ -235,11 +229,11 @@ configure that origin in the API's CORS settings.
 ```sh
 npm run type-check
 npm test
-npm run build:java
+npm run build
 npm run test:directory
 ```
 
-Directory browser tests require a running Java-mode frontend. Set
+Directory browser tests require a running frontend. Set
 `DIRECTORY_E2E_BASE_URL` to its address (the browser test configuration defaults
 to the isolated test port, 5176). Presentation tests mock the API and verify
 read-only desktop/mobile layouts and expected requests.
@@ -247,14 +241,14 @@ read-only desktop/mobile layouts and expected requests.
 Real API scenarios run only when `DIRECTORY_E2E_PASSWORD_FILE` points to a file
 containing an isolated test administrator's password; optionally set
 `DIRECTORY_E2E_USERNAME` (default `directory-admin`). Run these against a
-dedicated Java API/database and Java-mode dev server, not shared church data.
+dedicated API/database and dev server, not shared church data.
 They create test people/households and verify contacts, addresses, directed
 relationships, primary contacts, stale-edit recovery, archival and history.
 The tests save desktop/mobile screenshots under ignored `test-results/`.
 
 ## Java Children Ministry
 
-Run `npm run dev:java` and open `/children`. The Java deployment includes:
+Run `npm run dev` and open `/children`. The Java deployment includes:
 
 - Programme cards, classes and versioned family consent policies.
 - Child ministry profiles with enrolment, class placement, guardian verification,
@@ -266,7 +260,7 @@ Run `npm run dev:java` and open `/children`. The Java deployment includes:
 
 The module reuses the People directory heading, surfaces, typography, badges,
 forms and person picker. Its typed client lives in `src/children/api.ts` and
-uses the Java contracts. PHP Children Ministry screens remain on the PHP deployment.
+uses the API contracts.
 Programme/session context carries through related forms. Guardian authority and
 pickup rights remain explicit; family relationships do not confer them.
 
@@ -276,7 +270,7 @@ access. Administrative person/account searches require their corresponding
 People/Identity permissions. Care is fetched only on explicit access, and pickup
 codes remain in the active label dialog rather than application stores/storage.
 
-Run `npm test`, `npm run build:java`, and `npm run test:children`. The browser
+Run `npm test`, `npm run build`, and `npm run test:children`. The browser
 suite checks desktop/mobile layouts, read-only access, labels and collection using
 isolated contracts. Real API scenarios additionally run when
 `CHILDREN_E2E_PASSWORD_FILE` points to a password file for a `children-admin`
@@ -286,7 +280,7 @@ They disable tracing to keep test credentials and pickup codes out of traces.
 
 ## Java production release
 
-The Java production frontend is built with `npm run build:java` using
+The Java production frontend is built with `npm run build` using
 `docker/java-production/web.Dockerfile`, with same-origin `/api` requests.
 See [the Java production runbook](../docs/java-production-runbook.md) and
 [launch tracker](../docs/production-readiness.md); the PHP production image uses

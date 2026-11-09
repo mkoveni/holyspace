@@ -9,7 +9,7 @@ browser ──HTTPS──▶ nginx holyspace.rivalani.dev ─────▶ /sr
    └────HTTPS /api/*──▶ nginx holyspace-api.rivalani.dev ──unix socket──▶ php-fpm "onechurch-api"
 ```
 
-The build targets the Symfony port of the Java API contract (`VITE_BACKEND=java`, the same as `npm run build:java`)
+The build targets the Symfony port of the Java API contract
 with `VITE_API_BASE_URL=https://holyspace-api.rivalani.dev` (set `API_URL=https://...` for `build.sh` to change it;
 then pass the same host to `setup-server.sh --api-domain`). Source maps are removed from the release.
 

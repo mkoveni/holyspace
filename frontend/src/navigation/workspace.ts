@@ -1,5 +1,4 @@
 import { ministryNavigation } from '@/children/navigation'
-import { isJavaApi } from '@/directory/backend'
 interface NavigationItem {
   title: string
   to: string
@@ -13,36 +12,32 @@ interface NavigationGroup {
   items: NavigationItem[]
 }
 const groups: NavigationGroup[] = [
-  ...(isJavaApi
-    ? [
-        {
-          title: 'Events',
-          icon: 'mdi-calendar-star',
-          items: [
-            {
-              title: 'Calendar & events',
-              to: '/events',
-              permission: 'events.read',
-            },
-            {
-              title: 'Venues',
-              to: '/events/venues',
-              permission: 'events.read',
-            },
-            {
-              title: 'Attendance reports',
-              to: '/events/reports',
-              permission: 'events.attendance.read',
-            },
-            {
-              title: 'Email deliveries',
-              to: '/events/email-deliveries',
-              permission: 'events.communications.send',
-            },
-          ],
-        },
-      ]
-    : []),
+  {
+    title: 'Events',
+    icon: 'mdi-calendar-star',
+    items: [
+      {
+        title: 'Calendar & events',
+        to: '/events',
+        permission: 'events.read',
+      },
+      {
+        title: 'Venues',
+        to: '/events/venues',
+        permission: 'events.read',
+      },
+      {
+        title: 'Attendance reports',
+        to: '/events/reports',
+        permission: 'events.attendance.read',
+      },
+      {
+        title: 'Email deliveries',
+        to: '/events/email-deliveries',
+        permission: 'events.communications.send',
+      },
+    ],
+  },
   {
     title: 'People & households',
     icon: 'mdi-account-group-outline',
@@ -56,61 +51,30 @@ const groups: NavigationGroup[] = [
       },
     ],
   },
-  ...(isJavaApi
-    ? [
-        {
-          title: 'Groups & ministries',
-          icon: 'mdi-account-group-outline',
-          items: [
-            {
-              title: 'Groups',
-              to: '/groups',
-              permissionsAny: [
-                'ministries.read',
-                'ministries.manage',
-                'ministries.lead',
-              ],
-            },
-            {
-              title: 'Ministries',
-              to: '/ministries',
-              permissionsAny: [
-                'ministries.read',
-                'ministries.manage',
-                'ministries.lead',
-              ],
-            },
-          ],
-        },
-      ]
-    : [
-        {
-          title: 'Church life',
-          icon: 'mdi-church',
-          items: [
-            ...(isJavaApi
-              ? []
-              : [
-                  { title: 'Events', to: '/events', permission: 'events.read' },
-                ]),
-            {
-              title: 'Attendance',
-              to: '/attendance',
-              permission: 'attendance.manage',
-            },
-            {
-              title: 'Group workspace',
-              to: '/groups',
-              permission: 'ministries.lead',
-            },
-            {
-              title: 'Ministries',
-              to: '/ministries',
-              permission: 'ministries.manage',
-            },
-          ],
-        },
-      ]),
+  {
+    title: 'Groups & ministries',
+    icon: 'mdi-account-group-outline',
+    items: [
+      {
+        title: 'Groups',
+        to: '/groups',
+        permissionsAny: [
+          'ministries.read',
+          'ministries.manage',
+          'ministries.lead',
+        ],
+      },
+      {
+        title: 'Ministries',
+        to: '/ministries',
+        permissionsAny: [
+          'ministries.read',
+          'ministries.manage',
+          'ministries.lead',
+        ],
+      },
+    ],
+  },
   {
     title: 'Volunteering',
     icon: 'mdi-hand-heart-outline',
@@ -118,40 +82,25 @@ const groups: NavigationGroup[] = [
       {
         title: 'Volunteers',
         to: '/volunteering',
-        permission: isJavaApi ? 'volunteering.read' : 'volunteering.manage',
+        permission: 'volunteering.read',
       },
-      ...(isJavaApi
-        ? [
-            {
-              title: 'Teams & roles',
-              to: '/volunteering/teams',
-              permission: 'volunteering.read',
-            },
-            {
-              title: 'Serving schedule',
-              to: '/volunteering/schedule',
-              permission: 'volunteering.read',
-            },
-            {
-              title: 'Reminder deliveries',
-              to: '/volunteering/deliveries',
-              permission: 'volunteering.communications.send',
-            },
-          ]
-        : [
-            {
-              title: 'Volunteer invitations',
-              to: '/volunteer-rota',
-              permission: 'volunteering.manage',
-            },
-            {
-              title: 'Service planning',
-              to: '/service-plans',
-              permission: 'service_planning.read',
-            },
-          ]),
       {
-        title: isJavaApi ? 'My invitations' : 'Volunteer workspace',
+        title: 'Teams & roles',
+        to: '/volunteering/teams',
+        permission: 'volunteering.read',
+      },
+      {
+        title: 'Serving schedule',
+        to: '/volunteering/schedule',
+        permission: 'volunteering.read',
+      },
+      {
+        title: 'Reminder deliveries',
+        to: '/volunteering/deliveries',
+        permission: 'volunteering.communications.send',
+      },
+      {
+        title: 'My invitations',
         to: '/serve',
         permission: 'volunteering.serve',
       },
@@ -160,26 +109,13 @@ const groups: NavigationGroup[] = [
   {
     title: 'Children Ministry',
     icon: 'mdi-sprout-outline',
-    items: isJavaApi
-      ? ministryNavigation(() => true).flatMap(group =>
-          group.items.map(item => ({
-            title: item.title,
-            to: item.to,
-            permissionsAny: item.permissionsAny,
-          })),
-        )
-      : [
-          {
-            title: 'Children’s Ministry',
-            to: '/children',
-            permission: 'children.manage',
-          },
-          {
-            title: 'Children’s station',
-            to: '/children-station',
-            permission: 'children.station',
-          },
-        ],
+    items: ministryNavigation(() => true).flatMap(group =>
+      group.items.map(item => ({
+        title: item.title,
+        to: item.to,
+        permissionsAny: item.permissionsAny,
+      })),
+    ),
   },
   {
     title: 'Engagement & reports',
@@ -196,15 +132,11 @@ const groups: NavigationGroup[] = [
         permission: 'followups.work',
       },
       { title: 'Forms', to: '/forms', permission: 'forms.read' },
-      ...(isJavaApi
-        ? [
-            {
-              title: 'Email templates',
-              to: '/communications/templates',
-              permission: 'communications.templates.read',
-            },
-          ]
-        : []),
+      {
+        title: 'Email templates',
+        to: '/communications/templates',
+        permission: 'communications.templates.read',
+      },
       {
         title: 'Communications',
         to: '/communications',
@@ -219,27 +151,23 @@ const groups: NavigationGroup[] = [
       {
         title: 'Gift ledger & funds',
         to: '/giving',
-        permission: isJavaApi ? 'giving.read' : 'giving.manage',
+        permission: 'giving.read',
       },
-      ...(isJavaApi
-        ? [
-            {
-              title: 'Pledges',
-              to: '/giving/pledges',
-              permission: 'giving.read',
-            },
-            {
-              title: 'Statements & exports',
-              to: '/giving/reports',
-              permission: 'giving.read',
-            },
-            {
-              title: 'Reconciliation',
-              to: '/giving/reconciliations',
-              permission: 'giving.read',
-            },
-          ]
-        : []),
+      {
+        title: 'Pledges',
+        to: '/giving/pledges',
+        permission: 'giving.read',
+      },
+      {
+        title: 'Statements & exports',
+        to: '/giving/reports',
+        permission: 'giving.read',
+      },
+      {
+        title: 'Reconciliation',
+        to: '/giving/reconciliations',
+        permission: 'giving.read',
+      },
       {
         title: 'Online payments',
         to: '/payments',
@@ -256,25 +184,21 @@ const groups: NavigationGroup[] = [
         to: '/user-accounts',
         permission: 'identity.manage',
       },
-      ...(isJavaApi
-        ? [
-            {
-              title: 'Member access',
-              to: '/administration/member-access',
-              permissionsAll: ['identity.manage', 'people.manage'],
-            },
-            {
-              title: 'Donor access',
-              to: '/administration/donor-access',
-              permissionsAll: ['identity.manage', 'giving.manage'],
-            },
-            {
-              title: 'Payment settings',
-              to: '/administration/payment-settings',
-              permission: 'payments.configure',
-            },
-          ]
-        : []),
+      {
+        title: 'Member access',
+        to: '/administration/member-access',
+        permissionsAll: ['identity.manage', 'people.manage'],
+      },
+      {
+        title: 'Donor access',
+        to: '/administration/donor-access',
+        permissionsAll: ['identity.manage', 'giving.manage'],
+      },
+      {
+        title: 'Payment settings',
+        to: '/administration/payment-settings',
+        permission: 'payments.configure',
+      },
       { title: 'Roles', to: '/roles', permission: 'identity.manage' },
       {
         title: 'Permissions',
@@ -289,69 +213,67 @@ const groups: NavigationGroup[] = [
     items: [
       { title: 'Account security', to: '/account-security' },
       { title: 'Settings', to: '/settings' },
-      ...(isJavaApi ? [{ title: 'My giving', to: '/my-giving' }] : []),
+      { title: 'My giving', to: '/my-giving' },
     ],
   },
 ]
 export function visibleNavigation (
   hasPermission: (permission: string) => boolean,
 ): NavigationGroup[] {
-  const available = isJavaApi
-    ? groups.map(group => ({
-        ...group,
-        items: group.items
-          .filter(item =>
-            [
-              '/payments',
-              '/my-giving',
-              '/administration/donor-access',
-              '/administration/member-access',
-              '/administration/payment-settings',
-              '/giving',
-              '/giving/pledges',
-              '/giving/reports',
-              '/giving/reconciliations',
-              '/groups',
-              '/ministries',
-              '/events',
-              '/events/venues',
-              '/events/reports',
-              '/events/email-deliveries',
-              '/volunteering',
-              '/volunteering/schedule',
-              '/volunteering/teams',
-              '/volunteering/deliveries',
-              '/serve',
-              '/people',
-              '/families',
-              '/user-accounts',
-              '/roles',
-              '/permissions',
-              '/settings',
-              '/children',
-              '/children-station',
-              '/children/settings',
-              '/children/session-series',
-              '/children/team-planning',
-              '/children/safeguarding-follow-up',
-              '/children/reports',
-              '/children/incidents',
-              '/children/overview',
-              '/children/sessions',
-              '/children/email-deliveries',
-              '/communications/templates',
-              '/children/communications',
-            ].includes(item.to),
-          )
-          .map(item =>
-            item.to === '/children'
-              ? { ...item, title: 'Programmes', permission: 'children.read' }
-              : (item.to === '/families'
-                  ? { ...item, title: 'Households', permission: 'people.read' }
-                  : item),
-          ),
-      }))
-    : groups
+  const available = groups.map(group => ({
+    ...group,
+    items: group.items
+      .filter(item =>
+        [
+          '/payments',
+          '/my-giving',
+          '/administration/donor-access',
+          '/administration/member-access',
+          '/administration/payment-settings',
+          '/giving',
+          '/giving/pledges',
+          '/giving/reports',
+          '/giving/reconciliations',
+          '/groups',
+          '/ministries',
+          '/events',
+          '/events/venues',
+          '/events/reports',
+          '/events/email-deliveries',
+          '/volunteering',
+          '/volunteering/schedule',
+          '/volunteering/teams',
+          '/volunteering/deliveries',
+          '/serve',
+          '/people',
+          '/families',
+          '/user-accounts',
+          '/roles',
+          '/permissions',
+          '/settings',
+          '/children',
+          '/children-station',
+          '/children/settings',
+          '/children/session-series',
+          '/children/team-planning',
+          '/children/safeguarding-follow-up',
+          '/children/reports',
+          '/children/incidents',
+          '/children/overview',
+          '/children/sessions',
+          '/children/email-deliveries',
+          '/communications/templates',
+          '/children/communications',
+        ].includes(item.to),
+      )
+      .map(item =>
+        item.to === '/children'
+          ? { ...item, title: 'Programmes', permission: 'children.read' }
+          : (item.to === '/families'
+              ? { ...item, title: 'Households', permission: 'people.read' }
+              : item),
+      ),
+  }))
   return available
     .map(group => ({
       ...group,

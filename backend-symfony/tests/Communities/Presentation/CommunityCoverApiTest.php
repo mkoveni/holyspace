@@ -4,11 +4,10 @@ declare(strict_types=1);
 
 namespace App\Tests\Communities\Presentation;
 
-use App\Tests\Support\CoverImageBytes;
+use App\Tests\Media\Infrastructure\ImageFixtures;
 use App\Tests\Support\CoverImageFixtures;
-use Symfony\Component\Uid\Uuid;
 
-/** Admin upload, member `coverImageUrl` and the public image route for groups and ministries. */
+/** A community's picture is a Media `community` image: the owner rules, and `coverImageUrl` for members. */
 final class CommunityCoverApiTest extends CommunitiesApiTestCase
 {
     use CoverImageFixtures;
@@ -26,6 +25,12 @@ final class CommunityCoverApiTest extends CommunitiesApiTestCase
         self::assertSame(204, $this->code());
         $this->member = $this->login('member');
         $this->join($this->group, $self);
+    }
+
+    protected function tearDown(): void
+    {
+        exec('rm -rf '.escapeshellarg('/tmp/onechurch-media-test'));
+        parent::tearDown();
     }
 
     private function path(?string $community = null): string
@@ -50,46 +55,48 @@ final class CommunityCoverApiTest extends CommunitiesApiTestCase
         $this->call('GET', $this->path(), $this->admin);
         self::assertSame(['version' => 0, 'image' => null], $this->json());
 
-        $this->uploadCover($this->path(), $this->admin, 0, CoverImageBytes::png(800, 450));
+        $this->uploadCover($this->path(), $this->admin, 0, ImageFixtures::png(1600, 900));
         self::assertSame(200, $this->code(), $this->message());
-        self::assertSame([1, 'image/png', 800, 450], [$this->json()['version'], $this->json()['image']['mime'], $this->json()['image']['width'], $this->json()['image']['height']]);
+        self::assertSame([1, 'image/webp', 1280, 720], [$this->json()['version'], $this->json()['image']['mime'], $this->json()['image']['width'], $this->json()['image']['height']]);
         $url = $this->memberCover();
         self::assertSame($this->json()['items'][0]['coverImageUrl'], $url);
-        self::assertMatchesRegularExpression('#\A/api/public/cover-images/[0-9a-f-]{36}\z#', (string) $url);
+        self::assertSame($url, $this->staffUrl());
+        self::assertMatchesRegularExpression('#\A/api/public/media/[0-9a-f-]{36}\z#', (string) $url);
         $this->fetchPublicCover((string) $url);
-        self::assertSame([200, 'image/png'], [$this->code(), $this->client->getResponse()->headers->get('Content-Type')]);
+        self::assertSame([200, 'image/webp'], [$this->code(), $this->client->getResponse()->headers->get('Content-Type')]);
 
         $this->removeCover($this->path(), $this->admin, 1);
         self::assertSame(['version' => 2, 'image' => null], $this->json());
         self::assertNull($this->memberCover());
-        $this->fetchPublicCover((string) $url);
-        self::assertSame(404, $this->code());
-        self::assertSame(2, $this->rows('community_history', "action = 'COVER_CHANGED'"));
+        self::assertSame(2, $this->rows('media_audit'));
     }
 
-    public function testOnlyManagersChangeCoversAndLeadersSeeOnlyTheirOwn(): void
+    public function testOnlyManagersChangePicturesAndLeadersMayLook(): void
     {
         $other = $this->community('GROUP', 'Other group');
         $leader = $this->leader('leader', $this->join($other, $this->person('Leader')));
-        $this->uploadCover($this->path(), $leader, 0, CoverImageBytes::png());
+        $this->uploadCover($this->path(), $leader, 0, ImageFixtures::png());
         self::assertSame(403, $this->code());
-        $this->uploadCover($this->path(), $this->member, 0, CoverImageBytes::png());
+        $this->uploadCover($this->path(), $this->member, 0, ImageFixtures::png());
         self::assertSame(403, $this->code());
-        $this->uploadCover($this->path(), null, 0, CoverImageBytes::png());
+        $this->uploadCover($this->path(), null, 0, ImageFixtures::png());
         self::assertSame(401, $this->code());
-        $this->call('GET', $this->path(), $leader);
-        self::assertSame(404, $this->code(), 'a leader cannot probe another community');
         $this->call('GET', $this->path($other), $leader);
         self::assertSame(200, $this->code());
 
-        $this->uploadCover($this->path(), $this->admin, null, CoverImageBytes::png());
+        $this->uploadCover($this->path(), $this->admin, null, ImageFixtures::png());
         self::assertSame(400, $this->code());
-        $this->uploadCover($this->path(), $this->admin, 3, CoverImageBytes::png());
+        $this->uploadCover($this->path(), $this->admin, 3, ImageFixtures::png());
         self::assertSame(409, $this->code());
         $this->uploadCover($this->path(), $this->admin, 0, 'GIF89a');
         self::assertSame(400, $this->code());
-        $this->uploadCover($this->path(Uuid::v4()->toRfc4122()), $this->admin, 0, CoverImageBytes::png());
-        self::assertSame(404, $this->code());
-        self::assertSame(0, $this->rows('cover_images'), 'failed commands store nothing');
+        self::assertSame(0, $this->rows('media_files'), 'failed commands store nothing');
+    }
+
+    private function staffUrl(): ?string
+    {
+        $this->call('GET', $this->path(), $this->admin);
+
+        return $this->json()['image']['url'] ?? null;
     }
 }

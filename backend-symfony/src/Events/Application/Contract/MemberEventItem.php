@@ -24,7 +24,7 @@ final readonly class MemberEventItem
         public bool $waitlistEnabled,
         public ?int $remainingPlaces,
         public ?MemberBooking $booking,
-        /** The event's cover image id, served publicly by id (Shared `CoverImageController`), or null. */
+        /** The event's cover picture's Media file id, served publicly by id (`/api/public/media/{id}`), or null. */
         public ?string $coverImageId,
     ) {
     }

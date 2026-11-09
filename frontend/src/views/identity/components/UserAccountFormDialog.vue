@@ -6,15 +6,15 @@
 
       <v-form ref="formRef" @submit.prevent="handleSubmit">
         <v-card-text>
-          <template v-if="isJavaApi"><v-text-field v-model="form.displayName" label="Full name" maxlength="160" :rules="[required]" />
+          <v-text-field v-model="form.displayName" label="Full name" maxlength="160" :rules="[required]" />
 
-            <v-text-field
-              v-model="form.email"
-              label="Email address"
-              maxlength="254"
-              :rules="[required]"
-              type="email"
-            /></template>
+          <v-text-field
+            v-model="form.email"
+            label="Email address"
+            maxlength="254"
+            :rules="[required]"
+            type="email"
+          />
 
           <v-text-field v-model="form.username" label="Username" :rules="[required]" />
 
@@ -25,12 +25,6 @@
             type="password"
           />
 
-          <PeopleSearch
-            v-if="!isJavaApi"
-            v-model="form.personId"
-            clearable
-            label="Linked person (optional)"
-          />
         </v-card-text>
 
         <v-card-actions>
@@ -52,7 +46,6 @@
 <script lang="ts" setup>
   import { computed, reactive, ref } from 'vue'
   import PeopleSearch from '@/components/common/PeopleSearch.vue'
-  import { isJavaApi } from '@/directory/backend'
   import { useUiStore } from '@/stores/ui'
   import { useUserAccountsStore } from '@/stores/userAccounts'
 
@@ -90,9 +83,9 @@
     try {
       await userAccountsStore.create({
         username: form.username,
-        ...(isJavaApi ? { email: form.email, displayName: form.displayName } : {}),
+        email: form.email,
+        displayName: form.displayName,
         password: form.password,
-        personId: form.personId || undefined,
       })
       ui.notifySuccess('User account created successfully.')
       emit('saved')

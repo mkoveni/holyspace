@@ -12,10 +12,6 @@
       </template>
     </PageHeader>
 
-    <v-alert v-if="!isJavaApi" class="mb-4" type="info" variant="tonal">
-      Find an existing account, open Manage, and use Member access to link its person and enable My church.
-    </v-alert>
-
     <v-card class="mb-4"><v-card-text class="d-flex ga-2 align-center"><v-text-field
                                                                          v-model="search"
                                                                          hide-details
@@ -84,7 +80,6 @@
   import { onMounted, ref } from 'vue'
   import PageHeader from '@/components/common/PageHeader.vue'
   import StatusChip from '@/components/common/StatusChip.vue'
-  import { isJavaApi } from '@/directory/backend'
   import { useUiStore } from '@/stores/ui'
   import { useUserAccountsStore } from '@/stores/userAccounts'
   import ManageUserAccountDialog from './components/ManageUserAccountDialog.vue'
@@ -101,12 +96,8 @@
 
   const headers = [
     { title: 'Username', key: 'username', sortable: false },
-    ...(isJavaApi
-      ? [
-        { title: 'Full name', key: 'displayName', sortable: false },
-        { title: 'Email', key: 'email', sortable: false },
-      ]
-      : [{ title: 'Person ID', key: 'personId', sortable: false }]),
+    { title: 'Full name', key: 'displayName', sortable: false },
+    { title: 'Email', key: 'email', sortable: false },
     { title: 'Status', key: 'status' },
     { title: 'Created', key: 'createdAt' },
     { title: 'Actions', key: 'actions', sortable: false, align: 'end' },

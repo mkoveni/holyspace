@@ -21,7 +21,7 @@ deptrac:
         - { type: classLike, value: '^App\\[A-Za-z]+\\(?:[A-Za-z]+\\)?Presentation\\' }
     - name: Vendor
       collectors:
-        - { type: classLike, value: '^(Symfony|Doctrine|Nelmio)\\' }
+        - { type: classLike, value: '^(Symfony|Doctrine|Nelmio|Intervention)\\' }
     - name: Psr
       collectors:
         - { type: classLike, value: '^Psr\\' }

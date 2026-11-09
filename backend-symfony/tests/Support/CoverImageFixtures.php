@@ -6,7 +6,7 @@ namespace App\Tests\Support;
 
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 
-/** The portal's multipart cover-image upload, for API tests (bytes come from `CoverImageBytes`). */
+/** The portal's multipart cover-image upload, for API tests (bytes come from `ImageFixtures`). */
 trait CoverImageFixtures
 {
     /** Posts `$bytes` as the multipart `image` part with `X-Image-Version` (omitted when null). */

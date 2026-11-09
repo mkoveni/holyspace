@@ -3,7 +3,7 @@
 #   frontend/deploy/build.sh <frontend-source-dir> <output.tar.gz>
 # Used by release.sh (on your machine) and by CI, so both ship exactly the same kind of build.
 #
-# Production talks to the Symfony port of the Java API contract (VITE_BACKEND=java, see .env.java) at its own
+# Production talks to the Symfony port of the Java API contract at its own
 # host, holyspace-api.rivalani.dev (cross-origin: the API's CORS_ALLOW_ORIGIN must name the web origin).
 # Override with API_URL=https://... for another host.
 set -euo pipefail
@@ -17,7 +17,7 @@ OUT="${2:?usage: build.sh <frontend-dir> <output.tar.gz>}"
 cd "$SRC"
 npm ci --no-audit --no-fund
 # Values from the environment win over .env files in Vite; pin them so a stray shell variable cannot leak in.
-VITE_BACKEND=java VITE_API_BASE_URL="$API_URL" npm run build:java
+VITE_API_BASE_URL="$API_URL" npm run build
 
 [[ -f dist/index.html ]] || { echo "The build produced no dist/index.html." >&2; exit 1; }
 grep -rqF "$API_URL" dist/assets || { echo "The build does not reference $API_URL." >&2; exit 1; }

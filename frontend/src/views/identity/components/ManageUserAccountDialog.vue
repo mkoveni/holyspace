@@ -9,7 +9,7 @@
       <v-divider />
 
       <v-tabs v-model="tab" color="primary">
-        <v-tab v-if="!isJavaApi" value="member">Member access</v-tab><v-tab value="roles">Roles</v-tab>
+        <v-tab value="roles">Roles</v-tab>
         <v-tab value="permissions">Permissions</v-tab>
         <v-tab value="security">Security</v-tab>
       </v-tabs>
@@ -17,36 +17,6 @@
       <v-divider />
 
       <v-window v-model="tab">
-        <v-window-item
-          v-if="!isJavaApi"
-          value="member"
-        ><v-card-text>
-          <v-alert
-            class="mb-4"
-            type="info"
-          >My church requires a linked person, member access and authenticator setup. This grants only the
-            member portal; staff permissions are kept as they are.</v-alert>
-
-          <PeopleSearch v-model="memberPersonId" label="Person for this member account" />
-
-          <v-checkbox
-            v-model="identityConfirmed"
-            label="I verified this account belongs to the selected person"
-          />
-
-          <v-btn
-            color="primary"
-            :disabled="!memberPersonId || !identityConfirmed || account.status !== 'active'"
-            :loading="userAccountsStore.isSaving"
-            @click="enableMemberAccess"
-          >Enable My church</v-btn>
-
-          <p class="mt-3">
-            The member must sign in again and complete authenticator setup. Changing the linked person signs
-            out existing sessions.
-          </p>
-        </v-card-text></v-window-item>
-
         <v-window-item value="roles">
           <v-card-text>
             <v-autocomplete
@@ -145,11 +115,7 @@
 <script lang="ts" setup>
   import type { UserAccount } from '@/types/userAccount'
   import { computed, ref, watch } from 'vue'
-  import { useRouter } from 'vue-router'
-  import PeopleSearch from '@/components/common/PeopleSearch.vue'
   import StatusChip from '@/components/common/StatusChip.vue'
-  import { isJavaApi } from '@/directory/backend'
-  import { useAuthStore } from '@/stores/auth'
   import { useRolesStore } from '@/stores/roles'
   import { useUiStore } from '@/stores/ui'
   import { useUserAccountsStore } from '@/stores/userAccounts'
@@ -161,11 +127,7 @@
   const userAccountsStore = useUserAccountsStore()
   const ui = useUiStore()
 
-  const auth = useAuthStore()
-  const router = useRouter()
-  const memberPersonId = ref<string | null>(null)
-  const identityConfirmed = ref(false)
-  const tab = ref(isJavaApi ? 'roles' : 'member')
+  const tab = ref('roles')
   const roleId = ref('')
   const newPassword = ref('')
 
@@ -183,29 +145,12 @@
         void rolesStore
           .fetchAll()
           .catch(error => ui.notifyError(error instanceof Error ? error.message : 'Unable to load roles.'))
-        tab.value = isJavaApi ? 'roles' : 'member'
-        memberPersonId.value = props.account?.personId ?? null
-        identityConfirmed.value = false
+        tab.value = 'roles'
         roleId.value = ''
         newPassword.value = ''
       }
     },
   )
-
-  async function enableMemberAccess () {
-    if (!account.value || !memberPersonId.value || !identityConfirmed.value) return
-    try {
-      await userAccountsStore.enableMemberAccess(account.value.id, memberPersonId.value, account.value.personId)
-      ui.notifySuccess('My church enabled. The member must sign in again and complete authenticator setup.')
-      model.value = false
-      if (account.value.id === auth.user?.id) {
-        auth.logout()
-        await router.replace('/login')
-      } else emit('saved')
-    } catch (error) {
-      ui.notifyError(error instanceof Error ? error.message : 'Unable to enable member access.')
-    }
-  }
 
   async function loadPermissions () {
     if (!account.value) return

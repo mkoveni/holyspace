@@ -110,7 +110,7 @@ services:
       - "5173:5173"
     # Java API contract served by the Symfony port. Start backend-symfony first (make up there):
     # this joins its network and proxies /api to its app container.
-    command: [npx, vite, --mode, java, --host, 0.0.0.0, --port, '5173']
+    command: [npx, vite, --host, 0.0.0.0, --port, '5173']
     volumes:
       - ./frontend:/app
       - frontend_node_modules:/app/node_modules

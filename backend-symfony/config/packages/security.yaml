@@ -37,8 +37,10 @@ security:
         # Payments' explicit trusted entry points: authenticated provider callbacks and the one-use mobile checkout token.
         - { path: ^/api/payments/webhooks/[a-z]+$, methods: [POST], roles: PUBLIC_ACCESS }
         - { path: ^/api/mobile-checkouts/[^/]+$, methods: [GET, POST], roles: PUBLIC_ACCESS }
-        # Event and community cover images by random id (CoverImageController): pictures only, no personal data.
+        # Event and community cover images by random id (Media LegacyCoverRedirectController, redirects to /api/public/media/{id}): pictures only, no personal data.
         - { path: ^/api/public/cover-images/[^/]+$, methods: [GET], roles: PUBLIC_ACCESS }
+        # Event and community pictures from the Media context by random file id: public kinds only, the handler answers 404 for the rest.
+        - { path: ^/api/public/media/[^/]+(/[^/]+)?$, methods: [GET, HEAD], roles: PUBLIC_ACCESS }
         - { path: ^/api/, roles: IS_AUTHENTICATED_FULLY }
         - { path: ^/, roles: ROLE_NEVER_GRANTED }
 

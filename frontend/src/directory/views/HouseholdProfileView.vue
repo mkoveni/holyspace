@@ -29,6 +29,14 @@
 
         <v-btn
           v-if="canManage"
+          :disabled="!canChange"
+          prepend-icon="mdi-camera-outline"
+          variant="text"
+          @click="photoDialog = true"
+        >Change photo</v-btn>
+
+        <v-btn
+          v-if="canManage"
           color="primary"
           :disabled="!canChange"
           prepend-icon="mdi-plus"
@@ -36,6 +44,30 @@
         >Add member</v-btn></DirectoryHeading>
 
       <TaskAlert :conflict="task.conflict.value" :error="task.error.value" @reload="reload" />
+
+      <PortalImage
+        :key="photoRevision"
+        class="household-hero"
+        label="Family picture"
+        :owner-id="profile.household.id"
+        target="family"
+      />
+
+      <v-dialog v-model="photoDialog" max-width="600" scrollable>
+        <v-card title="Family picture">
+          <v-card-text>
+            <PortalImage
+              v-if="photoDialog"
+              editable
+              label="Family picture"
+              :owner-id="profile.household.id"
+              target="family"
+            />
+          </v-card-text>
+
+          <v-card-actions><v-spacer /><v-btn @click="photoDialog = false">Done</v-btn></v-card-actions>
+        </v-card>
+      </v-dialog>
 
       <v-alert
         v-if="referenceError"
@@ -129,9 +161,12 @@
             </div>
 
             <div v-for="member in currentMembers" :key="member.id" class="directory-entry">
-              <router-link class="directory-avatar" :to="`/people/${member.personId}`">{{
-                people[member.personId] ? initials(people[member.personId]) : '—'
-              }}</router-link>
+              <router-link class="directory-avatar" :to="`/people/${member.personId}`"><MediaThumb
+                :alt="`Photo of ${nameFor(member.personId)}`"
+                :owner-id="member.personId"
+                target="person"
+                :variant="64"
+              >{{ people[member.personId] ? initials(people[member.personId]) : '—' }}</MediaThumb></router-link>
 
               <div class="directory-entry__body">
                 <router-link :to="`/people/${member.personId}`">{{ nameFor(member.personId) }}</router-link>
@@ -223,6 +258,7 @@
   import type { HouseholdMembership, HouseholdProfile, PersonProfile } from '../types'
   import axios from 'axios'
   import { computed, onBeforeUnmount, ref, watch } from 'vue'
+  import PortalImage from '@/components/common/PortalImage.vue'
   import { extractErrorMessage } from '@/composables/useApi'
   import { useAuthStore } from '@/stores/auth'
   import { useUiStore } from '@/stores/ui'
@@ -231,6 +267,7 @@
   import DirectoryEmpty from '../components/DirectoryEmpty.vue'
   import DirectoryHeading from '../components/DirectoryHeading.vue'
   import HouseholdEditor from '../components/HouseholdEditor.vue'
+  import MediaThumb from '../components/MediaThumb.vue'
   import TaskAlert from '../components/TaskAlert.vue'
   import { dateLabel, fullName, initials } from '../presentation'
   import { personReferences } from '../references'
@@ -243,6 +280,11 @@
   const loading = ref(false)
   const editor = ref(false)
   const memberEditor = ref(false)
+  const photoDialog = ref(false)
+  const photoRevision = ref(0)
+  watch(photoDialog, open => {
+    if (!open) photoRevision.value++
+  })
   const contactId = ref<string | null>(null)
   const auth = useAuthStore()
   const ui = useUiStore()
@@ -330,3 +372,12 @@
     }
   }
 </script>
+
+<style scoped>
+.household-hero { margin-bottom: 24px; }
+.household-hero :deep(.portal-image__preview) { max-height: none; width: 100%; aspect-ratio: 3 / 1 !important; }
+.household-hero :deep(.portal-image__preview img) { object-fit: cover; }
+@media (max-width: 600px) {
+  .household-hero :deep(.portal-image__preview) { aspect-ratio: 3 / 2 !important; }
+}
+</style>

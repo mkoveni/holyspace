@@ -90,10 +90,15 @@
         >
           <div>
             <span class="directory-home-mark">
-              <v-icon
+              <MediaThumb
+                :alt="`Photo of ${household.name}`"
+                :owner-id="household.id"
+                target="family"
+                :variant="480"
+              ><v-icon
                 icon="mdi-home-outline"
                 size="28"
-              />
+              /></MediaThumb>
             </span>
 
             <v-icon
@@ -189,6 +194,7 @@
   import DirectoryEmpty from '../components/DirectoryEmpty.vue'
   import DirectoryHeading from '../components/DirectoryHeading.vue'
   import HouseholdEditor from '../components/HouseholdEditor.vue'
+  import MediaThumb from '../components/MediaThumb.vue'
   import { dateLabel } from '../presentation'
   const auth = useAuthStore()
   const router = useRouter()

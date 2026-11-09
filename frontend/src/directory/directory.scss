@@ -195,6 +195,7 @@
   }
 }
 .directory-avatar {
+  overflow: hidden;
   display: inline-grid;
   place-items: center;
   flex-shrink: 0;
@@ -577,6 +578,7 @@
   }
 }
 .directory-home-mark {
+  overflow: hidden;
   display: inline-grid;
   width: 60px;
   height: 60px;

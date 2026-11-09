@@ -74,10 +74,12 @@ if [[ -x "$PHP_BIN" ]]; then
         case "$ext" in
             pdo_pgsql) package="php$PHP_VERSION-pgsql" ;;
             mbstring) package="php$PHP_VERSION-mbstring" ;;
+            gd) package="php$PHP_VERSION-gd (needs JPEG, PNG and WebP support)" ;;
+            exif) package="php$PHP_VERSION-common" ;;
             *) package="php$PHP_VERSION-common" ;;
         esac
         [[ -n "$ext" ]] && missing+=("extension $ext ($package)")
-    done < <(check_extensions pdo_pgsql mbstring ctype iconv openssl)
+    done < <(check_extensions pdo_pgsql mbstring ctype iconv openssl gd exif)
     while IFS= read -r ext; do
         [[ -n "$ext" ]] && echo "Recommended but not loaded: $ext"
     done < <(check_extensions "Zend OPcache" intl curl)
@@ -93,7 +95,8 @@ echo "PHP $("$PHP_BIN" -r 'echo PHP_VERSION;'), extensions and Composer are pres
 log "Creating user $APP_USER and $BASE"
 id "$APP_USER" >/dev/null 2>&1 || useradd --system --home-dir "$BASE" --shell /usr/sbin/nologin "$APP_USER"
 install -d -o "$APP_USER" -g "$APP_USER" -m 0750 "$BASE" "$BASE/releases" "$BASE/shared" \
-    "$BASE/shared/var" "$BASE/shared/var/share" "$BASE/shared/var/lock" "$BASE/shared/composer"
+    "$BASE/shared/var" "$BASE/shared/var/share" "$BASE/shared/var/lock" "$BASE/shared/composer" \
+    "$BASE/shared/media"
 install -d -o "$APP_USER" -g "$APP_USER" -m 0750 /var/log/$APP
 # nginx resolves $realpath_root through these directories.
 chmod 0751 "$BASE" "$BASE/releases"

@@ -18,7 +18,7 @@ final readonly class MemberCommunity
         public ?string $parentName,
         public DateTimeImmutable $joinedAt,
         public string $role,
-        /** The community's cover image id, served publicly by id (Shared `CoverImageController`), or null. */
+        /** The community's cover picture's Media file id, served publicly by id (`/api/public/media/{id}`), or null. */
         public ?string $coverImageId,
     ) {
     }

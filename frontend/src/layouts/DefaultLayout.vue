@@ -241,7 +241,6 @@
   import { useDisplay } from 'vuetify'
   import AppSnackbar from '@/components/common/AppSnackbar.vue'
   import ConfirmDialog from '@/components/common/ConfirmDialog.vue'
-  import { isJavaApi } from '@/directory/backend'
   import QuickActions from '@/navigation/components/QuickActions.vue'
   import {
     navigationIcon,
@@ -256,7 +255,7 @@
         authStore = useAuthStore()
   const homeItems = computed(() => [
     {
-      title: isJavaApi ? 'Community' : 'Dashboard',
+      title: 'Community',
       to: '/',
       icon: 'mdi-view-dashboard-outline',
     },
@@ -274,13 +273,11 @@
     visibleNavigation(permission => authStore.hasPermission(permission)).map(
       group => ({
         ...group,
-        title: isJavaApi
-          ? {
-            'Engagement & reports': 'Communications',
-            'Accounts & access': 'Administration',
-            'My account': 'Preferences',
-          }[group.title] || group.title
-          : group.title,
+        title: {
+          'Engagement & reports': 'Communications',
+          'Accounts & access': 'Administration',
+          'My account': 'Preferences',
+        }[group.title] || group.title,
       }),
     ),
   )

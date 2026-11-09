@@ -87,6 +87,9 @@ log "Migrating the database"
 # Migrations are additive and backwards compatible (AGENTS.md), so the running release keeps working meanwhile.
 as_app "$PHP" bin/console app:migrate --no-interaction
 
+log "Moving database-stored covers into Media (idempotent; one bad image must not stop a deploy)"
+as_app "$PHP" bin/console app:media:import-covers --no-interaction || log "WARNING: some covers failed to import; see the output above and re-run app:media:import-covers"
+
 switch_to() {
     ln -sfn "$1" "$BASE/current.next"
     mv -Tf "$BASE/current.next" "$BASE/current"

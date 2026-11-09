@@ -3,7 +3,6 @@ import axios from 'axios'
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 import { extractErrorMessage, useApi } from '@/composables/useApi'
-import { isJavaApi } from '@/directory/backend'
 import { useDirectoryStore } from '@/directory/store'
 import { useEventsStore } from '@/stores/events'
 import { useFamiliesStore } from '@/stores/families'
@@ -14,7 +13,7 @@ import { useRolesStore } from '@/stores/roles'
 import { useUserAccountsStore } from '@/stores/userAccounts'
 import { useWorkflowsStore } from '@/stores/workflows'
 
-const TOKEN_STORAGE_KEY = isJavaApi ? 'divinecommunityspace.java.auth.token' : 'divinecommunityspace.auth.token'
+const TOKEN_STORAGE_KEY = 'divinecommunityspace.java.auth.token'
 
 export const useAuthStore = defineStore('auth', () => {
   const token = ref<string | null>(localStorage.getItem(TOKEN_STORAGE_KEY))
@@ -69,7 +68,7 @@ export const useAuthStore = defineStore('auth', () => {
 
   async function logout () {
     try {
-      if (isJavaApi && token.value) {
+      if (token.value) {
         await useApi().post('/api/logout')
       }
     } finally {

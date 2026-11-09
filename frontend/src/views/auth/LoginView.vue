@@ -72,16 +72,12 @@
       </v-btn>
     </v-form>
 
-    <p v-if="!isJavaApi" class="text-caption text-medium-emphasis text-center mt-8">
-      <router-link to="/recover">Recover your account</router-link>
-    </p>
   </div>
 </template>
 
 <script lang="ts" setup>
   import { reactive, ref } from 'vue'
   import { useRoute, useRouter } from 'vue-router'
-  import { isJavaApi } from '@/directory/backend'
   import { useAuthStore } from '@/stores/auth'
 
   const router = useRouter()

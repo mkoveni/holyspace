@@ -1,8 +1,0 @@
-package org.onechurch.shared.application;
-
-import java.util.function.Supplier;
-
-public interface UnitOfWork {
-
-    <T> T execute(Supplier<T> operation);
-}

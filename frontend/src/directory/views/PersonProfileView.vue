@@ -34,9 +34,12 @@
 
     <template v-if="person">
       <header class="directory-profile-hero">
-        <span class="directory-avatar directory-avatar--large">
-          {{ initials(person) }}
-        </span>
+        <PersonPhoto
+          ref="photo"
+          :initials="initials(person)"
+          :name="titledName"
+          :person-id="person.id"
+        />
 
         <div class="directory-profile-hero__identity">
           <span class="directory-eyebrow">PERSON PROFILE</span>
@@ -67,6 +70,16 @@
         <v-btn
           v-if="canManage"
           :disabled="loading || Boolean(loadError)"
+          prepend-icon="mdi-camera-outline"
+          variant="text"
+          @click="photoDialog = true"
+        >
+          Change photo
+        </v-btn>
+
+        <v-btn
+          v-if="canManage"
+          :disabled="loading || Boolean(loadError)"
           prepend-icon="mdi-pencil-outline"
           variant="outlined"
           @click="editor = true"
@@ -74,6 +87,32 @@
           Edit profile
         </v-btn>
       </header>
+
+      <v-dialog
+        v-model="photoDialog"
+        max-width="600"
+        scrollable
+      >
+        <v-card title="Person photo">
+          <v-card-text>
+            <PortalImage
+              v-if="photoDialog"
+              editable
+              label="Person photo"
+              :owner-id="person.id"
+              target="person"
+            />
+          </v-card-text>
+
+          <v-card-actions>
+            <v-spacer />
+
+            <v-btn @click="photoDialog = false">
+              Done
+            </v-btn>
+          </v-card-actions>
+        </v-card>
+      </v-dialog>
 
       <TaskAlert
         :conflict="task.conflict.value"
@@ -621,6 +660,7 @@
   import axios from 'axios'
   import { computed, onBeforeUnmount, ref, watch } from 'vue'
   import PersonParticipation from '@/communities/components/PersonParticipation.vue'
+  import PortalImage from '@/components/common/PortalImage.vue'
   import { extractErrorMessage } from '@/composables/useApi'
   import { useAuthStore } from '@/stores/auth'
   import { useUiStore } from '@/stores/ui'
@@ -628,6 +668,7 @@
   import AssociationEditor from '../components/AssociationEditor.vue'
   import ContactAddressEditor from '../components/ContactAddressEditor.vue'
   import PersonEditor from '../components/PersonEditor.vue'
+  import PersonPhoto from '../components/PersonPhoto.vue'
   import TaskAlert from '../components/TaskAlert.vue'
   import {
     ageLabels,
@@ -651,6 +692,11 @@
   const referenceError = ref('')
   const tab = ref('connections')
   const editor = ref(false)
+  const photoDialog = ref(false)
+  const photo = ref<InstanceType<typeof PersonPhoto> | null>(null)
+  watch(photoDialog, open => {
+    if (!open) void photo.value?.reload()
+  })
   const entryEditor = ref(false)
   const relationshipEditor = ref(false)
   const entryMode = ref<'contact' | 'address'>('contact')

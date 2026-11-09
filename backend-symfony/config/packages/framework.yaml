@@ -1,6 +1,12 @@
 # see https://symfony.com/doc/current/reference/configuration/framework.html
 framework:
     secret: '%env(APP_SECRET)%'
+    rate_limiter:
+        # Uploads are the one expensive public-facing write (decode, crop, re-encode): per account, 30 in 10 minutes.
+        media_upload:
+            policy: sliding_window
+            limit: 30
+            interval: '10 minutes'
 
 when@test:
     framework:

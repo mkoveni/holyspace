@@ -168,7 +168,12 @@
                     class="directory-avatar"
                     :class="`directory-avatar--${person.details.firstName.length % 3}`"
                   >
-                    {{ initials(person) }}
+                    <MediaThumb
+                      :alt="`Photo of ${fullName(person)}`"
+                      :owner-id="person.id"
+                      target="person"
+                      :variant="64"
+                    >{{ initials(person) }}</MediaThumb>
                   </span>
 
                   <span>
@@ -300,6 +305,7 @@
   import { directoryApi } from '../api'
   import DirectoryEmpty from '../components/DirectoryEmpty.vue'
   import DirectoryHeading from '../components/DirectoryHeading.vue'
+  import MediaThumb from '../components/MediaThumb.vue'
   import PersonEditor from '../components/PersonEditor.vue'
   import {
     ageLabels,

@@ -1,8 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import { ministryNavigation } from '../src/children/navigation'
-import { visibleNavigation } from '../src/navigation/workspace'
 import { visibleQuickActions } from '../src/navigation/quickActions'
-vi.mock('../src/directory/backend', () => ({ isJavaApi: true }))
+import { visibleNavigation } from '../src/navigation/workspace'
 
 describe('quick actions and ministry destinations', () => {
   it('requires every permission needed by a creation workflow', () => {
@@ -67,14 +66,14 @@ it('separates ministry destinations from volunteering and keeps every related pa
 })
 
 it('offers Giving creation only to Giving managers', () => {
- expect(visibleQuickActions(permission => permission === 'giving.manage').map(action => action.to)).toContain('/giving?action=create')
- expect(visibleQuickActions(permission => permission === 'giving.read').map(action => action.to)).not.toContain('/giving?action=create')
- expect(visibleNavigation(permission => permission === 'giving.read').flatMap(group => group.items).map(item => item.to)).toContain('/giving')
+  expect(visibleQuickActions(permission => permission === 'giving.manage').map(action => action.to)).toContain('/giving?action=create')
+  expect(visibleQuickActions(permission => permission === 'giving.read').map(action => action.to)).not.toContain('/giving?action=create')
+  expect(visibleNavigation(permission => permission === 'giving.read').flatMap(group => group.items).map(item => item.to)).toContain('/giving')
 })
 
 it('keeps Giving pledges, statements and reconciliation reachable to finance readers', () => {
- const routes=visibleNavigation(permission => permission === 'giving.read').flatMap(group => group.items).map(item => item.to)
- expect(routes).toContain('/giving/pledges')
- expect(routes).toContain('/giving/reports')
- expect(routes).toContain('/giving/reconciliations')
+  const routes = visibleNavigation(permission => permission === 'giving.read').flatMap(group => group.items).map(item => item.to)
+  expect(routes).toContain('/giving/pledges')
+  expect(routes).toContain('/giving/reports')
+  expect(routes).toContain('/giving/reconciliations')
 })

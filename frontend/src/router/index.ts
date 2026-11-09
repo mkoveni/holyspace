@@ -6,8 +6,8 @@ import type { RouteLocationNormalized, RouteLocationRaw } from 'vue-router'
  * and require a valid auth session; the login route uses the Auth layout.
  */
 import { createRouter, createWebHistory } from 'vue-router'
-import { isJavaApi, javaRoutes } from '@/directory/backend'
 import { useAuthStore } from '@/stores/auth'
+import { supportedRoutes } from './supportedRoutes'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -65,63 +65,49 @@ const router = createRouter({
           component: () => import('@/views/reporting/FollowupsView.vue'),
           meta: { title: 'Follow-up tasks', permission: 'followups.work' },
         },
-        ...(isJavaApi
-          ? [
-              {
-                path: 'my-giving',
-                name: 'my-giving',
-                component: () => import('@/payments/views/MyGivingView.vue'),
-                meta: { title: 'My giving' },
-              },
-              {
-                path: 'administration/member-access',
-                name: 'member-access',
-                component: () =>
-                  import('@/payments/views/MemberAccessView.vue'),
-                meta: {
-                  title: 'Member access',
-                  permissionsAll: ['identity.manage', 'people.manage'],
-                },
-              },
-              {
-                path: 'administration/donor-access',
-                name: 'donor-access',
-                component: () => import('@/payments/views/DonorAccessView.vue'),
-                meta: {
-                  title: 'Donor access',
-                  permissionsAll: ['identity.manage', 'giving.manage'],
-                },
-              },
-            ]
-          : []),
-        ...(isJavaApi
-          ? [
-              {
-                path: 'administration/payment-settings',
-                name: 'payment-settings',
-                component: () =>
-                  import('@/payments/views/PaymentSettingsView.vue'),
-                meta: {
-                  title: 'Payment settings',
-                  permission: 'payments.configure',
-                },
-              },
-            ]
-          : []),
-        ...(isJavaApi
-          ? [
-              {
-                path: 'payments/settings',
-                redirect: { name: 'payment-settings' },
-              },
-            ]
-          : []),
+        {
+          path: 'my-giving',
+          name: 'my-giving',
+          component: () => import('@/payments/views/MyGivingView.vue'),
+          meta: { title: 'My giving' },
+        },
+        {
+          path: 'administration/member-access',
+          name: 'member-access',
+          component: () =>
+            import('@/payments/views/MemberAccessView.vue'),
+          meta: {
+            title: 'Member access',
+            permissionsAll: ['identity.manage', 'people.manage'],
+          },
+        },
+        {
+          path: 'administration/donor-access',
+          name: 'donor-access',
+          component: () => import('@/payments/views/DonorAccessView.vue'),
+          meta: {
+            title: 'Donor access',
+            permissionsAll: ['identity.manage', 'giving.manage'],
+          },
+        },
+        {
+          path: 'administration/payment-settings',
+          name: 'payment-settings',
+          component: () =>
+            import('@/payments/views/PaymentSettingsView.vue'),
+          meta: {
+            title: 'Payment settings',
+            permission: 'payments.configure',
+          },
+        },
+        {
+          path: 'payments/settings',
+          redirect: { name: 'payment-settings' },
+        },
         {
           path: 'payments',
           name: 'payments',
-          component: isJavaApi
-            ? () => import('@/payments/views/PaymentsView.vue')
-            : () => import('@/views/payments/PaymentsView.vue'),
+          component: () => import('@/payments/views/PaymentsView.vue'),
           meta: { title: 'Online payments', permission: 'payments.manage' },
         },
         {
@@ -146,94 +132,78 @@ const router = createRouter({
         {
           path: 'people',
           name: 'people',
-          component: isJavaApi
-            ? () => import('@/directory/views/PeopleDirectory.vue')
-            : () => import('@/views/people/PeopleListView.vue'),
+          component: () => import('@/directory/views/PeopleDirectory.vue'),
           meta: { title: 'People', permission: 'people.read' },
         },
         {
           path: 'people/:id',
           name: 'person-detail',
-          component: isJavaApi
-            ? () => import('@/directory/views/PersonProfileView.vue')
-            : () => import('@/views/people/PersonDetailView.vue'),
+          component: () => import('@/directory/views/PersonProfileView.vue'),
           props: true,
           meta: { title: 'Person Detail', permission: 'people.read' },
         },
         {
           path: 'families',
           name: 'families',
-          component: isJavaApi
-            ? () => import('@/directory/views/HouseholdDirectory.vue')
-            : () => import('@/views/families/FamiliesListView.vue'),
+          component: () => import('@/directory/views/HouseholdDirectory.vue'),
           meta: {
-            title: isJavaApi ? 'Households' : 'Families',
-            permission: isJavaApi ? 'people.read' : 'families.read',
+            title: 'Households',
+            permission: 'people.read',
           },
         },
         {
           path: 'families/:id',
           name: 'family-detail',
-          component: isJavaApi
-            ? () => import('@/directory/views/HouseholdProfileView.vue')
-            : () => import('@/views/families/FamilyDetailView.vue'),
+          component: () => import('@/directory/views/HouseholdProfileView.vue'),
           props: true,
           meta: {
-            title: isJavaApi ? 'Household' : 'Family Detail',
-            permission: isJavaApi ? 'people.read' : 'families.read',
+            title: 'Household',
+            permission: 'people.read',
           },
         },
-        ...(isJavaApi
-          ? [
-              {
-                path: 'volunteering/deliveries',
-                name: 'serving-deliveries',
-                component: () =>
-                  import('@/volunteering/views/DeliveriesView.vue'),
-                meta: {
-                  title: 'Volunteer reminder deliveries',
-                  permission: 'volunteering.communications.send',
-                },
-              },
-              {
-                path: 'volunteering/teams',
-                name: 'serving-teams',
-                component: () => import('@/volunteering/views/TeamsView.vue'),
-                meta: {
-                  title: 'Serving teams',
-                  permission: 'volunteering.read',
-                },
-              },
-              {
-                path: 'volunteering/schedule',
-                name: 'serving-schedule',
-                component: () =>
-                  import('@/volunteering/views/ScheduleView.vue'),
-                meta: {
-                  title: 'Serving schedule',
-                  permission: 'volunteering.read',
-                },
-              },
-            ]
-          : []),
+        {
+          path: 'volunteering/deliveries',
+          name: 'serving-deliveries',
+          component: () =>
+            import('@/volunteering/views/DeliveriesView.vue'),
+          meta: {
+            title: 'Volunteer reminder deliveries',
+            permission: 'volunteering.communications.send',
+          },
+        },
+        {
+          path: 'volunteering/teams',
+          name: 'serving-teams',
+          component: () => import('@/volunteering/views/TeamsView.vue'),
+          meta: {
+            title: 'Serving teams',
+            permission: 'volunteering.read',
+          },
+        },
+        {
+          path: 'volunteering/schedule',
+          name: 'serving-schedule',
+          component: () =>
+            import('@/volunteering/views/ScheduleView.vue'),
+          meta: {
+            title: 'Serving schedule',
+            permission: 'volunteering.read',
+          },
+        },
         {
           path: 'volunteering',
           name: 'volunteering',
-          component: isJavaApi
-            ? () => import('@/volunteering/views/VolunteersView.vue')
-            : () => import('@/views/volunteering/VolunteeringView.vue'),
+          component: () => import('@/volunteering/views/VolunteersView.vue'),
           meta: {
             title: 'Volunteering',
-            permission: isJavaApi ? 'volunteering.read' : 'volunteering.manage',
+            permission: 'volunteering.read',
           },
         },
         {
           path: 'children-station',
           name: 'children-station',
-          component: isJavaApi
-            ? () => import('@/children/views/SessionsView.vue')
-            : () => import('@/views/children/CheckInStationView.vue'),
-          props: isJavaApi ? { station: true } : undefined,
+          component: () => import('@/children/views/SessionsView.vue'),
+          props: { station: true },
           meta: {
             title: 'Children’s check-in station',
             permission: 'children.station',
@@ -242,200 +212,184 @@ const router = createRouter({
         {
           path: 'children',
           name: 'children',
-          component: isJavaApi
-            ? () => import('@/children/views/ProgrammesView.vue')
-            : () => import('@/views/children/ChildrenMinistryView.vue'),
+          component: () => import('@/children/views/ProgrammesView.vue'),
           meta: {
             title: 'Children’s Ministry',
-            permission: isJavaApi ? 'children.read' : 'children.manage',
+            permission: 'children.read',
           },
         },
-        ...(isJavaApi
-          ? [
-              {
-                path: 'children/programmes/:id',
-                name: 'children-programme',
-                component: () => import('@/children/views/ProgrammeView.vue'),
-                props: true,
-                meta: {
-                  title: 'Children Ministry',
-                  permission: 'children.read',
-                },
-              },
-              {
-                path: 'children/participants/:id',
-                name: 'children-participant',
-                component: () => import('@/children/views/ParticipantView.vue'),
-                props: true,
-                meta: {
-                  title: 'Children Ministry',
-                  permission: 'children.read',
-                },
-              },
-              {
-                path: 'children/sessions',
-                name: 'children-sessions',
-                component: () => import('@/children/views/SessionsView.vue'),
-                props: true,
-                meta: {
-                  title: 'Children Ministry',
-                  permission: 'children.read',
-                },
-              },
-              {
-                path: 'children/sessions/:id',
-                name: 'children-session',
-                component: () => import('@/children/views/SessionView.vue'),
-                props: true,
-                meta: {
-                  title: 'Children Ministry',
-                  permissionsAny: ['children.read', 'children.station'],
-                },
-              },
-              {
-                path: 'children/reports',
-                name: 'children-reports',
-                component: () =>
-                  import('@/children/views/AttendanceReportsView.vue'),
-                meta: {
-                  title: 'Attendance & reports',
-                  permission: 'children.read',
-                },
-              },
-              {
-                path: 'children/session-series',
-                name: 'children-session-series',
-                component: () =>
-                  import('@/children/views/SessionSeriesView.vue'),
-                meta: {
-                  title: 'Recurring schedules',
-                  permission: 'children.read',
-                },
-              },
-              {
-                path: 'children/team-planning',
-                name: 'children-team-planning',
-                component: () =>
-                  import('@/children/views/TeamPlanningView.vue'),
-                meta: { title: 'Team planning', permission: 'children.manage' },
-              },
-              {
-                path: 'children/safeguarding-follow-up',
-                name: 'children-safeguarding-follow-up',
-                component: () =>
-                  import('@/children/views/SafeguardingFollowUpView.vue'),
-                meta: {
-                  title: 'Safeguarding follow-up',
-                  permission: 'children.safeguarding',
-                },
-              },
-              {
-                path: 'children/incidents',
-                name: 'children-incidents',
-                component: () => import('@/children/views/IncidentsView.vue'),
-                meta: {
-                  title: 'Incident follow-up',
-                  permissionsAny: [
-                    'children.incidents.record',
-                    'children.incidents.manage',
-                  ],
-                },
-              },
-              {
-                path: 'children/communications',
-                name: 'children-communications',
-                component: () =>
-                  import('@/children/views/GuardianCommunicationsView.vue'),
-                meta: {
-                  title: 'Guardian communications',
-                  permission: 'children.safeguarding',
-                },
-              },
-              {
-                path: 'children/overview',
-                name: 'children-overview',
-                component: () =>
-                  import('@/children/views/MinistryOverviewView.vue'),
-                meta: {
-                  title: 'Ministry overview',
-                  permissionsAny: [
-                    'children.read',
-                    'children.safeguarding',
-                    'children.incidents.manage',
-                  ],
-                },
-              },
-              {
-                path: 'children/email-deliveries',
-                name: 'children-email-deliveries',
-                component: () =>
-                  import('@/children/views/EmailDeliveriesView.vue'),
-                meta: {
-                  title: 'Email delivery',
-                  permission: 'children.safeguarding',
-                },
-              },
-              {
-                path: 'children/settings',
-                name: 'children-settings',
-                component: () => import('@/children/views/SettingsView.vue'),
-                props: true,
-                meta: {
-                  title: 'Children Ministry',
-                  permissionsAny: ['children.manage', 'children.safeguarding'],
-                },
-              },
-            ]
-          : []),
-        ...(isJavaApi
-          ? [
-              {
-                path: 'giving/pledges',
-                name: 'giving-pledges',
-                component: () => import('@/giving/views/PledgesView.vue'),
-                meta: { title: 'Pledges', permission: 'giving.read' },
-              },
-              {
-                path: 'giving/reconciliations',
-                name: 'giving-reconciliations',
-                component: () =>
-                  import('@/giving/views/ReconciliationView.vue'),
-                meta: { title: 'Reconciliation', permission: 'giving.read' },
-              },
-            ]
-          : []),
+        {
+          path: 'children/programmes/:id',
+          name: 'children-programme',
+          component: () => import('@/children/views/ProgrammeView.vue'),
+          props: true,
+          meta: {
+            title: 'Children Ministry',
+            permission: 'children.read',
+          },
+        },
+        {
+          path: 'children/participants/:id',
+          name: 'children-participant',
+          component: () => import('@/children/views/ParticipantView.vue'),
+          props: true,
+          meta: {
+            title: 'Children Ministry',
+            permission: 'children.read',
+          },
+        },
+        {
+          path: 'children/sessions',
+          name: 'children-sessions',
+          component: () => import('@/children/views/SessionsView.vue'),
+          props: true,
+          meta: {
+            title: 'Children Ministry',
+            permission: 'children.read',
+          },
+        },
+        {
+          path: 'children/sessions/:id',
+          name: 'children-session',
+          component: () => import('@/children/views/SessionView.vue'),
+          props: true,
+          meta: {
+            title: 'Children Ministry',
+            permissionsAny: ['children.read', 'children.station'],
+          },
+        },
+        {
+          path: 'children/reports',
+          name: 'children-reports',
+          component: () =>
+            import('@/children/views/AttendanceReportsView.vue'),
+          meta: {
+            title: 'Attendance & reports',
+            permission: 'children.read',
+          },
+        },
+        {
+          path: 'children/session-series',
+          name: 'children-session-series',
+          component: () =>
+            import('@/children/views/SessionSeriesView.vue'),
+          meta: {
+            title: 'Recurring schedules',
+            permission: 'children.read',
+          },
+        },
+        {
+          path: 'children/team-planning',
+          name: 'children-team-planning',
+          component: () =>
+            import('@/children/views/TeamPlanningView.vue'),
+          meta: { title: 'Team planning', permission: 'children.manage' },
+        },
+        {
+          path: 'children/safeguarding-follow-up',
+          name: 'children-safeguarding-follow-up',
+          component: () =>
+            import('@/children/views/SafeguardingFollowUpView.vue'),
+          meta: {
+            title: 'Safeguarding follow-up',
+            permission: 'children.safeguarding',
+          },
+        },
+        {
+          path: 'children/incidents',
+          name: 'children-incidents',
+          component: () => import('@/children/views/IncidentsView.vue'),
+          meta: {
+            title: 'Incident follow-up',
+            permissionsAny: [
+              'children.incidents.record',
+              'children.incidents.manage',
+            ],
+          },
+        },
+        {
+          path: 'children/communications',
+          name: 'children-communications',
+          component: () =>
+            import('@/children/views/GuardianCommunicationsView.vue'),
+          meta: {
+            title: 'Guardian communications',
+            permission: 'children.safeguarding',
+          },
+        },
+        {
+          path: 'children/overview',
+          name: 'children-overview',
+          component: () =>
+            import('@/children/views/MinistryOverviewView.vue'),
+          meta: {
+            title: 'Ministry overview',
+            permissionsAny: [
+              'children.read',
+              'children.safeguarding',
+              'children.incidents.manage',
+            ],
+          },
+        },
+        {
+          path: 'children/email-deliveries',
+          name: 'children-email-deliveries',
+          component: () =>
+            import('@/children/views/EmailDeliveriesView.vue'),
+          meta: {
+            title: 'Email delivery',
+            permission: 'children.safeguarding',
+          },
+        },
+        {
+          path: 'children/settings',
+          name: 'children-settings',
+          component: () => import('@/children/views/SettingsView.vue'),
+          props: true,
+          meta: {
+            title: 'Children Ministry',
+            permissionsAny: ['children.manage', 'children.safeguarding'],
+          },
+        },
+        {
+          path: 'giving/pledges',
+          name: 'giving-pledges',
+          component: () => import('@/giving/views/PledgesView.vue'),
+          meta: { title: 'Pledges', permission: 'giving.read' },
+        },
+        {
+          path: 'giving/reconciliations',
+          name: 'giving-reconciliations',
+          component: () =>
+            import('@/giving/views/ReconciliationView.vue'),
+          meta: { title: 'Reconciliation', permission: 'giving.read' },
+        },
         {
           path: 'giving',
           name: 'giving',
-          component: isJavaApi
-            ? () => import('@/giving/views/GivingView.vue')
-            : () => import('@/views/giving/GivingView.vue'),
+          component: () => import('@/giving/views/GivingView.vue'),
           meta: {
             title: 'Giving',
-            permission: isJavaApi ? 'giving.read' : 'giving.manage',
+            permission: 'giving.read',
           },
         },
         {
           path: 'giving/reports',
           name: 'giving-reports',
-          component: isJavaApi
-            ? () => import('@/giving/views/GivingReportsView.vue')
-            : () => import('@/views/giving/GivingReportsView.vue'),
+          component: () => import('@/giving/views/GivingReportsView.vue'),
           meta: {
             title: 'Giving reports',
-            permission: isJavaApi ? 'giving.read' : 'giving.manage',
+            permission: 'giving.read',
           },
         },
         {
           path: 'giving/receipts/:id',
           name: 'giving-receipt',
-          component: isJavaApi
-            ? () => import('@/giving/views/AcknowledgementView.vue')
-            : () => import('@/views/giving/ReceiptView.vue'),
+          component: () => import('@/giving/views/AcknowledgementView.vue'),
           props: true,
           meta: {
             title: 'Acknowledgement',
-            permission: isJavaApi ? 'giving.read' : 'giving.manage',
+            permission: 'giving.read',
           },
         },
         {
@@ -456,9 +410,7 @@ const router = createRouter({
         {
           path: 'serve',
           name: 'volunteer-workspace',
-          component: isJavaApi
-            ? () => import('@/volunteering/views/OwnScheduleView.vue')
-            : () => import('@/views/volunteering/VolunteerWorkspaceView.vue'),
+          component: () => import('@/volunteering/views/OwnScheduleView.vue'),
           meta: {
             title: 'Volunteer workspace',
             permission: 'volunteering.serve',
@@ -488,27 +440,19 @@ const router = createRouter({
         {
           path: 'groups',
           name: 'group-workspace',
-          component: isJavaApi
-            ? () => import('@/communities/views/CommunityDirectoryView.vue')
-            : () => import('@/views/ministries/GroupWorkspaceView.vue'),
+          component: () => import('@/communities/views/CommunityDirectoryView.vue'),
           meta: {
             title: 'Groups',
-            permissionsAny: isJavaApi
-              ? ['ministries.read', 'ministries.manage', 'ministries.lead']
-              : ['ministries.lead'],
+            permissionsAny: ['ministries.read', 'ministries.manage', 'ministries.lead'],
           },
         },
         {
           path: 'ministries',
           name: 'ministries',
-          component: isJavaApi
-            ? () => import('@/communities/views/CommunityDirectoryView.vue')
-            : () => import('@/views/ministries/MinistriesView.vue'),
+          component: () => import('@/communities/views/CommunityDirectoryView.vue'),
           meta: {
             title: 'Ministries',
-            permissionsAny: isJavaApi
-              ? ['ministries.read', 'ministries.manage', 'ministries.lead']
-              : ['ministries.manage'],
+            permissionsAny: ['ministries.read', 'ministries.manage', 'ministries.lead'],
           },
         },
         {
@@ -531,20 +475,16 @@ const router = createRouter({
           component: () => import('@/views/forms/FormsView.vue'),
           meta: { title: 'Forms', permission: 'forms.read' },
         },
-        ...(isJavaApi
-          ? [
-              {
-                path: 'communications/templates',
-                name: 'communication-templates',
-                component: () =>
-                  import('@/communications/views/TemplatesView.vue'),
-                meta: {
-                  title: 'Email templates',
-                  permission: 'communications.templates.read',
-                },
-              },
-            ]
-          : []),
+        {
+          path: 'communications/templates',
+          name: 'communication-templates',
+          component: () =>
+            import('@/communications/views/TemplatesView.vue'),
+          meta: {
+            title: 'Email templates',
+            permission: 'communications.templates.read',
+          },
+        },
         {
           path: 'communications',
           name: 'communications',
@@ -555,55 +495,47 @@ const router = createRouter({
             permission: 'communications.manage',
           },
         },
-        ...(isJavaApi
-          ? [
-              {
-                path: 'events/reports',
-                name: 'event-attendance-reports',
-                component: () =>
-                  import('@/events/views/AttendanceReportView.vue'),
-                meta: {
-                  title: 'Event attendance reports',
-                  permission: 'events.attendance.read',
-                },
-              },
-              {
-                path: 'events/email-deliveries',
-                name: 'event-email-deliveries',
-                component: () => import('@/events/views/DeliveriesView.vue'),
-                meta: {
-                  title: 'Event email deliveries',
-                  permission: 'events.communications.send',
-                },
-              },
-              {
-                path: 'events/venues',
-                name: 'event-venues',
-                component: () => import('@/events/views/VenuesView.vue'),
-                meta: { title: 'Event venues', permission: 'events.read' },
-              },
-              {
-                path: 'events/occurrences/:id',
-                name: 'event-occurrence',
-                component: () => import('@/events/views/OccurrenceView.vue'),
-                meta: { title: 'Event occurrence', permission: 'events.read' },
-              },
-            ]
-          : []),
+        {
+          path: 'events/reports',
+          name: 'event-attendance-reports',
+          component: () =>
+            import('@/events/views/AttendanceReportView.vue'),
+          meta: {
+            title: 'Event attendance reports',
+            permission: 'events.attendance.read',
+          },
+        },
+        {
+          path: 'events/email-deliveries',
+          name: 'event-email-deliveries',
+          component: () => import('@/events/views/DeliveriesView.vue'),
+          meta: {
+            title: 'Event email deliveries',
+            permission: 'events.communications.send',
+          },
+        },
+        {
+          path: 'events/venues',
+          name: 'event-venues',
+          component: () => import('@/events/views/VenuesView.vue'),
+          meta: { title: 'Event venues', permission: 'events.read' },
+        },
+        {
+          path: 'events/occurrences/:id',
+          name: 'event-occurrence',
+          component: () => import('@/events/views/OccurrenceView.vue'),
+          meta: { title: 'Event occurrence', permission: 'events.read' },
+        },
         {
           path: 'events',
           name: 'events',
-          component: isJavaApi
-            ? () => import('@/events/views/EventsView.vue')
-            : () => import('@/views/events/EventsView.vue'),
+          component: () => import('@/events/views/EventsView.vue'),
           meta: { title: 'Events', permission: 'events.read' },
         },
         {
           path: 'events/:id',
           name: 'event-detail',
-          component: isJavaApi
-            ? () => import('@/events/views/EventDetailView.vue')
-            : () => import('@/views/events/EventsView.vue'),
+          component: () => import('@/events/views/EventDetailView.vue'),
           props: true,
           meta: { title: 'Event Details', permission: 'events.read' },
         },
@@ -666,7 +598,7 @@ function resolveAccountDestination (
   to: RouteLocationNormalized,
   authStore: ReturnType<typeof useAuthStore>,
 ): RouteLocationRaw | undefined {
-  if (isJavaApi && to.name === 'dashboard' && authStore.user) {
+  if (to.name === 'dashboard' && authStore.user) {
     const destinations = [
       ['people.read', 'people'],
       ['identity.manage', 'user-accounts'],
@@ -683,7 +615,7 @@ function resolveAccountDestination (
         )?.[1] || 'my-giving',
     }
   }
-  if (isJavaApi && !javaRoutes.has(String(to.name))) {
+  if (!supportedRoutes.has(String(to.name))) {
     return { name: 'not-found', params: { pathMatch: ['unavailable'] } }
   }
 

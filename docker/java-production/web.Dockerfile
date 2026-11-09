@@ -4,8 +4,7 @@ COPY frontend/package.json frontend/package-lock.json ./
 RUN --mount=type=cache,id=holyspace-frontend-npm,target=/root/.npm,sharing=locked npm ci
 COPY frontend/ ./
 ENV VITE_API_BASE_URL=/
-ENV VITE_BACKEND=java
-RUN npm run build:java
+RUN npm run build
 
 FROM nginxinc/nginx-unprivileged:1.30-alpine
 USER root

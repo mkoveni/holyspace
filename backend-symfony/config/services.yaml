@@ -1,4 +1,7 @@
 parameters:
+    # Absolute, or relative to the project directory (dev and test use var/media).
+    env(MEDIA_STORAGE_PATH): 'var/media'
+    media.storage_path: '%env(MEDIA_STORAGE_PATH)%'
     env(PEOPLE_TIME_ZONE): 'Africa/Johannesburg'
 
 services:
@@ -25,6 +28,12 @@ services:
             tags: ['communications.delivery_eligibility']
         App\Communications\Application\Contract\TemplatePublicationPolicy:
             tags: ['communications.template_policy']
+        # Anything that must work for the API to count as healthy (storage, ...); /actuator/health runs them all.
+        App\Shared\Application\HealthCheck:
+            tags: ['app.health_check']
+        # Owning contexts say who may change and see their pictures, and whether the owner exists; Media collects them.
+        App\Media\Application\Contract\ImageOwnership:
+            tags: ['media.image_owners']
         # Contexts that attach evidence to an event occurrence can veto moving it and follow its schedule.
         App\Events\Application\Contract\OccurrenceMovementPolicy:
             tags: ['events.movement_policy']
@@ -73,6 +82,19 @@ services:
     App\IdentityAccess\Application\Command\VerifyMemberLink\VerifyMemberLinkHandler:
         arguments:
             $policies: !tagged_iterator identity.person_binding_policy
+
+    App\Shared\Presentation\HealthController:
+        arguments:
+            $checks: !tagged_iterator app.health_check
+
+    App\Media\Infrastructure\LocalFileStore:
+        arguments:
+            $root: '%media.storage_path%'
+            $projectDir: '%kernel.project_dir%'
+
+    App\Media\Application\ImageOwners:
+        arguments:
+            $owners: !tagged_iterator media.image_owners
 
     App\Communications\Application\DispatchEligibility:
         arguments:
