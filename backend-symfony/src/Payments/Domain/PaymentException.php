@@ -7,7 +7,7 @@ namespace App\Payments\Domain;
 use App\Shared\Domain\ContextException;
 use App\Shared\Domain\ErrorKind;
 
-/** Every Payments failure (Java `PaymentException`): INVALID 400, MISSING 404, CONFLICT 409, UNAVAILABLE 503. */
+/** Every Payments failure (Java `PaymentException`): INVALID 400, MISSING 404, CONFLICT 409, UNAVAILABLE 503, THROTTLED 429 (public giving only). */
 final class PaymentException extends ContextException
 {
     public static function invalid(string $message): self
@@ -23,6 +23,11 @@ final class PaymentException extends ContextException
     public static function unavailable(string $message): self
     {
         return new self(ErrorKind::Unavailable, $message);
+    }
+
+    public static function throttled(string $message): self
+    {
+        return new self(ErrorKind::Throttled, $message);
     }
 
     /** Payments never says which record is missing, so a lookup cannot probe for orders or donors. */

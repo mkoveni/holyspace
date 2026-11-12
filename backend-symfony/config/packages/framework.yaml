@@ -7,7 +7,51 @@ framework:
             policy: sliding_window
             limit: 30
             interval: '10 minutes'
+        # Visitor self check-in is public: 20 requests per client address and 600 per QR link, each in 10 minutes.
+        visitor_check_in:
+            policy: sliding_window
+            limit: 20
+            interval: '10 minutes'
+        visitor_check_in_link:
+            policy: sliding_window
+            limit: 600
+            interval: '10 minutes'
+        # Public giving starts real provider checkouts without an account: 10 per client address per hour, 5 per email
+        # per hour, and 120 status/option reads per client address in 10 minutes.
+        public_giving:
+            policy: sliding_window
+            limit: 10
+            interval: '1 hour'
+        public_giving_email:
+            policy: sliding_window
+            limit: 5
+            interval: '1 hour'
+        public_giving_read:
+            policy: sliding_window
+            limit: 120
+            interval: '10 minutes'
 
 when@test:
     framework:
         test: true
+        rate_limiter:
+            visitor_check_in:
+                policy: sliding_window
+                limit: 100000
+                interval: '1 minute'
+            visitor_check_in_link:
+                policy: sliding_window
+                limit: 100000
+                interval: '1 minute'
+            public_giving:
+                policy: sliding_window
+                limit: 100000
+                interval: '1 minute'
+            public_giving_email:
+                policy: sliding_window
+                limit: 100000
+                interval: '1 minute'
+            public_giving_read:
+                policy: sliding_window
+                limit: 100000
+                interval: '1 minute'

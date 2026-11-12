@@ -88,6 +88,13 @@ export const donorApi = {
     ).data,
   link: async (account: string, body: object) =>
     useApi().put(`/api/giving/donor-access/${account}`, body),
+  /** The online-giving catalogue alone: needs giving.manage only (the donor-access list also needs identity.manage). */
+  onlineFunds: async () =>
+    (
+      await useApi().get<{ funds: OnlineFund[], truncated: boolean }>(
+        '/api/giving/online-funds',
+      )
+    ).data,
   fund: async (fund: OnlineFund) =>
     useApi().put(`/api/giving/online-funds/${fund.id}`, {
       enabled: !fund.enabled,

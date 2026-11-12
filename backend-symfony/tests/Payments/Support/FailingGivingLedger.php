@@ -24,7 +24,12 @@ final class FailingGivingLedger implements OnlineGivingLedger
         return $this->real->validate($donorId, $fundId);
     }
 
-    public function post(string $chargeId, string $donorId, string $fundId, int $amountMinor, string $reference, CalendarDate $receivedOn, string $initiatedBy): string
+    public function validateFund(string $fundId): void
+    {
+        $this->real->validateFund($fundId);
+    }
+
+    public function post(string $chargeId, ?string $donorId, string $fundId, int $amountMinor, string $reference, CalendarDate $receivedOn, string $initiatedBy): string
     {
         if ($this->failPosts > 0) {
             --$this->failPosts;

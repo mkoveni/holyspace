@@ -106,11 +106,11 @@ final readonly class Gift
 
     /**
      * A gift Payments verified with the provider: ZAR, method ONLINE, the whole amount to one fund. The charge id becomes
-     * the gift id, so a retried post finds the row it wrote.
+     * the gift id, so a retried post finds the row it wrote. A null donor is a public (guest) gift: anonymous in the ledger.
      */
     public static function online(
         string $chargeId,
-        string $donorId,
+        ?string $donorId,
         string $fundId,
         int $amountMinor,
         string $reference,

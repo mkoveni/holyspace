@@ -216,6 +216,22 @@ export const eventApi = {
       `/occurrences/${id}/walk-ins`,
       body,
     ),
+  visitLink: (id: string) =>
+    get<VisitLink>(`/occurrences/${id}/visit-link`),
+  configureVisitLink: (id: string, action: VisitLinkAction) =>
+    post<VisitLink>(`/occurrences/${id}/visit-link`, { action }),
+  visitors: (id: string, status?: string, offset = 0) =>
+    get<VisitorPage>(`/occurrences/${id}/visitors`, {
+      status,
+      offset,
+      limit: 25,
+    }),
+  handOverVisitorChild: (id: string, decision: 'HANDED_OVER' | 'DISMISSED') =>
+    post(`/visitor-children/${id}/handover`, { decision }),
+  reviewVisitor: (id: string, body: object) =>
+    post(`/registrations/${id}/visitor-review`, body),
+  convertVisitor: (id: string, inviteToApp: boolean) =>
+    post(`/registrations/${id}/visitor-convert`, { inviteToApp }),
   correctAttendance: (id: string, body: object) =>
     post(`/registrations/${id}/attendance-correction`, body),
   attendanceHistory: (id: string, offset = 0) =>
@@ -321,6 +337,38 @@ export interface AttendancePage {
   total: number
   counts: AttendanceCounts
   admissionOpen: boolean
+}
+export type VisitLinkAction = 'ENABLE' | 'DISABLE' | 'ROTATE' | 'MESSAGES_ON' | 'MESSAGES_OFF'
+export interface VisitLink {
+  occurrenceId: string
+  enabled: boolean
+  token: string | null
+  messages: boolean
+}
+export interface VisitorChild {
+  id: string
+  firstName: string
+  birthDate: string
+  handoverStatus: 'PENDING' | 'HANDED_OVER' | 'DISMISSED'
+}
+export interface Visitor {
+  registrationId: string
+  fullName: string
+  mobile: string | null
+  email: string | null
+  howHeard: string | null
+  partyAdults: number | null
+  firstTime: boolean
+  reviewStatus: 'PENDING' | 'CONFIRMED' | 'REMOVED'
+  checkedInAt: string
+  attendanceStatus: string
+  attendanceVersion: number | null
+  children: VisitorChild[]
+}
+export interface VisitorPage {
+  total: number
+  pending: number
+  visitors: Visitor[]
 }
 export interface AttendanceHistory {
   id: string

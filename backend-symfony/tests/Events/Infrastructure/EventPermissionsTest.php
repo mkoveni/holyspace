@@ -19,6 +19,7 @@ final class EventPermissionsTest extends DatabaseTestCase
             'events.attendance.read',
             'events.attendance.manage',
             'events.communications.send',
+            'events.visitors.read',
         ];
 
         $granted = $this->connection->fetchFirstColumn(
@@ -36,7 +37,8 @@ final class EventPermissionsTest extends DatabaseTestCase
             'event_venues', 'event_definitions', 'event_series', 'event_occurrences', 'event_registration_policies',
             'event_registrations', 'event_registration_history', 'event_occurrence_history', 'event_requests', 'event_audit',
             'event_attendance', 'event_attendance_history', 'event_notifications', 'event_closeouts', 'event_closeout_history',
-            'event_member_offers', 'event_admission_passes', 'event_cover_images',
+            'event_member_offers', 'event_admission_passes', 'event_cover_images', 'event_visit_links', 'event_visitor_check_ins',
+            'event_visitor_children', 'event_visit_messaging', 'event_visitor_messages',
         ];
 
         $found = $this->connection->fetchFirstColumn("SELECT tablename FROM pg_tables WHERE schemaname = 'public' AND tablename LIKE 'event\\_%'");

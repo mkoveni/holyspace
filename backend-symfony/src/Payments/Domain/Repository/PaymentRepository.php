@@ -20,6 +20,9 @@ interface PaymentRepository
 
     public function lock(string $id): ?PaymentOrder;
 
+    /** The public (guest) order whose access token has this hash. */
+    public function findByGuestAccess(string $accessHash): ?PaymentOrder;
+
     /** @return bool false when the id or the active monthly arrangement already exists */
     public function insert(PaymentOrder $order): bool;
 

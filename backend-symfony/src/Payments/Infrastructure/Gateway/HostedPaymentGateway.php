@@ -77,7 +77,7 @@ final readonly class HostedPaymentGateway implements PaymentGateway
         if ($this->boundMode($settings, $order->provider) !== $order->mode) {
             throw PaymentException::conflict('Provider environment changed; review this checkout before creating another.');
         }
-        $returned = $settings->base().($order->selfService ? '/my-giving?order=' : '/payments?order=').$order->id;
+        $returned = $settings->base().($order->isGuest() ? '/give/thanks?order=' : ($order->selfService ? '/my-giving?order=' : '/payments?order=')).$order->id;
 
         return 'payfast' === $order->provider
             ? $this->payfastCheckout($settings, $order, $returned, $donorName, $email)

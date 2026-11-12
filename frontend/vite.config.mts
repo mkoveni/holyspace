@@ -32,6 +32,6 @@ export default defineConfig(({ mode }) => {
       alias: { '@': fileURLToPath(new URL('src', import.meta.url)) },
       extensions: ['.js', '.json', '.jsx', '.mjs', '.ts', '.tsx', '.vue'],
     },
-    server: { proxy: { '/api': proxy, '/health': proxy } },
+    server: { proxy: { '/api': proxy, '/health': proxy }, allowedHosts: ['quick-pots-see.loca.lt'] },
   }
 })

@@ -13,7 +13,7 @@ import { appName } from "./brand";
 import { SessionStore } from "./session-store";
 import { vault } from "./vault";
 const origin = apiOrigin(
-  process.env.EXPO_PUBLIC_API_URL || "http://localhost:8082",
+  process.env.EXPO_PUBLIC_API_URL || "http://10.0.2.2:8083",
   __DEV__,
 );
 type Session = ReturnType<SessionStore["getSnapshot"]> &

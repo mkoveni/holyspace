@@ -25,17 +25,23 @@
 <script setup lang="ts">
   import { computed } from 'vue'
   import { useRoute, useRouter } from 'vue-router'
+  import { useAuthStore } from '@/stores/auth'
   const route = useRoute(),
-        router = useRouter()
-  const items = [
+        router = useRouter(),
+        auth = useAuthStore()
+  const allItems = [
     { title: 'Gift ledger & funds', value: '/giving' },
     { title: 'Pledges', value: '/giving/pledges' },
     { title: 'Statements & exports', value: '/giving/reports' },
     { title: 'Reconciliation', value: '/giving/reconciliations' },
+    { title: 'Online giving', value: '/giving/online', permission: 'giving.manage' },
   ]
+  const items = computed(() =>
+    allItems.filter(item => !item.permission || auth.hasPermission(item.permission)),
+  )
   const current = computed(
     () =>
-      items.find(
+      items.value.find(
         item => item.value !== '/giving' && route.path.startsWith(item.value),
       )?.value || '/giving',
   )

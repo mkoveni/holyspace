@@ -20,12 +20,15 @@ final readonly class PaymentOrder
     public const array SUBSCRIPTION_STATUSES = ['NONE', 'PENDING', 'ACTIVE', 'PAUSED', 'LOCKED', 'CANCEL_REQUESTED', 'CANCELLED'];
     /** Checkout may still be opened or resumed. */
     public const array OPEN = ['PENDING', 'READY'];
+
+    /** The system actor recorded as the creator of public (guest) orders, gifts and confirmations: there is no account. */
+    public const string GUEST_ACTOR = '00000000-0000-0000-0000-0000000000a1';
     /** A monthly arrangement the donor or staff asked to end. */
     public const array CANCELLING = ['CANCEL_REQUESTED', 'CANCELLED'];
 
     private function __construct(
         public string $id,
-        public string $donorId,
+        public ?string $donorId,
         public string $fundId,
         public int $amountMinor,
         public string $provider,
@@ -45,6 +48,10 @@ final readonly class PaymentOrder
         public DateTimeImmutable $createdAt,
         public ?string $configurationId,
         public bool $selfService,
+        public ?string $guestName = null,
+        public ?string $guestEmailEncrypted = null,
+        public ?string $guestEmailHash = null,
+        public ?string $guestAccessHash = null,
     ) {
         self::amount($amountMinor);
         if (!\in_array($provider, self::PROVIDERS, true) || !\in_array($mode, self::MODES, true)) {
@@ -56,6 +63,61 @@ final readonly class PaymentOrder
         if ($recurring && 'payfast' !== $provider) {
             throw PaymentException::invalid('Monthly giving uses Payfast.');
         }
+        if (null === $donorId && ($recurring || $selfService || null === $guestEmailEncrypted || null === $guestEmailHash || null === $guestAccessHash)) {
+            throw PaymentException::invalid('A public payment is one-off and needs a confirmation email.');
+        }
+    }
+
+    /**
+     * A public (guest) one-off checkout: no person, a compulsory confirmation email kept encrypted, and a random access
+     * token (only its hash is stored) that lets the giver see the outcome.
+     */
+    public static function startGuest(
+        string $id,
+        string $fundId,
+        int $amountMinor,
+        string $provider,
+        string $mode,
+        string $requestHash,
+        DateTimeImmutable $createdAt,
+        ?string $configurationId,
+        ?string $guestName,
+        string $guestEmailEncrypted,
+        string $guestEmailHash,
+        string $guestAccessHash,
+    ): self {
+        return new self(
+            $id,
+            null,
+            $fundId,
+            $amountMinor,
+            $provider,
+            $mode,
+            false,
+            'PENDING',
+            null,
+            null,
+            null,
+            'NONE',
+            null,
+            null,
+            null,
+            0,
+            $requestHash,
+            self::GUEST_ACTOR,
+            $createdAt,
+            $configurationId,
+            false,
+            $guestName,
+            $guestEmailEncrypted,
+            $guestEmailHash,
+            $guestAccessHash
+        );
+    }
+
+    public function isGuest(): bool
+    {
+        return null === $this->donorId;
     }
 
     /** A new checkout request: no provider checkout yet, a monthly arrangement awaits its first charge. */
@@ -100,7 +162,7 @@ final readonly class PaymentOrder
 
     public static function reconstitute(
         string $id,
-        string $donorId,
+        ?string $donorId,
         string $fundId,
         int $amountMinor,
         string $provider,
@@ -120,6 +182,10 @@ final readonly class PaymentOrder
         DateTimeImmutable $createdAt,
         ?string $configurationId,
         bool $selfService,
+        ?string $guestName = null,
+        ?string $guestEmailEncrypted = null,
+        ?string $guestEmailHash = null,
+        ?string $guestAccessHash = null,
     ): self {
         return new self(
             $id,
@@ -142,7 +208,11 @@ final readonly class PaymentOrder
             $createdBy,
             $createdAt,
             $configurationId,
-            $selfService
+            $selfService,
+            $guestName,
+            $guestEmailEncrypted,
+            $guestEmailHash,
+            $guestAccessHash
         );
     }
 

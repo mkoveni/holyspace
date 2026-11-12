@@ -11,6 +11,7 @@ use App\Events\Application\Contract\EventReader;
 use App\Events\Application\Contract\OccurrenceReader;
 use App\Events\Application\Contract\RegistrationReader;
 use App\Events\Application\NoticeRules;
+use App\Events\Application\VisitorMessageRules;
 use App\IdentityAccess\Application\Contract\PermissionChecker;
 use App\IdentityAccess\Application\Contract\ResponsibleAccountDirectory;
 use App\People\Application\Contract\PersonDirectory;
@@ -32,6 +33,7 @@ final readonly class EventNotificationEligibility implements DeliveryEligibility
         private EventReader $events,
         private PersonDirectory $people,
         private PersonEmailDirectory $emails,
+        private VisitorMessageEligibility $visitorMessages,
     ) {
     }
 
@@ -42,11 +44,19 @@ final readonly class EventNotificationEligibility implements DeliveryEligibility
 
     public function authorize(DeliverySnapshot $delivery, string $actor, string $operation): void
     {
-        $this->authorization->requireActorPermission($actor, 'events.communications.send');
+        if ('queue' === $operation && VisitorMessageRules::isVisitorTemplate($delivery->templateKey)) {
+            // A visitor's check-in queues it with no signed-in staff member: the approver's permission was required when
+            // staff turned messages on, and eligible() demands it again before every send.
+            return;
+        }
+        $this->authorization->requireActorPermission($actor, VisitorMessageRules::PERMISSION);
     }
 
     public function eligible(DeliverySnapshot $delivery, DateTimeImmutable $at): bool
     {
+        if (VisitorMessageRules::isVisitorTemplate($delivery->templateKey)) {
+            return $this->visitorMessages->eligible($delivery);
+        }
         if (!$this->accounts->eligible($delivery->approvedBy, 'events.communications.send') || null === $delivery->templateVersion) {
             return false;
         }

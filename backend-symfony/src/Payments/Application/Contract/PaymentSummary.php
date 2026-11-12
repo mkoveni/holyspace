@@ -11,7 +11,7 @@ final readonly class PaymentSummary
 {
     public function __construct(
         public string $id,
-        public string $donorId,
+        public ?string $donorId,
         public string $donorName,
         public string $fundId,
         public int $amountMinor,

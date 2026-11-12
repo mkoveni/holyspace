@@ -40,6 +40,16 @@ Complete refunds in the provider dashboard. This application does not initiate a
 
 Yoco ledger dates use the authenticated provider transaction date in UTC, so delayed callbacks retain the original date. Payfast ITNs and staff-entered refund confirmations use the UTC verification/recording date. A refund ledger date cannot precede its matching gift. Provider fees and net bank payouts are not donor gifts. Reconcile payout deductions separately against the provider dashboard. Do not combine ticket revenue with charitable giving statements.
 
+## Public giving (no account, no person record)
+
+Anyone can give once at `/give` without signing in. The giver chooses an online-enabled fund, an amount (at least R5.00), a provider and enters an **email address (compulsory)** and an optional name, then pays on the provider's hosted page. Card details never reach this application.
+
+- **No person is created or linked.** The order has no donor; the verified payment posts an **anonymous** `ONLINE` gift (`giving_gifts.donor_id` is null). Anonymous gifts cannot be assigned to pledges and have no donor statement. Public giving is one-off only: monthly giving needs a signed-in, verified donor.
+- **Confirmation email.** After the gift is posted, the published `payments.receipt` template is queued automatically to the giver's email (it states it is not a tax certificate; no section 18A certificate is issued). It is revalidated before every send: the charge must still be posted and unrefunded, and the address and content must be exactly as queued. Sandbox payments post no gift and send nothing. If queuing fails it is retried by the next posting attempt (`GUEST_CONFIRMATION_FAILED` appears in the order history).
+- **Privacy.** The email is stored encrypted (the payments vault key) and only a keyed hash is used for throttling. The status page is reached with a random access token returned once at checkout and kept in the browser tab's `sessionStorage`; it is sent in a request body, never in a URL.
+- **Abuse controls.** A Cloudflare Turnstile check, a hidden honeypot field, and throttles of 10 checkouts per client address and 5 per email per hour. Staff see these orders in **Online payments** as "Public giver"; refunds are recorded exactly as for donors.
+- **Setup.** Set `TURNSTILE_SECRET_KEY` (server) and `VITE_TURNSTILE_SITE_KEY` (frontend build). **With no secret, production refuses every public checkout**; other environments skip the check. The production Nginx CSP allows `challenges.cloudflare.com`. The migration `V42__guest_online_giving.sql` must be applied first.
+
 ## Operator setup
 
 Run the normal Doctrine migrations before starting this release. Migration `Version20261012060000` adds payment records, callback deduplication and `payments.manage`; existing registration JSON records upgrade through backward-compatible defaults.

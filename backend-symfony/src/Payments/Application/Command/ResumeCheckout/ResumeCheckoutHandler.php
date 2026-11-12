@@ -7,6 +7,7 @@ namespace App\Payments\Application\Command\ResumeCheckout;
 use App\Payments\Application\Contract\CheckoutCodec;
 use App\Payments\Application\Contract\HostedCheckout;
 use App\Payments\Application\Contract\PaymentGateway;
+use App\Payments\Application\Contract\SubscriptionVault;
 use App\Payments\Application\PaymentAccess;
 use App\Payments\Domain\PaymentException;
 use App\Payments\Domain\PaymentOrder;
@@ -33,14 +34,17 @@ final readonly class ResumeCheckoutHandler
         private PersonDirectory $people,
         private PersonEmailDirectory $emails,
         private CheckoutCodec $codec,
+        private SubscriptionVault $vault,
     ) {
     }
 
     public function handle(ResumeCheckoutCommand $c): HostedCheckout
     {
-        $this->access->caller($c->actorId, $c->selfService);
+        if (!$c->guest) {
+            $this->access->caller($c->actorId, $c->selfService);
+        }
         $order = $this->repository->find($c->orderId) ?? throw PaymentException::missing();
-        $this->access->order($c->actorId, $order, $c->selfService, false);
+        $this->authorize($c, $order, false);
         if (!\in_array($order->status, PaymentOrder::OPEN, true)) {
             throw PaymentException::conflict('This payment already finished. Refresh its verified history.');
         }
@@ -51,14 +55,19 @@ final readonly class ResumeCheckoutHandler
         if (null !== $order->checkoutUrl) {
             return $this->existing($order);
         }
-        $name = $this->people->get($order->donorId)->name ?? throw PaymentException::missing();
-        $email = ($this->emails->active($order->donorId)[0] ?? null)->value ?? '';
+        if ($order->isGuest()) {
+            $name = $order->guestName ?? '';
+            $email = $this->vault->decrypt((string) $order->guestEmailEncrypted);
+        } else {
+            $name = $this->people->get((string) $order->donorId)->name ?? throw PaymentException::missing();
+            $email = ($this->emails->active((string) $order->donorId)[0] ?? null)->value ?? '';
+        }
         try {
             $checkout = $this->gateway->checkout($order, $name, $email);
         } catch (Exception $error) {
             $this->transactions->execute(function () use ($c, $order): void {
                 $current = $this->repository->lock($order->id) ?? throw PaymentException::missing();
-                $this->access->order($c->actorId, $current, $c->selfService, true);
+                $this->authorize($c, $current, true);
                 $this->repository->review($order->id, 'Checkout creation is unconfirmed. Retry this same request; check the provider before creating another.');
             });
             throw $error;
@@ -66,7 +75,7 @@ final readonly class ResumeCheckoutHandler
 
         return $this->transactions->execute(function () use ($c, $order, $checkout): HostedCheckout {
             $current = $this->repository->lock($order->id) ?? throw PaymentException::missing();
-            $this->access->order($c->actorId, $current, $c->selfService, true);
+            $this->authorize($c, $current, true);
             if (!\in_array($current->status, PaymentOrder::OPEN, true)) {
                 throw PaymentException::conflict('Payment confirmation arrived. Refresh its history.');
             }
@@ -82,6 +91,22 @@ final readonly class ResumeCheckoutHandler
 
             return $checkout;
         });
+    }
+
+    /** A public order is reached only with its own access token (checked by the caller); every other order keeps its account checks. */
+    private function authorize(ResumeCheckoutCommand $c, PaymentOrder $order, bool $locked): void
+    {
+        if ($c->guest) {
+            if (!$order->isGuest()) {
+                throw PaymentException::missing();
+            }
+
+            return;
+        }
+        if ($order->isGuest()) {
+            throw PaymentException::missing();
+        }
+        $this->access->order($c->actorId, $order, $c->selfService, $locked);
     }
 
     private function existing(PaymentOrder $order): HostedCheckout

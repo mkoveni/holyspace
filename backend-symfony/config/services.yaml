@@ -151,6 +151,21 @@ services:
         arguments:
             $key: '%env(PAYMENTS_TOKEN_KEY)%'
 
+    # Public giving: guest access tokens are keyed by the app secret; Turnstile verifies a person is giving (a missing key
+    # is tolerated only outside production).
+    App\Payments\Infrastructure\HmacGuestAccess:
+        arguments:
+            $secret: '%kernel.secret%'
+
+    App\Payments\Infrastructure\Gateway\TurnstileHumanCheck:
+        arguments:
+            $secret: '%env(TURNSTILE_SECRET_KEY)%'
+            $environment: '%kernel.environment%'
+
+    App\Events\Infrastructure\HmacVisitTokens:
+        arguments:
+            $secret: '%kernel.secret%'
+
     App\Events\Application\OccurrenceChangeReview:
         arguments:
             $movementPolicies: !tagged_iterator events.movement_policy

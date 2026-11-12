@@ -8,6 +8,7 @@ use App\Giving\Application\Command\SetOnlineFund\SetOnlineFundCommand;
 use App\Giving\Application\Command\VerifyDonorLink\VerifyDonorLinkCommand;
 use App\Giving\Application\Contract\DonorAccessLink;
 use App\Giving\Application\Contract\OnlineFund;
+use App\Giving\Application\Contract\OnlineFundDirectory;
 use App\Giving\Application\Query\ListDonorAccess\ListDonorAccessHandler;
 use App\Giving\Application\Query\ListDonorAccess\ListDonorAccessQuery;
 use App\Giving\Presentation\Request\SetOnlineFundRequest;
@@ -33,6 +34,7 @@ final readonly class GivingDonorAccessController
         private CommandBus $commands,
         private AuthenticatedAccount $account,
         private ListDonorAccessHandler $list,
+        private OnlineFundDirectory $funds,
     ) {
     }
 
@@ -83,6 +85,28 @@ final readonly class GivingDonorAccessController
         ));
 
         return new Response(null, 204);
+    }
+
+    /** The online-giving catalogue on its own, for staff who manage giving but not accounts. */
+    #[IsGranted('giving.manage')]
+    #[Route('/online-funds', methods: ['GET'])]
+    public function funds(): JsonResponse
+    {
+        $entries = $this->funds->funds(true);
+        $response = new JsonResponse([
+            'funds' => array_map(static fn (OnlineFund $fund): array => [
+                'id' => $fund->id,
+                'name' => $fund->name,
+                'description' => $fund->description,
+                'active' => $fund->active,
+                'enabled' => $fund->enabled,
+                'version' => $fund->version,
+            ], \array_slice($entries, 0, OnlineFundDirectory::CATALOGUE_LIMIT)),
+            'truncated' => \count($entries) > OnlineFundDirectory::CATALOGUE_LIMIT,
+        ]);
+        $response->headers->set('Cache-Control', 'no-store');
+
+        return $response;
     }
 
     #[IsGranted('giving.manage')]

@@ -23,4 +23,9 @@ final class EventException extends ContextException
     {
         return new self(ErrorKind::Conflict, $message);
     }
+
+    public static function throttled(string $message): self
+    {
+        return new self(ErrorKind::Throttled, $message);
+    }
 }

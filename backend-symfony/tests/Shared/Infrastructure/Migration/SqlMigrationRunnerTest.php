@@ -35,7 +35,7 @@ final class SqlMigrationRunnerTest extends DatabaseTestCase
 
         $applied = $this->connection->fetchFirstColumn('SELECT version FROM schema_migrations ORDER BY version');
 
-        self::assertSame(range(1, 38), array_map('intval', $applied));
+        self::assertSame(range(1, 42), array_map('intval', $applied));
         self::assertNotNull($this->connection->fetchOne("SELECT to_regclass('public.user_accounts')"));
         self::assertNotNull($this->connection->fetchOne("SELECT to_regclass('public.children_audit')"));
         self::assertSame(

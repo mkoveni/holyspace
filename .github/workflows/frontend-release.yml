@@ -147,6 +147,7 @@ jobs:
             exit 1
           fi
       - name: Install the release (switch, health check, automatic switch-back)
+
         if: steps.latest.outputs.current == 'true'
         run: |
           # shellcheck disable=SC2029 # the release id is meant to expand here, on the runner

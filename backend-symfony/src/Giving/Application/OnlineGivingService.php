@@ -61,9 +61,18 @@ final readonly class OnlineGivingService implements OnlineGivingLedger
         });
     }
 
+    public function validateFund(string $fundId): void
+    {
+        $this->transaction->execute(function () use ($fundId): void {
+            if (true !== $this->funds->findForUpdate($fundId)?->active) {
+                throw GivingException::conflict('Choose an active giving fund.');
+            }
+        });
+    }
+
     public function post(
         string $chargeId,
-        string $donorId,
+        ?string $donorId,
         string $fundId,
         int $amountMinor,
         string $reference,
@@ -78,7 +87,9 @@ final readonly class OnlineGivingService implements OnlineGivingLedger
             if (null !== $replay) {
                 return $replay;
             }
-            $this->people->lock($donorId) ?? throw GivingException::missing();
+            if (null !== $donorId) {
+                $this->people->lock($donorId) ?? throw GivingException::missing();
+            }
             $this->funds->findForUpdate($fundId) ?? throw GivingException::missing();
             // A concurrent identical post may have committed while this one waited for the locks.
             $replay = $this->gifts->postedBy($chargeId, $hash);

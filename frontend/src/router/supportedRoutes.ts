@@ -51,5 +51,9 @@ export const supportedRoutes = new Set([
   'settings',
   'forbidden',
   'login',
+  'public-visit',
+  'giving-online',
+  'public-give',
+  'public-give-thanks',
   'not-found',
 ])

@@ -40,7 +40,7 @@ final readonly class PaymentReceiptPreview
     /** @return list<PersonEmail> */
     public function contacts(PaymentDetail $detail): array
     {
-        if (true !== $this->people->get($detail->order->donorId)?->available) {
+        if (null === $detail->order->donorId || true !== $this->people->get($detail->order->donorId)?->available) {
             throw PaymentException::conflict('The donor is unavailable for a receipt.');
         }
 

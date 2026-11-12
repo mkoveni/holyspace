@@ -169,6 +169,11 @@ const groups: NavigationGroup[] = [
         permission: 'giving.read',
       },
       {
+        title: 'Online giving',
+        to: '/giving/online',
+        permission: 'giving.manage',
+      },
+      {
         title: 'Online payments',
         to: '/payments',
         permission: 'payments.manage',
@@ -234,6 +239,7 @@ export function visibleNavigation (
           '/giving/pledges',
           '/giving/reports',
           '/giving/reconciliations',
+          '/giving/online',
           '/groups',
           '/ministries',
           '/events',
@@ -309,6 +315,7 @@ export function navigationIcon (to: string): string {
     '/giving/pledges': 'mdi-hand-heart-outline',
     '/giving/reports': 'mdi-file-chart-outline',
     '/giving/reconciliations': 'mdi-bank-check',
+    '/giving/online': 'mdi-link-variant',
     '/groups': 'mdi-account-group-outline',
     '/ministries': 'mdi-church-outline',
     '/events': 'mdi-calendar-star',

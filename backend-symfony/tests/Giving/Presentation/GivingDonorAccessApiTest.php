@@ -134,6 +134,24 @@ final class GivingDonorAccessApiTest extends IdentityApiTestCase
         self::assertSame(1, $this->rows('giving_donor_links'));
     }
 
+    public function testTheOnlineFundCatalogueNeedsOnlyGivingManageAndShowsEachFundsState(): void
+    {
+        $this->accountWith('treasurer', ['giving.manage']);
+        $this->accountWith('auditor', ['giving.read']);
+        $this->call('GET', '/api/giving/online-funds', $this->login('auditor'));
+        self::assertSame(403, $this->code());
+        $this->call('GET', '/api/giving/online-funds', $this->login('treasurer'));
+        self::assertSame(200, $this->code(), (string) $this->client->getResponse()->getContent());
+        self::assertStringContainsString('no-store', (string) $this->client->getResponse()->headers->get('Cache-Control'));
+        $entry = array_values(array_filter($this->json()['funds'], fn (array $f): bool => $f['id'] === $this->fund))[0];
+        self::assertFalse($entry['enabled']);
+        $this->offer(true, $entry['version']);
+        $this->call('GET', '/api/giving/online-funds', $this->login('treasurer'));
+        $entry = array_values(array_filter($this->json()['funds'], fn (array $f): bool => $f['id'] === $this->fund))[0];
+        self::assertTrue($entry['enabled']);
+        self::assertFalse($this->json()['truncated']);
+    }
+
     public function testDonorIdentityMustAgreeWithMemberIdentityInBothDirections(): void
     {
         $member = $this->account('member');

@@ -20,6 +20,25 @@ const router = createRouter({
       meta: { public: true },
     },
     {
+      path: '/visit/:token',
+      name: 'public-visit',
+      component: () => import('@/views/events/PublicVisitView.vue'),
+      props: true,
+      meta: { public: true },
+    },
+    {
+      path: '/give',
+      name: 'public-give',
+      component: () => import('@/payments/views/PublicGiveView.vue'),
+      meta: { public: true },
+    },
+    {
+      path: '/give/thanks',
+      name: 'public-give-thanks',
+      component: () => import('@/payments/views/PublicGiveThanksView.vue'),
+      meta: { public: true },
+    },
+    {
       path: '/recover',
       component: () => import('@/layouts/AuthLayout.vue'),
       meta: { public: true },
@@ -356,6 +375,12 @@ const router = createRouter({
           name: 'giving-pledges',
           component: () => import('@/giving/views/PledgesView.vue'),
           meta: { title: 'Pledges', permission: 'giving.read' },
+        },
+        {
+          path: 'giving/online',
+          name: 'giving-online',
+          component: () => import('@/giving/views/OnlineGivingSetupView.vue'),
+          meta: { title: 'Online giving', permission: 'giving.manage' },
         },
         {
           path: 'giving/reconciliations',

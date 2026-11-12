@@ -109,6 +109,12 @@
         :time-zone="details.occurrence.timeZone"
       />
 
+      <VisitorCheckInPanel
+        v-if="auth.hasPermission('events.attendance.manage') || auth.hasPermission('events.visitors.read')"
+        :occurrence-id="id"
+        @changed="load"
+      />
+
       <AttendancePanel
         v-if="auth.hasPermission('events.attendance.read')"
         :occurrence-id="id"
@@ -736,6 +742,7 @@
   import EventNoticeDialog from '../components/EventNoticeDialog.vue'
   import EventReadinessPanel from '../components/EventReadinessPanel.vue'
   import VenuePicker from '../components/VenuePicker.vue'
+  import VisitorCheckInPanel from '../components/VisitorCheckInPanel.vue'
   import '@/directory/directory.scss'
   import '../events.css'
   const readinessRevision = ref(0)

@@ -12,6 +12,7 @@ use App\Payments\Domain\Repository\PaymentRepository;
 use App\Shared\Application\UnitOfWork;
 use Exception;
 use Psr\Clock\ClockInterface;
+use Throwable;
 
 /**
  * Posting to Giving, separate from durable verification (Java `PaymentPosting`). It runs in its own transaction and is
@@ -27,6 +28,7 @@ final readonly class PaymentPosting
         private OnlineGivingLedger $giving,
         private UnitOfWork $transactions,
         private ClockInterface $clock,
+        private GuestConfirmations $guestConfirmations,
     ) {
     }
 
@@ -43,6 +45,7 @@ final readonly class PaymentPosting
                 $this->applyRefunds($order);
                 $this->settle($order);
             });
+            $this->confirmGuest($orderId);
         } catch (Exception) {
             $this->transactions->execute(function () use ($orderId, $authorize): void {
                 $this->repository->lock($orderId) ?? throw PaymentException::missing();
@@ -50,6 +53,25 @@ final readonly class PaymentPosting
                 $this->repository->review($orderId, self::NEEDS_POSTING);
                 $this->repository->audit($orderId, 'POSTING_REVIEW', 'Ledger posting failed; verified evidence retained.', null, $this->clock->now());
             });
+        }
+    }
+
+    /**
+     * A public giver's thank-you is queued only after the gift is committed, in its own transaction: a failure to queue it
+     * must never undo or block the verified ledger posting. It is retried by the next posting attempt (idempotent per charge).
+     */
+    private function confirmGuest(string $orderId): void
+    {
+        try {
+            $this->guestConfirmations->queueFor($orderId);
+        } catch (Throwable) {
+            try {
+                $this->transactions->execute(function () use ($orderId): void {
+                    $this->repository->audit($orderId, 'GUEST_CONFIRMATION_FAILED', 'The confirmation email could not be queued; posting again retries it.', null, $this->clock->now());
+                });
+            } catch (Throwable) {
+                // Inside a caller's failed transaction the note cannot be written; the caller's own error surfaces.
+            }
         }
     }
 

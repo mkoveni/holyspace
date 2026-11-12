@@ -47,6 +47,10 @@ final readonly class ApprovePaymentReceiptHandler implements CommandHandler
         $hash = PaymentHash::of($c->actorId, $c->orderId, $c->chargeId, $c->contactId, $c->reviewHash, $evidence);
         $order = $this->payments->lock($c->orderId) ?? throw PaymentException::missing();
         $this->access->receipts($c->actorId);
+        // A public giver's confirmation is automatic (GuestConfirmations); staff approval exists for donors with a person only.
+        if (null === $order->donorId) {
+            throw PaymentException::conflict('A public payment is confirmed automatically by email.');
+        }
         $this->people->lock($order->donorId) ?? throw PaymentException::missing();
         $old = $this->reader->receipt($c->requestId);
         if (null !== $old) {

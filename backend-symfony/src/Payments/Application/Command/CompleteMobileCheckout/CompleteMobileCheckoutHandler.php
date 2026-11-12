@@ -51,7 +51,7 @@ final readonly class CompleteMobileCheckoutHandler implements CommandHandler
         if (!$this->accounts->active($link->accountId) || null === $session || $session->accountId !== $link->accountId || $session->expiresAt <= $now) {
             throw PaymentException::missing();
         }
-        if (!$this->donors->lockEligible($link->accountId, $order->donorId)) {
+        if (null === $order->donorId || !$this->donors->lockEligible($link->accountId, $order->donorId)) {
             throw PaymentException::missing();
         }
         if (!$order->awaitingPayment()) {

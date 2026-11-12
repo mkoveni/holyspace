@@ -19,15 +19,19 @@ interface OnlineGivingLedger
      */
     public function validate(string $donorId, string $fundId): OnlineDonor;
 
+    /** A public (guest) checkout has no donor: only the fund is locked and checked. 409 "Choose an active giving fund.". */
+    public function validateFund(string $fundId): void;
+
     /**
      * Posts a verified ZAR charge as an ONLINE gift to one fund. Idempotent on the charge id, which becomes the gift id: an
-     * identical retry returns it without writing, the same id with other details is a 409.
+     * identical retry returns it without writing, the same id with other details is a 409. A null donor posts an
+     * anonymous gift (public giving): no person is locked, created or linked.
      *
      * @return string the gift id (the charge id)
      */
     public function post(
         string $chargeId,
-        string $donorId,
+        ?string $donorId,
         string $fundId,
         int $amountMinor,
         string $reference,

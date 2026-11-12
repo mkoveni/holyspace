@@ -58,6 +58,17 @@ final readonly class Person
         return new self($this->id, $details, $membership, $this->archivedAt, $revision);
     }
 
+    /** A visitor the church has welcomed becomes an active member. Anyone who already belongs, or is archived, is left alone. */
+    public function admitAsMember(DateTimeImmutable $now): self
+    {
+        $this->requireAvailable();
+        if (!\in_array($this->membershipType, [MembershipType::Visitor, MembershipType::RegularVisitor], true)) {
+            throw PeopleException::conflict('Only a visitor can be made a member.');
+        }
+
+        return new self($this->id, $this->details, MembershipType::ActiveMember, $this->archivedAt, $this->revision->advance($now));
+    }
+
     public function archive(bool $archived, int $expectedVersion, DateTimeImmutable $now): self
     {
         $revision = $this->revision->next($expectedVersion, $now);

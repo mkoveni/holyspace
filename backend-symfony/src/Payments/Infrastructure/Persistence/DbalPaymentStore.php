@@ -50,13 +50,22 @@ final readonly class DbalPaymentStore implements PaymentRepository, PaymentReade
         return false === $row ? null : PaymentRows::order($row);
     }
 
+    public function findByGuestAccess(string $accessHash): ?PaymentOrder
+    {
+        $row = $this->connection->fetchAssociative('SELECT '.PaymentRows::ORDER.' FROM payments_orders WHERE guest_access_hash = ?', [$accessHash]);
+
+        return false === $row ? null : PaymentRows::order($row);
+    }
+
     public function insert(PaymentOrder $o): bool
     {
         return 1 === $this->writes->execute(
-            'INSERT INTO payments_orders (id, self_service, configuration_id, donor_id, fund_id, amount_minor, provider, mode, recurring, status, subscription_status, request_hash, created_by, created_at)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT DO NOTHING',
+            'INSERT INTO payments_orders (id, self_service, configuration_id, donor_id, fund_id, amount_minor, provider, mode, recurring, status, subscription_status, request_hash, created_by, created_at,
+                guest_name, guest_email_enc, guest_email_hash, guest_access_hash)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT DO NOTHING',
             [$o->id, $o->selfService, $o->configurationId, $o->donorId, $o->fundId, $o->amountMinor, $o->provider, $o->mode, $o->recurring,
-                $o->status, $o->subscriptionStatus, $o->requestHash, $o->createdBy, Timestamps::toDatabase($o->createdAt)],
+                $o->status, $o->subscriptionStatus, $o->requestHash, $o->createdBy, Timestamps::toDatabase($o->createdAt),
+                $o->guestName, $o->guestEmailEncrypted, $o->guestEmailHash, $o->guestAccessHash],
             [1 => ParameterType::BOOLEAN, 5 => ParameterType::INTEGER, 8 => ParameterType::BOOLEAN],
         );
     }
@@ -296,7 +305,7 @@ final readonly class DbalPaymentStore implements PaymentRepository, PaymentReade
         return new PaymentSummary(
             $o->id,
             $o->donorId,
-            $this->people->get($o->donorId)->name ?? 'Person unavailable',
+            null === $o->donorId ? 'Public giver' : ($this->people->get($o->donorId)->name ?? 'Person unavailable'),
             $o->fundId,
             $o->amountMinor,
             $o->provider,

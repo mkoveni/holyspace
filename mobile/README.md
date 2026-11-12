@@ -122,7 +122,7 @@ Tests mock member APIs and do not charge a payment provider.
 
 See [the member API review](../docs/member-mobile-api-review.md) for ownership,
 permissions, routes, planned work and the payment-handoff rules. Expo API references:
-[SDK 58 SecureStore](https://docs.expo.dev/versions/v58.0.0/sdk/securestore/),
+
 [SDK 58 WebBrowser](https://docs.expo.dev/versions/v58.0.0/sdk/webbrowser/),
 [protected routes](https://docs.expo.dev/router/advanced/protected/).
 
