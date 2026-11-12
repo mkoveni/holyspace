@@ -27,7 +27,12 @@ final readonly class TurnstileHumanCheck implements HumanCheck
     public function passes(?string $token, string $clientAddress): bool
     {
         if ('' === $this->secret) {
-            return 'prod' !== $this->environment;
+            if ('prod' === $this->environment) {
+                // A deployment gap, not a bot: say so, so the operator is told rather than every giver being called a robot.
+                throw PaymentException::unavailable('Online giving is not fully set up yet. Please contact the church office.');
+            }
+
+            return true;
         }
         if (null === $token || '' === $token || \strlen($token) > 2048) {
             return false;
