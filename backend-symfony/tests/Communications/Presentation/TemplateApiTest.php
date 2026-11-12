@@ -231,7 +231,7 @@ final class TemplateApiTest extends IdentityApiTestCase
         self::assertSame(['church.farewell'], array_column($this->json()['templates'], 'key'));
         $this->call('GET', '/api/communications/templates?search=%25', $this->reader);
         self::assertSame(0, $this->json()['total'], 'a percent sign is text, not a wildcard');
-        $this->call('GET', '/api/communications/templates?search=church&limit=1&offset=1', $this->reader);
+        $this->call('GET', '/api/communications/templates?search=church.&limit=1&offset=1', $this->reader);
         self::assertSame([1, 2], [\count($this->json()['templates']), $this->json()['total']]);
         foreach (['limit=0', 'limit=101', 'offset=-1', 'offset=100001', 'limit=abc', 'search='.str_repeat('s', 151)] as $query) {
             $this->call('GET', "/api/communications/templates?$query", $this->reader);

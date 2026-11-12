@@ -138,7 +138,7 @@ final class MediaEndToEndTest extends DatabaseTestCase
         self::assertCount(4, $this->onDisk(), 'the new files are orphans');
         self::assertSame($kept, array_values(array_intersect($this->onDisk(), $kept)));
 
-        $later = new MockClock('2026-11-12 10:00:00');
+        $later = new MockClock('now +2 days');
         $result = new OrphanSweep($this->files, new DbalMediaFileCatalog($this->connection), $later)->run();
 
         self::assertSame(2, $result['orphans']);

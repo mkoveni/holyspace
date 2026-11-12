@@ -181,9 +181,9 @@ final class VisitorChildrenAndMessagesApiTest extends EventsApiTestCase
 
     public function testStaffMakeAVisitorAMemberAndInviteThemToTheApp(): void
     {
-        $this->accountWith('registrar', ['events.attendance.manage', 'events.communications.send', 'people.manage']);
+        $this->accountWith('converter', ['events.attendance.manage', 'events.communications.send', 'people.manage']);
         $this->accountWith('nopeople', ['events.attendance.manage', 'events.communications.send']);
-        $registrar = $this->login('registrar');
+        $registrar = $this->login('converter');
         $token = $this->token();
         $this->visit($token);
         $this->call('GET', "/api/events/occurrences/{$this->occurrence}/visitors", $this->welcome);
@@ -193,8 +193,8 @@ final class VisitorChildrenAndMessagesApiTest extends EventsApiTestCase
         $this->call('POST', "/api/events/registrations/$id/visitor-convert", $this->login('nopeople'), []);
         self::assertSame(403, $this->code(), 'making a member needs people.manage');
         $this->call('POST', "/api/events/registrations/$id/visitor-convert", $registrar, ['inviteToApp' => true]);
-        self::assertSame(204, $this->code(), $this->message());
-        self::assertSame('ACTIVE_MEMBER', $this->connection->fetchOne('SELECT membership_type FROM people WHERE id = ?', [$person]));
+        self::assertSame(204, $this->code(), (string) $this->client->getResponse()->getContent());
+        self::assertSame('ACTIVE_MEMBER', $this->connection->fetchOne('SELECT membership_type FROM people_persons WHERE id = ?', [$person]));
         self::assertSame(1, $this->rows('communication_email_deliveries', "template_key = 'events.visitor_app_invite' AND recipient = 'thandi@example.test' AND status = 'QUEUED'"));
 
         $this->call('POST', "/api/events/registrations/$id/visitor-convert", $registrar, ['inviteToApp' => true]);
@@ -213,8 +213,8 @@ final class VisitorChildrenAndMessagesApiTest extends EventsApiTestCase
 
     public function testConvertingNeedsAnEmailForAnInvitationAndRefusesRemovedVisitors(): void
     {
-        $this->accountWith('registrar', ['events.attendance.manage', 'events.communications.send', 'people.manage']);
-        $registrar = $this->login('registrar');
+        $this->accountWith('converter', ['events.attendance.manage', 'events.communications.send', 'people.manage']);
+        $registrar = $this->login('converter');
         $token = $this->token();
         $this->visit($token, ['email' => null, 'mobile' => '0825550102']);
         $id = (string) $this->connection->fetchOne('SELECT registration_id FROM event_visitor_check_ins');
@@ -222,14 +222,14 @@ final class VisitorChildrenAndMessagesApiTest extends EventsApiTestCase
 
         $this->call('POST', "/api/events/registrations/$id/visitor-convert", $registrar, ['inviteToApp' => true]);
         self::assertSame(400, $this->code());
-        self::assertSame('VISITOR', $this->connection->fetchOne('SELECT membership_type FROM people WHERE id = ?', [$person]), 'nothing changed');
+        self::assertSame('VISITOR', $this->connection->fetchOne('SELECT membership_type FROM people_persons WHERE id = ?', [$person]), 'nothing changed');
 
         $this->connection->executeStatement("UPDATE event_visitor_check_ins SET review_status = 'REMOVED'");
         $this->call('POST', "/api/events/registrations/$id/visitor-convert", $registrar, []);
         self::assertSame(409, $this->code());
         $this->connection->executeStatement("UPDATE event_visitor_check_ins SET review_status = 'PENDING'");
         $this->call('POST', "/api/events/registrations/$id/visitor-convert", $registrar, []);
-        self::assertSame(204, $this->code(), $this->message());
+        self::assertSame(204, $this->code(), (string) $this->client->getResponse()->getContent());
         self::assertSame(0, $this->rows('communication_email_deliveries'));
     }
 
