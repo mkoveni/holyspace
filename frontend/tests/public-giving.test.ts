@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { formatRand, randsToMinor } from '@/payments/public-giving'
+import { formatRand, randsToMinor } from '@/payments/giving-amount'
 
 describe('public giving amounts', () => {
   it.each([
