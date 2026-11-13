@@ -552,7 +552,7 @@
     padding: 18px;
   }
   .coordinator-stats dt {
-    color: #75818b;
+    color: var(--workspace-muted);
     font-size: 0.8rem;
   }
   .coordinator-stats dd {
@@ -562,7 +562,7 @@
   }
   .planning-row {
     padding: 24px;
-    border-top: 1px solid #e7ecef;
+    border-top: 1px solid var(--workspace-border);
     overflow-wrap: anywhere;
   }
   .planning-row header > div:nth-child(2) {
@@ -576,7 +576,7 @@
     margin: 5px 0;
   }
   .planning-row p {
-    color: #75818b;
+    color: var(--workspace-muted);
   }
   .planning-metrics {
     display: flex;
@@ -586,9 +586,9 @@
   }
   .planning-issues {
     padding: 12px 12px 12px 28px;
-    background: #fbf5e9;
+    background: var(--workspace-tint);
     border-radius: 12px;
-    color: #91682a;
+    color: var(--workspace-muted);
   }
   .planning-team {
     display: grid;
@@ -598,17 +598,17 @@
   }
   .planning-member {
     padding: 14px;
-    background: #f7f9fa;
+    background: var(--workspace-soft);
     border-radius: 12px;
   }
   .planning-member small {
     display: block;
-    color: #75818b;
+    color: var(--workspace-muted);
     margin-top: 4px;
   }
   .coordinator-paging {
     padding: 16px 24px;
-    border-top: 1px solid #e7ecef;
+    border-top: 1px solid var(--workspace-border);
   }
   @media (max-width: 1100px) {
     .coordinator-stats {

@@ -1,39 +1,36 @@
 <template>
-  <v-dialog v-model="model" max-width="480" persistent>
-    <v-card>
-      <v-card-title>Add Family Member</v-card-title>
-      <v-divider />
+  <FormDialog
+    ref="formRef"
+    v-model="model"
+    :loading="familiesStore.isSaving"
+    submit-label="Add Member"
+    title="Add Family Member"
+    @cancel="close"
+    @submit="handleSubmit"
+  >
+    <PeopleSearch
+      v-model="form.personId"
+      label="Person"
+      :rules="[required]"
+    />
 
-      <v-form ref="formRef" @submit.prevent="handleSubmit">
-        <v-card-text>
-          <PeopleSearch
-            v-model="form.personId"
-            label="Person"
-            :rules="[required]"
-          />
+    <v-select
+      v-model="form.role"
+      :items="roleOptions"
+      label="Role in family"
+    />
 
-          <v-select
-            v-model="form.role"
-            :items="roleOptions"
-            label="Role in family"
-          />
-        </v-card-text>
-
-        <v-card-actions>
-          <v-spacer />
-          <v-btn variant="text" @click="close">Cancel</v-btn>
-          <v-btn color="primary" :loading="familiesStore.isSaving" type="submit" variant="flat">Add Member</v-btn>
-        </v-card-actions>
-      </v-form>
-    </v-card>
-  </v-dialog>
+  </FormDialog>
 </template>
 
 <script lang="ts" setup>
   import { computed, reactive, ref } from 'vue'
+  import FormDialog from '@/components/common/FormDialog.vue'
   import PeopleSearch from '@/components/common/PeopleSearch.vue'
+  import { extractErrorMessage } from '@/composables/apiErrors'
   import { useFamiliesStore } from '@/stores/families'
   import { useUiStore } from '@/stores/ui'
+  import { required } from '@/utils/rules'
 
   const props = defineProps<{ modelValue: boolean, familyId: string }>()
   const emit = defineEmits<{ 'update:model-value': [value: boolean], 'saved': [] }>()
@@ -54,8 +51,6 @@
     role: 'other',
   })
 
-  const required = (value: string) => Boolean(value) || 'This field is required.'
-
   function close () {
     model.value = false
   }
@@ -71,7 +66,7 @@
       emit('saved')
       close()
     } catch (error) {
-      ui.notifyError(error instanceof Error ? error.message : 'Unable to add family member.')
+      ui.notifyError(extractErrorMessage(error, 'Unable to add family member.'))
     }
   }
 

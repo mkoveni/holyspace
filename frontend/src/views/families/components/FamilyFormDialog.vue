@@ -1,28 +1,25 @@
 <template>
-  <v-dialog v-model="model" max-width="440" persistent>
-    <v-card>
-      <v-card-title>Add Family</v-card-title>
-      <v-divider />
+  <FormDialog
+    ref="formRef"
+    v-model="model"
+    :loading="familiesStore.isSaving"
+    submit-label="Create Family"
+    title="Add Family"
+    @cancel="close"
+    @submit="handleSubmit"
+  >
+    <v-text-field v-model="name" label="Family name" :rules="[required]" />
 
-      <v-form ref="formRef" @submit.prevent="handleSubmit">
-        <v-card-text>
-          <v-text-field v-model="name" label="Family name" :rules="[required]" />
-        </v-card-text>
-
-        <v-card-actions>
-          <v-spacer />
-          <v-btn variant="text" @click="close">Cancel</v-btn>
-          <v-btn color="primary" :loading="familiesStore.isSaving" type="submit" variant="flat">Create Family</v-btn>
-        </v-card-actions>
-      </v-form>
-    </v-card>
-  </v-dialog>
+  </FormDialog>
 </template>
 
 <script lang="ts" setup>
   import { computed, ref, watch } from 'vue'
+  import FormDialog from '@/components/common/FormDialog.vue'
+  import { extractErrorMessage } from '@/composables/apiErrors'
   import { useFamiliesStore } from '@/stores/families'
   import { useUiStore } from '@/stores/ui'
+  import { required } from '@/utils/rules'
 
   const props = defineProps<{ modelValue: boolean }>()
   const emit = defineEmits<{ 'update:model-value': [value: boolean], 'saved': [] }>()
@@ -36,8 +33,6 @@
     get: () => props.modelValue,
     set: value => emit('update:model-value', value),
   })
-
-  const required = (value: string) => Boolean(value) || 'This field is required.'
 
   watch(() => props.modelValue, value => {
     if (value) name.value = ''
@@ -58,7 +53,7 @@
       emit('saved')
       close()
     } catch (error) {
-      ui.notifyError(error instanceof Error ? error.message : 'Unable to create family.')
+      ui.notifyError(extractErrorMessage(error, 'Unable to create family.'))
     }
   }
 </script>

@@ -78,7 +78,9 @@
 <script lang="ts" setup>
   import { reactive, ref } from 'vue'
   import { useRoute, useRouter } from 'vue-router'
+  import { extractErrorMessage } from '@/composables/apiErrors'
   import { useAuthStore } from '@/stores/auth'
+  import { required } from '@/utils/rules'
 
   const router = useRouter()
   const route = useRoute()
@@ -88,8 +90,6 @@
   const showPassword = ref(false)
   const isSubmitting = ref(false)
   const errorMessage = ref('')
-
-  const required = (value: string) => Boolean(value) || 'This field is required.'
 
   async function retrySession () {
     await authStore.bootstrap()
@@ -109,7 +109,7 @@
       const redirect = (route.query.redirect as string) || '/'
       await router.push(redirect)
     } catch (error) {
-      errorMessage.value = error instanceof Error ? error.message : 'Unable to sign in.'
+      errorMessage.value = extractErrorMessage(error, 'Unable to sign in.')
     } finally {
       isSubmitting.value = false
     }

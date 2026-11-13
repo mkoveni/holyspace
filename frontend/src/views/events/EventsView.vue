@@ -36,7 +36,7 @@
     </v-card>
 
     <template v-else-if="event">
-      <PortalImage target="event" :owner-id="event.id" label="Event banner" :editable="access.hasPermission('events.manage')" />
+      <PortalImage :editable="access.hasPermission('events.manage')" label="Event banner" :owner-id="event.id" target="event" />
       <v-card class="mb-4"><v-card-text>{{ event.description || 'No description.' }}</v-card-text></v-card>
 
       <v-card>
@@ -69,7 +69,8 @@
           <template #item.endsAt="{ item }">{{ formatTime(item.endsAt, event.timezone) }}</template>
           <template #item.status="{ item }"><v-chip :color="item.status === 'cancelled' ? 'error' : 'success'" size="small">{{ item.status }}</v-chip></template>
 
-          <template #item.actions="{ item }"><v-btn v-if="access.hasPermission('events.manage')"
+          <template #item.actions="{ item }"><v-btn
+            v-if="access.hasPermission('events.manage')"
             :disabled="store.isSaving"
             prepend-icon="mdi-pencil-outline"
             size="small"
@@ -78,39 +79,40 @@
           >Edit</v-btn></template>
         </v-data-table>
       </v-card>
+
       <EventRegistrations :key="event.id" :event="event" />
     </template>
 
     <EventFormDialog v-model="eventDialog" :event="id ? event : null" @saved="saved" />
 
-    <v-dialog v-model="occurrenceDialog" max-width="620" persistent>
-      <v-card>
-        <v-card-title>Edit occurrence</v-card-title>
-
-        <v-form ref="occurrenceForm" @submit.prevent="saveOccurrence">
-          <v-card-text>
-            <v-alert v-if="occurrenceError" class="mb-4" type="error" variant="tonal">{{ occurrenceError }}</v-alert>
-            <p class="text-caption mb-3">Times are in {{ event?.timezone }}.</p>
-            <v-text-field v-model="occurrenceInput.startsAt" label="Starts" :rules="[required]" type="datetime-local" />
-            <v-text-field v-model="occurrenceInput.endsAt" label="Ends" :rules="[required, endAfterStart]" type="datetime-local" />
-            <v-text-field v-model="occurrenceInput.location" label="Location" maxlength="255" :rules="[required]" />
-            <v-select v-model="occurrenceInput.status" :items="['scheduled', 'cancelled']" label="Status" />
-          </v-card-text>
-
-          <v-card-actions><v-spacer /><v-btn v-if="access.hasPermission('events.manage')" :disabled="store.isSaving" @click="occurrenceDialog = false">Close</v-btn><v-btn color="primary" :loading="store.isSaving" type="submit" variant="flat">Save occurrence</v-btn></v-card-actions>
-        </v-form>
-      </v-card>
-    </v-dialog>
+    <FormDialog
+      ref="occurrenceForm"
+      v-model="occurrenceDialog"
+      :error="occurrenceError"
+      :loading="store.isSaving"
+      size="md"
+      submit-label="Save occurrence"
+      title="Edit occurrence"
+      @submit="saveOccurrence"
+    >
+      <p class="text-caption mb-3">Times are in {{ event?.timezone }}.</p>
+      <v-text-field v-model="occurrenceInput.startsAt" label="Starts" :rules="[required]" type="datetime-local" />
+      <v-text-field v-model="occurrenceInput.endsAt" label="Ends" :rules="[required, endAfterStart]" type="datetime-local" />
+      <v-text-field v-model="occurrenceInput.location" label="Location" maxlength="255" :rules="[required]" />
+      <v-select v-model="occurrenceInput.status" :items="['scheduled', 'cancelled']" label="Status" />
+    </FormDialog>
   </div>
 </template>
 <script setup lang="ts">
-import PortalImage from '@/components/common/PortalImage.vue'
-import { useAuthStore } from '@/stores/auth'
   import type { EventOccurrence, OccurrencePayload } from '@/types/event'
   import { computed, reactive, ref, watch } from 'vue'
   import { useRouter } from 'vue-router'
+  import FormDialog from '@/components/common/FormDialog.vue'
   import PageHeader from '@/components/common/PageHeader.vue'
+  import PortalImage from '@/components/common/PortalImage.vue'
+  import { extractErrorMessage } from '@/composables/apiErrors'
   import { nextOccurrence } from '@/events/schedule'
+  import { useAuthStore } from '@/stores/auth'
   import { useEventsStore } from '@/stores/events'
   import { useUiStore } from '@/stores/ui'
   import EventFormDialog from './components/EventFormDialog.vue'
@@ -146,7 +148,7 @@ import { useAuthStore } from '@/stores/auth'
     try {
       await (props.id ? store.fetchOne(props.id) : store.fetchAll())
     } catch (error_) {
-      error.value = error_ instanceof Error ? error_.message : 'Unable to load events.'
+      error.value = extractErrorMessage(error_, 'Unable to load events.')
     }
   }
   watch(() => props.id, () => {
@@ -175,9 +177,9 @@ import { useAuthStore } from '@/stores/auth'
       occurrenceDialog.value = false
       ui.notifySuccess('Occurrence updated.')
     } catch (error_) {
-      occurrenceError.value = error_ instanceof Error ? error_.message : 'Unable to update occurrence.'
+      occurrenceError.value = extractErrorMessage(error_, 'Unable to update occurrence.')
     }
   }
 
-const access = useAuthStore()
+  const access = useAuthStore()
 </script>

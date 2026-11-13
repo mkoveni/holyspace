@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { reactive, ref } from 'vue'
+import { extractErrorMessage } from '@/composables/apiErrors'
 
 export type SnackbarColor = 'success' | 'error' | 'warning' | 'info'
 
@@ -17,7 +18,9 @@ export const useUiStore = defineStore('ui', () => {
     text: '',
     color: 'success' as SnackbarColor,
     timeout: 4000,
+    undoLabel: '',
   })
+  let undoHandler: (() => Promise<unknown> | void) | null = null
 
   const confirm = reactive({
     show: false,
@@ -36,6 +39,30 @@ export const useUiStore = defineStore('ui', () => {
     snackbar.text = text
     snackbar.color = color
     snackbar.timeout = timeout
+    snackbar.undoLabel = ''
+    undoHandler = null
+  }
+
+  /** Success toast with an Undo button that stays up a little longer. */
+  function notifyWithUndo (text: string, undo: () => Promise<unknown> | void) {
+    notify(text, 'success', 8000)
+    snackbar.undoLabel = 'Undo'
+    undoHandler = undo
+  }
+
+  async function runUndo () {
+    const handler = undoHandler
+    snackbar.show = false
+    undoHandler = null
+    if (!handler) {
+      return
+    }
+    try {
+      await handler()
+      notify('Change undone.', 'info')
+    } catch (error) {
+      notifyError(extractErrorMessage(error, 'Unable to undo that change.'))
+    }
   }
 
   function notifySuccess (text: string) {
@@ -74,6 +101,8 @@ export const useUiStore = defineStore('ui', () => {
     notify,
     notifySuccess,
     notifyError,
+    notifyWithUndo,
+    runUndo,
     confirmAction,
     resolveConfirm,
     setLoading,

@@ -5,6 +5,8 @@ export interface UserAccount {
   username: string
   personId: string | null
   status: string
+  /** Names of the roles held by the account. */
+  roles?: string[]
   createdAt: string
   updatedAt: string
 }

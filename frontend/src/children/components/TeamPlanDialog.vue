@@ -269,15 +269,15 @@
   .team-plan-preview {
     margin-top: 20px;
     padding: 20px 0;
-    border-top: 1px solid #e3e9ee;
+    border-top: 1px solid var(--workspace-border);
   }
   .team-plan-preview p {
     margin: 6px 0;
-    color: #75818b;
+    color: var(--workspace-muted);
   }
   .team-plan-preview ul {
     padding-left: 20px;
     margin-top: 12px;
-    color: #966526;
+    color: var(--workspace-muted);
   }
 </style>

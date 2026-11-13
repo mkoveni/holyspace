@@ -1,3 +1,4 @@
+import { extractErrorMessage } from '@/composables/apiErrors'
 import { useApi } from '@/composables/useApi'
 export interface Event {
   id: string
@@ -293,12 +294,7 @@ export function dateLabel (value: string, zone?: string) {
   })
 }
 export function errorMessage (error: unknown) {
-  return (
-    (error as { response?: { data?: { message?: string } } }).response?.data?.message
-    || (error instanceof Error
-      ? error.message
-      : 'Unable to complete this request.')
-  )
+  return extractErrorMessage(error, 'Unable to complete this request.')
 }
 export function newSchedule (): Schedule {
   const tomorrow = new Date(Date.now() + 86_400_000)

@@ -25,7 +25,8 @@
         <div class="family-card__section-heading">
           <h3>Family members</h3>
 
-          <v-btn v-if="canManage"
+          <v-btn
+            v-if="canManage"
             color="primary"
             density="comfortable"
             prepend-icon="mdi-plus"
@@ -46,7 +47,8 @@
               </div>
             </router-link>
 
-            <v-btn v-if="canManage"
+            <v-btn
+              v-if="canManage"
               :aria-label="family.primaryContact?.id === member.id ? `${member.firstName} is the primary contact` : `Make ${member.firstName} ${member.lastName} the primary contact`"
               :color="family.primaryContact?.id === member.id ? 'primary' : undefined"
               :disabled="busy"
@@ -102,7 +104,8 @@
           <div class="family-card__section-heading">
             <h3><v-icon icon="mdi-map-marker-outline" size="17" /> Addresses</h3>
 
-            <v-btn v-if="canManage"
+            <v-btn
+              v-if="canManage"
               aria-label="Add family address"
               icon="mdi-plus"
               size="x-small"
@@ -179,7 +182,7 @@
 <style scoped>
 .family-card {
   overflow: hidden;
-  border: 1px solid #e5e7ed;
+  border: 1px solid var(--workspace-border);
   border-radius: 20px;
   background: rgb(var(--v-theme-surface));
   box-shadow: 0 8px 30px #172a4510;
@@ -190,7 +193,7 @@
   justify-content: space-between;
   align-items: center;
   padding: 26px 30px;
-  border-bottom: 1px solid #e9ecf1;
+  border-bottom: 1px solid var(--workspace-border);
 }
 
 .family-card__identity {
@@ -206,23 +209,23 @@
   flex-shrink: 0;
   width: 58px;
   height: 58px;
-  background: #eef2fa;
-  color: #2c4d94;
-  border: 1px solid #dce4f5;
+  background: var(--workspace-tint);
+  color: var(--workspace-blue);
+  border: 1px solid var(--workspace-tint-border);
   border-radius: 18px;
   font: 700 22px 'Plus Jakarta Sans', sans-serif;
 }
 
 .family-card__eyebrow {
-  color: #718096;
-  font-size: 10px;
+  color: var(--workspace-muted);
+  font-size: 11px;
   font-weight: 700;
   letter-spacing: 1.4px;
   margin-bottom: 4px;
 }
 
 .family-card__name {
-  color: #1a2940;
+  color: var(--workspace-ink);
   text-decoration: none;
   font: 700 23px 'Plus Jakarta Sans', sans-serif;
   overflow-wrap: anywhere;
@@ -249,9 +252,9 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 700;
-  color: #33435a;
+  color: var(--workspace-ink);
 }
 
 .family-card__member-grid {
@@ -266,7 +269,7 @@
   justify-content: space-between;
   gap: 4px;
   padding: 12px;
-  border: 1px solid #e9ecf1;
+  border: 1px solid var(--workspace-border);
   border-radius: 12px;
 }
 
@@ -276,7 +279,7 @@
   gap: 10px;
   min-width: 0;
   text-decoration: none;
-  color: #26364c;
+  color: var(--workspace-ink);
 }
 
 .family-card__avatar {
@@ -286,10 +289,10 @@
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  background: #f0efeb;
-  font-size: 11px;
+  background: var(--workspace-tint);
+  font-size: 12px;
   font-weight: 700;
-  color: #665e50;
+  color: var(--workspace-muted);
 }
 
 .family-card__person-copy {
@@ -301,22 +304,22 @@
 }
 
 .family-card__person-copy strong {
-  font-size: 13px;
+  font-size: 14px;
   overflow-wrap: anywhere;
 }
 
 .family-card__role {
   padding: 2px 7px;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 600;
   border-radius: 5px;
-  color: #58677a;
-  background: #f1f4f8;
+  color: var(--workspace-muted);
+  background: var(--workspace-tint);
 }
 
 .family-card__household {
   padding: 24px 30px;
-  border-left: 1px solid #e9ecf1;
+  border-left: 1px solid var(--workspace-border);
   background: #fafbfdf0;
 }
 
@@ -324,17 +327,17 @@
   display: flex;
   flex-direction: column;
   gap: 7px;
-  font-size: 12px;
+  font-size: 13px;
 }
 
 .family-card__contact a {
   text-decoration: none;
-  color: #53657d;
+  color: var(--workspace-muted);
   overflow-wrap: anywhere;
 }
 
 .family-card__contact a:first-child {
-  color: #2c4d94;
+  color: var(--workspace-blue);
   font-size: 14px;
   font-weight: 700;
 }
@@ -342,7 +345,7 @@
 .family-card__address-section {
   margin-top: 24px;
   padding-top: 20px;
-  border-top: 1px solid #e4e8ee;
+  border-top: 1px solid var(--workspace-border);
 }
 
 .family-card__address+.family-card__address {
@@ -350,15 +353,15 @@
 }
 
 .family-card__address {
-  font-size: 12px;
+  font-size: 13px;
   line-height: 1.65;
-  color: #53657d;
+  color: var(--workspace-muted);
 }
 
 .family-card__address-type {
   display: inline-block;
-  color: #67768c;
-  font-size: 10px;
+  color: var(--workspace-muted);
+  font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: .6px;
@@ -366,19 +369,19 @@
 }
 
 .family-card__empty {
-  color: #7a8697;
-  font-size: 12px;
+  color: var(--workspace-muted);
+  font-size: 13px;
   line-height: 1.7;
 }
 
 .family-card__events {
   padding: 22px 30px 26px;
-  border-top: 1px solid #e9ecf1;
+  border-top: 1px solid var(--workspace-border);
 }
 
 .family-card__event-caption {
-  color: #7a8697;
-  font-size: 11px;
+  color: var(--workspace-muted);
+  font-size: 12px;
 }
 
 .family-card__count {
@@ -387,9 +390,9 @@
   min-width: 20px;
   height: 20px;
   border-radius: 6px;
-  color: #2c4d94;
-  background: #edf2fb;
-  font-size: 10px;
+  color: var(--workspace-blue);
+  background: var(--workspace-tint);
+  font-size: 11px;
 }
 
 .family-card__event-grid {
@@ -403,10 +406,10 @@
   align-items: center;
   gap: 12px;
   text-decoration: none;
-  color: #53657d;
+  color: var(--workspace-muted);
   padding: 12px 14px;
-  background: #f7f8fb;
-  border: 1px solid #e9ecf1;
+  background: var(--workspace-soft);
+  border: 1px solid var(--workspace-border);
   border-radius: 12px;
 }
 
@@ -419,13 +422,13 @@
   min-width: 62px;
   min-height: 56px;
   background: white;
-  border: 1px solid #e1e6ef;
+  border: 1px solid var(--workspace-border);
   border-radius: 9px;
-  color: #2c4d94;
+  color: var(--workspace-blue);
 }
 
 .family-card__date span {
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
 }
@@ -443,12 +446,12 @@
 }
 
 .family-card__event-copy strong {
-  font-size: 13px;
-  color: #26364c;
+  font-size: 14px;
+  color: var(--workspace-ink);
 }
 
 .family-card__event-copy span {
-  font-size: 11px;
+  font-size: 12px;
   overflow-wrap: anywhere;
 }
 
@@ -457,11 +460,11 @@
 }
 
 .family-card a:hover {
-  color: #2c4d94;
+  color: var(--workspace-blue);
 }
 
 .family-card a:focus-visible {
-  outline: 2px solid #2c4d94;
+  outline: 2px solid var(--workspace-blue);
   outline-offset: 3px;
   border-radius: 4px;
 }
@@ -479,7 +482,7 @@
 
   .family-card__household {
     border-left: 0;
-    border-top: 1px solid #e9ecf1;
+    border-top: 1px solid var(--workspace-border);
   }
 
   .family-card__header,

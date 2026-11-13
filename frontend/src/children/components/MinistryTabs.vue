@@ -144,7 +144,7 @@
   .ministry-navigation {
     margin-bottom: 24px;
     padding: 8px 0 14px;
-    border-bottom: 1px solid #e5e9e6;
+    border-bottom: 1px solid var(--workspace-border);
     min-width: 0;
   }
   .ministry-navigation__desktop {
@@ -163,26 +163,26 @@
     gap: 8px;
     padding: 10px 12px;
     border-radius: 10px;
-    color: #718176;
-    font-size: 12px;
+    color: var(--workspace-muted);
+    font-size: 13px;
     font-weight: 600;
     letter-spacing: 0;
     text-transform: none;
     height: 42px;
   }
   .ministry-navigation .is-active {
-    color: #365b43;
-    background: #eaf0e9;
+    color: var(--workspace-ink);
+    background: var(--workspace-tint);
   }
   .ministry-navigation__menu {
     padding: 8px;
-    border: 1px solid #e3eae3;
+    border: 1px solid var(--workspace-border);
     min-width: 260px;
   }
   .ministry-navigation__menu :deep(.v-list-subheader) {
     min-height: 30px;
-    color: #81917f;
-    font-size: 10px;
+    color: var(--workspace-muted);
+    font-size: 11px;
     font-weight: 700;
     letter-spacing: 1px;
     text-transform: uppercase;
@@ -192,21 +192,21 @@
     min-height: 44px;
   }
   .ministry-navigation__menu :deep(.v-list-item-title) {
-    font-size: 13px;
+    font-size: 14px;
   }
   .ministry-navigation__menu :deep(.v-icon) {
     font-size: 19px;
-    color: #62806b;
+    color: var(--workspace-muted);
   }
   .ministry-navigation__current {
     width: 100%;
     max-width: 100%;
     height: 62px;
     justify-content: flex-start;
-    background: #edf2eb;
-    border: 1px solid #e2e9df;
+    background: var(--workspace-tint);
+    border: 1px solid var(--workspace-border);
     border-radius: 14px;
-    color: #3b5d46;
+    color: var(--workspace-ink);
     text-transform: none;
     letter-spacing: 0;
   }
@@ -222,15 +222,15 @@
   }
   .ministry-navigation__current small {
     display: block;
-    font-size: 9px;
+    font-size: 11px;
     letter-spacing: 1.4px;
-    color: #7c8f79;
+    color: var(--workspace-muted);
     margin-bottom: 5px;
   }
   .ministry-navigation__current strong {
     display: block;
     font-weight: 600;
-    font-size: 13px;
+    font-size: 14px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;

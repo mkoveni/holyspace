@@ -12,42 +12,90 @@
       </template>
     </PageHeader>
 
-    <v-card class="mb-4"><v-card-text class="d-flex ga-2 align-center"><v-text-field
-                                                                         v-model="search"
-                                                                         hide-details
-                                                                         label="Find account by username"
-                                                                         @keyup.enter="loadAccounts"
-                                                                       />
-
-      <v-btn
-        :loading="userAccountsStore.isLoading"
-        @click="loadAccounts"
-      >Search accounts</v-btn></v-card-text></v-card>
-
-    <p class="mb-4">Showing up to 50 matching accounts. Search by username to narrow the list.</p>
-
-    <v-card class="mb-4">
-      <v-card-text class="d-flex ga-2 align-center flex-wrap">
-        <v-text-field
-          v-model="lookupId"
-          density="comfortable"
-          hide-details
-          label="User Account ID"
-          style="max-width: 360px"
-        />
-
-        <v-btn color="primary" variant="tonal" @click="handleLookup">Look up by ID</v-btn>
-      </v-card-text>
-    </v-card>
-
     <v-card>
-      <v-data-table :headers="headers" item-value="id" :items="userAccountsStore.accounts">
+      <v-card-text class="workspace-filter-panel">
+        <div class="d-flex ga-3 align-center flex-wrap">
+          <v-text-field
+            v-model="search"
+            clearable
+            hide-details
+            label="Find account by username"
+            prepend-inner-icon="mdi-magnify"
+            style="max-width: 420px"
+            @keyup.enter="loadAccounts"
+          />
+
+          <v-btn
+            :loading="userAccountsStore.isLoading"
+            variant="tonal"
+            @click="loadAccounts"
+          >
+            Search accounts
+          </v-btn>
+
+          <v-spacer />
+
+          <v-text-field
+            v-model="lookupId"
+            hide-details
+            label="Account ID"
+            style="max-width: 280px"
+            @keyup.enter="handleLookup"
+          />
+
+          <v-btn
+            variant="text"
+            @click="handleLookup"
+          >
+            Look up by ID
+          </v-btn>
+        </div>
+
+        <p class="table-muted mt-3">
+          Showing up to 50 matching accounts. Select a row to manage roles, permissions and security.
+        </p>
+      </v-card-text>
+
+      <AppDataTable
+        clickable
+        empty-text="Try a different username, or create a new account."
+        empty-title="No accounts found"
+        :headers="headers"
+        item-value="id"
+        :items="userAccountsStore.accounts"
+        :loading="userAccountsStore.isLoading"
+        @row-click="openManageDialog"
+      >
         <template #item.username="{ item }">
           <div class="table-identity">
-            <span class="table-monogram">{{ item.username.slice(0, 2).toUpperCase() }}</span>
+            <span class="table-monogram">{{ (item.displayName || item.username).slice(0, 2).toUpperCase() }}</span>
 
-            <strong>{{ item.username }}</strong>
+            <span>
+              <strong>{{ item.displayName || item.username }}</strong>
+              <small>@{{ item.username }}{{ item.email ? ` · ${item.email}` : '' }}</small>
+            </span>
           </div>
+        </template>
+
+        <template #item.roles="{ item }">
+          <div
+            v-if="(item.roles ?? []).length > 0"
+            class="chip-row"
+          >
+            <v-chip
+              v-for="role in item.roles"
+              :key="role"
+              color="primary"
+              size="small"
+            >
+              {{ role }}
+            </v-chip>
+          </div>
+
+          <span
+            v-else
+            class="table-muted"
+          >No roles</span>
         </template>
 
         <template #item.status="{ item }">
@@ -64,10 +112,11 @@
             icon="mdi-cog-outline"
             size="small"
             variant="text"
-            @click="openManageDialog(item)"
+            @click.stop="openManageDialog(item)"
           />
         </template>
-      </v-data-table>
+
+      </AppDataTable>
     </v-card>
 
     <UserAccountFormDialog v-model="createDialog" @saved="loadAccounts" />
@@ -78,10 +127,13 @@
 <script lang="ts" setup>
   import type { UserAccount } from '@/types/userAccount'
   import { onMounted, ref } from 'vue'
+  import AppDataTable from '@/components/common/AppDataTable.vue'
   import PageHeader from '@/components/common/PageHeader.vue'
   import StatusChip from '@/components/common/StatusChip.vue'
+  import { extractErrorMessage } from '@/composables/apiErrors'
   import { useUiStore } from '@/stores/ui'
   import { useUserAccountsStore } from '@/stores/userAccounts'
+  import { formatDate } from '@/utils/format'
   import ManageUserAccountDialog from './components/ManageUserAccountDialog.vue'
   import UserAccountFormDialog from './components/UserAccountFormDialog.vue'
 
@@ -95,9 +147,8 @@
   const selectedAccount = ref<UserAccount | null>(null)
 
   const headers = [
-    { title: 'Username', key: 'username', sortable: false },
-    { title: 'Full name', key: 'displayName', sortable: false },
-    { title: 'Email', key: 'email', sortable: false },
+    { title: 'Account', key: 'username', sortable: false },
+    { title: 'Roles', key: 'roles', sortable: false },
     { title: 'Status', key: 'status' },
     { title: 'Created', key: 'createdAt' },
     { title: 'Actions', key: 'actions', sortable: false, align: 'end' },
@@ -107,14 +158,10 @@
     try {
       await userAccountsStore.fetchAll(search.value)
     } catch (error) {
-      ui.notifyError(error instanceof Error ? error.message : 'Unable to load accounts.')
+      ui.notifyError(extractErrorMessage(error, 'Unable to load accounts.'))
     }
   }
   onMounted(loadAccounts)
-
-  function formatDate (value: string) {
-    return new Date(value).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
-  }
 
   function openManageDialog (account: UserAccount) {
     selectedAccount.value = account
@@ -128,7 +175,7 @@
       selectedAccount.value = account
       manageDialog.value = true
     } catch (error) {
-      ui.notifyError(error instanceof Error ? error.message : 'User account not found.')
+      ui.notifyError(extractErrorMessage(error, 'User account not found.'))
     }
   }
 </script>

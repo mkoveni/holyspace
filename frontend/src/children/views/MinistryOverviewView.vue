@@ -301,12 +301,12 @@
   }
   .overview-section > p,
   .overview-item p {
-    color: #75818b;
+    color: var(--workspace-muted);
     line-height: 1.7;
   }
   .overview-item {
     padding: 18px 0;
-    border-bottom: 1px solid #e7ecef;
+    border-bottom: 1px solid var(--workspace-border);
   }
   .overview-item p {
     margin-top: 6px;

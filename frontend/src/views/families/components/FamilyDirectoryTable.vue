@@ -98,6 +98,6 @@
 .family-directory-table :deep(td) { height: 72px !important; }
 .table-event { display: flex; align-items: center; gap: 9px; color: var(--workspace-ink); text-decoration: none; }
 .table-event__dot { width: 6px; height: 6px; border-radius: 50%; background: var(--workspace-gold); flex-shrink: 0; }
-.table-event strong { font-size: 12px; font-weight: 600; text-transform: capitalize; }
-.table-event small { display: block; font-size: 11px; color: var(--workspace-muted); margin-top: 4px; }
+.table-event strong { font-size: 13px; font-weight: 600; text-transform: capitalize; }
+.table-event small { display: block; font-size: 12px; color: var(--workspace-muted); margin-top: 4px; }
 </style>

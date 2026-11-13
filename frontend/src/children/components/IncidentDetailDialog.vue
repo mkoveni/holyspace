@@ -309,11 +309,11 @@
   }
   .incident-event {
     padding: 18px 0;
-    border-bottom: 1px solid #e7ecef;
+    border-bottom: 1px solid var(--workspace-border);
   }
   .incident-event small {
     display: block;
-    color: #75818b;
+    color: var(--workspace-muted);
     margin-top: 5px;
   }
 </style>

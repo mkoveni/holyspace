@@ -1,0 +1,23 @@
+import type { Address, Contact, Household, HouseholdMembership, HouseholdProfile, MembershipType, PeopleMetadata, PersonDetails, PersonProfile, PersonSearch, PersonSummary, Relationship, RelationshipType } from './types';
+export declare const directoryApi: {
+    metadata(): Promise<PeopleMetadata>;
+    people(params?: PersonSearch, signal?: AbortSignal): Promise<PersonSummary[]>;
+    person(id: string, signal?: AbortSignal): Promise<PersonProfile>;
+    savePerson(person: PersonDetails, membershipType: MembershipType, existing?: PersonSummary | null): Promise<string>;
+    archive(person: PersonSummary): Promise<void>;
+    addTitle(code: string, label: string): Promise<void>;
+    addContact(person: PersonSummary, contact: Pick<Contact, "kind" | "value" | "primary">): Promise<void>;
+    endContact(person: PersonSummary, id: string): Promise<void>;
+    addAddress(person: PersonSummary, address: Pick<Address, "line1" | "line2" | "city" | "region" | "postalCode" | "countryCode">): Promise<void>;
+    endAddress(person: PersonSummary, id: string): Promise<void>;
+    households(search?: string, offset?: number, signal?: AbortSignal): Promise<Household[]>;
+    household(id: string, signal?: AbortSignal): Promise<HouseholdProfile>;
+    personHouseholds(id: string, signal?: AbortSignal): Promise<HouseholdMembership[]>;
+    saveHousehold(name: string, existing?: Household | null): Promise<string>;
+    addMember(household: Household, personId: string, primary: boolean): Promise<void>;
+    endMembership(household: Household, membershipId: string): Promise<void>;
+    setContact(household: Household, membershipId: string | null): Promise<void>;
+    relationships(id: string, signal?: AbortSignal): Promise<Relationship[]>;
+    addRelationship(sourceId: string, targetId: string, type: RelationshipType): Promise<void>;
+    endRelationship(relationship: Relationship): Promise<void>;
+};

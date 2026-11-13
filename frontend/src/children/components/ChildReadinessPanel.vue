@@ -352,17 +352,17 @@
   .readiness-panel__summary {
     padding: 20px;
     border-radius: 16px;
-    background: #f3f6fb;
+    background: var(--workspace-hover);
     margin-bottom: 12px;
   }
   .readiness-panel__summary strong {
     display: block;
     font-size: 1.15rem;
-    color: #2c4d94;
+    color: var(--workspace-blue);
   }
   .readiness-panel__summary span {
     display: block;
-    color: #718087;
+    color: var(--workspace-muted);
     font-size: 0.8rem;
     margin-top: 5px;
   }
@@ -372,7 +372,7 @@
     flex-wrap: wrap;
     gap: 12px;
     padding: 20px 0;
-    border-bottom: 1px solid #e5e9ef;
+    border-bottom: 1px solid var(--workspace-border);
   }
   .readiness-panel__step > div {
     flex: 1 1 220px;
@@ -383,17 +383,17 @@
   .readiness-panel__step p,
   .readiness-panel__care p {
     font-size: 0.8rem;
-    color: #718087;
+    color: var(--workspace-muted);
     line-height: 1.65;
     margin: 5px 0;
   }
   .readiness-panel__step small {
-    color: #8a6d3b;
+    color: var(--workspace-muted);
   }
   .readiness-panel__care {
     margin-top: 24px;
     padding: 18px;
-    border: 1px dashed #cdd9dd;
+    border: 1px dashed var(--workspace-border);
     border-radius: 16px;
   }
 </style>

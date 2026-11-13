@@ -2,7 +2,13 @@
   <div>
     <PageHeader eyebrow="Milestones & moments" subtitle="Track marriages, baptisms, and other milestones" title="Life Events">
       <template #actions>
-        <v-btn v-if="access.hasPermission('life_events.manage')" color="primary" prepend-icon="mdi-plus" variant="flat" @click="openCreateDialog">
+        <v-btn
+          v-if="access.hasPermission('life_events.manage')"
+          color="primary"
+          prepend-icon="mdi-plus"
+          variant="flat"
+          @click="openCreateDialog"
+        >
           Record Event
         </v-btn>
       </template>
@@ -98,12 +104,14 @@
 </template>
 
 <script lang="ts" setup>
-import { useAuthStore } from '@/stores/auth'
   import { onMounted, ref } from 'vue'
   import PageHeader from '@/components/common/PageHeader.vue'
   import StatusChip from '@/components/common/StatusChip.vue'
+  import { extractErrorMessage } from '@/composables/apiErrors'
+  import { useAuthStore } from '@/stores/auth'
   import { useLifeEventsStore } from '@/stores/lifeEvents'
   import { type LifeEventType, lifeEventTypes } from '@/types/lifeEvent'
+  import { formatDate } from '@/utils/format'
   import LifeEventFormDialog from './components/LifeEventFormDialog.vue'
 
   const lifeEventsStore = useLifeEventsStore()
@@ -130,10 +138,6 @@ import { useAuthStore } from '@/stores/auth'
     { title: 'Actions', key: 'actions', sortable: false, align: 'end' },
   ] as const
 
-  function formatDate (value: string) {
-    return new Date(value).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
-  }
-
   function openCreateDialog () {
     dialog.value = true
   }
@@ -147,11 +151,11 @@ import { useAuthStore } from '@/stores/auth'
         anniversaries: anniversaries.value,
       })
     } catch (error) {
-      loadError.value = error instanceof Error ? error.message : 'Unable to load life events.'
+      loadError.value = extractErrorMessage(error, 'Unable to load life events.')
     }
   }
 
   onMounted(loadEvents)
 
-const access = useAuthStore()
+  const access = useAuthStore()
 </script>

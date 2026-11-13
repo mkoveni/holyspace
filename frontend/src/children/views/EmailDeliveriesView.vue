@@ -441,14 +441,14 @@
   }
   .delivery-row {
     padding: 24px;
-    border-bottom: 1px solid #e7ecef;
+    border-bottom: 1px solid var(--workspace-border);
   }
   .delivery-row h3 {
     margin: 12px 0 6px;
   }
   .delivery-row p,
   .delivery-event small {
-    color: #75818b;
+    color: var(--workspace-muted);
   }
   .delivery-body {
     white-space: pre-wrap;
@@ -458,7 +458,7 @@
   }
   .delivery-event {
     padding: 18px 0;
-    border-bottom: 1px solid #e7ecef;
+    border-bottom: 1px solid var(--workspace-border);
   }
   .delivery-event small {
     display: block;

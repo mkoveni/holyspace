@@ -1,0 +1,13 @@
+{
+  "name": "Divine Community Space",
+  "short_name": "Community Space",
+  "description": "People, giving, events and children's ministry for your church.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#F6F7FA",
+  "theme_color": "#14223A",
+  "icons": [
+    { "src": "/divine-community-space.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}

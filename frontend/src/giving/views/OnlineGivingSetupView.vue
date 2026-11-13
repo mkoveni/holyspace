@@ -296,7 +296,7 @@
 .link-qr {
   flex: none;
   border-radius: 8px;
-  background: #fff;
+  background: var(--workspace-paper);
 }
 @media (max-width: 600px) {
   .step-body {

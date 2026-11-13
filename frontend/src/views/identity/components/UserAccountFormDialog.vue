@@ -1,53 +1,42 @@
 <template>
-  <v-dialog v-model="model" max-width="480" persistent>
-    <v-card>
-      <v-card-title>Create User Account</v-card-title>
-      <v-divider />
+  <FormDialog
+    ref="formRef"
+    v-model="model"
+    :loading="userAccountsStore.isSaving"
+    submit-label="Create Account"
+    title="Create User Account"
+    @cancel="close"
+    @submit="handleSubmit"
+  >
+    <v-text-field v-model="form.displayName" label="Full name" maxlength="160" :rules="[required]" />
 
-      <v-form ref="formRef" @submit.prevent="handleSubmit">
-        <v-card-text>
-          <v-text-field v-model="form.displayName" label="Full name" maxlength="160" :rules="[required]" />
+    <v-text-field
+      v-model="form.email"
+      label="Email address"
+      maxlength="254"
+      :rules="[required]"
+      type="email"
+    />
 
-          <v-text-field
-            v-model="form.email"
-            label="Email address"
-            maxlength="254"
-            :rules="[required]"
-            type="email"
-          />
+    <v-text-field v-model="form.username" label="Username" :rules="[required]" />
 
-          <v-text-field v-model="form.username" label="Username" :rules="[required]" />
+    <v-text-field
+      v-model="form.password"
+      label="Temporary password"
+      :rules="[required, (value) => value.length >= 12 || 'Use at least 12 characters.']"
+      type="password"
+    />
 
-          <v-text-field
-            v-model="form.password"
-            label="Temporary password"
-            :rules="[required, (value) => value.length >= 12 || 'Use at least 12 characters.']"
-            type="password"
-          />
-
-        </v-card-text>
-
-        <v-card-actions>
-          <v-spacer />
-          <v-btn variant="text" @click="close">Cancel</v-btn>
-
-          <v-btn
-            color="primary"
-            :loading="userAccountsStore.isSaving"
-            type="submit"
-            variant="flat"
-          >Create Account</v-btn>
-        </v-card-actions>
-      </v-form>
-    </v-card>
-  </v-dialog>
+  </FormDialog>
 </template>
 
 <script lang="ts" setup>
   import { computed, reactive, ref } from 'vue'
-  import PeopleSearch from '@/components/common/PeopleSearch.vue'
+  import FormDialog from '@/components/common/FormDialog.vue'
+  import { extractErrorMessage } from '@/composables/apiErrors'
   import { useUiStore } from '@/stores/ui'
   import { useUserAccountsStore } from '@/stores/userAccounts'
+  import { required } from '@/utils/rules'
 
   const props = defineProps<{ modelValue: boolean }>()
   const emit = defineEmits<{ 'update:model-value': [value: boolean], 'saved': [] }>()
@@ -68,8 +57,6 @@
     password: '',
     personId: '',
   })
-
-  const required = (value: string) => Boolean(value) || 'This field is required.'
 
   function close () {
     model.value = false
@@ -96,7 +83,7 @@
       form.password = ''
       form.personId = ''
     } catch (error) {
-      ui.notifyError(error instanceof Error ? error.message : 'Unable to create user account.')
+      ui.notifyError(extractErrorMessage(error, 'Unable to create user account.'))
     }
   }
 </script>

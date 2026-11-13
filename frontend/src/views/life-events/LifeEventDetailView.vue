@@ -25,7 +25,13 @@
           Restore Event
         </v-btn>
 
-        <v-btn v-if="access.hasPermission('life_events.manage')" color="error" icon="mdi-delete-outline" variant="text" @click="handleDelete" />
+        <v-btn
+          v-if="access.hasPermission('life_events.manage')"
+          color="error"
+          icon="mdi-delete-outline"
+          variant="text"
+          @click="handleDelete"
+        />
       </template>
     </PageHeader>
 
@@ -91,14 +97,16 @@
 </template>
 
 <script lang="ts" setup>
-import { useAuthStore } from '@/stores/auth'
   import { computed, onMounted, ref, watch } from 'vue'
   import { useRouter } from 'vue-router'
   import PageHeader from '@/components/common/PageHeader.vue'
   import StatusChip from '@/components/common/StatusChip.vue'
+  import { extractErrorMessage } from '@/composables/apiErrors'
+  import { useAuthStore } from '@/stores/auth'
   import { useLifeEventsStore } from '@/stores/lifeEvents'
   import { usePeopleStore } from '@/stores/people'
   import { useUiStore } from '@/stores/ui'
+  import { formatDate } from '@/utils/format'
   import LifeEventFormDialog from './components/LifeEventFormDialog.vue'
 
   const props = defineProps<{ id: string }>()
@@ -136,10 +144,6 @@ import { useAuthStore } from '@/stores/auth'
     return person ? `${person.firstName} ${person.lastName}` : id
   }
 
-  function formatDate (value: string) {
-    return new Date(value).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })
-  }
-
   async function load () {
     try {
       await lifeEventsStore.fetchOne(props.id)
@@ -147,7 +151,7 @@ import { useAuthStore } from '@/stores/auth'
         await peopleStore.fetchAll()
       }
     } catch (error) {
-      ui.notifyError(error instanceof Error ? error.message : 'Unable to load life event.')
+      ui.notifyError(extractErrorMessage(error, 'Unable to load life event.'))
     }
   }
 
@@ -163,7 +167,7 @@ import { useAuthStore } from '@/stores/auth'
       await lifeEventsStore.cancel(props.id)
       ui.notifySuccess('Life event cancelled.')
     } catch (error) {
-      ui.notifyError(error instanceof Error ? error.message : 'Unable to cancel life event.')
+      ui.notifyError(extractErrorMessage(error, 'Unable to cancel life event.'))
     }
   }
 
@@ -172,7 +176,7 @@ import { useAuthStore } from '@/stores/auth'
       await lifeEventsStore.restore(props.id)
       ui.notifySuccess('Life event restored.')
     } catch (error) {
-      ui.notifyError(error instanceof Error ? error.message : 'Unable to restore life event.')
+      ui.notifyError(extractErrorMessage(error, 'Unable to restore life event.'))
     }
   }
 
@@ -189,7 +193,7 @@ import { useAuthStore } from '@/stores/auth'
       ui.notifySuccess('Life event deleted.')
       await router.push('/life-events')
     } catch (error) {
-      ui.notifyError(error instanceof Error ? error.message : 'Unable to delete life event.')
+      ui.notifyError(extractErrorMessage(error, 'Unable to delete life event.'))
     }
   }
 
@@ -197,10 +201,10 @@ import { useAuthStore } from '@/stores/auth'
 
   onMounted(load)
 
-const access = useAuthStore()
+  const access = useAuthStore()
 </script>
 
 <style scoped>
-.detail-note { margin: 24px 0; padding: 20px; border-left: 3px solid var(--workspace-gold); border-radius: 0 12px 12px 0; background: #f8f7f3; }
-.detail-note p { margin-top: 9px; font-size: 13px; line-height: 1.8; color: var(--workspace-ink); white-space: pre-wrap; }
+.detail-note { margin: 24px 0; padding: 20px; border-left: 3px solid var(--workspace-gold); border-radius: 0 12px 12px 0; background: var(--workspace-tint); }
+.detail-note p { margin-top: 9px; font-size: 14px; line-height: 1.8; color: var(--workspace-ink); white-space: pre-wrap; }
 </style>

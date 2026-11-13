@@ -108,6 +108,20 @@ final class AdministrationApiTest extends IdentityApiTestCase
         self::assertSame(400, $this->code());
     }
 
+    public function testListsShowEachAccountsRolesAndEachRolesPermissions(): void
+    {
+        $this->accountWith('carol', ['people.read', 'events.read']);
+
+        $this->call('GET', '/api/users?search=carol', $this->admin);
+        self::assertSame(200, $this->code());
+        self::assertSame([['test-carol']], array_column($this->json()['items'], 'roles'));
+
+        $this->call('GET', '/api/roles', $this->admin);
+        self::assertSame(200, $this->code());
+        $roles = array_column($this->json(), null, 'name');
+        self::assertSame(['events.read', 'people.read'], $roles['test-carol']['permissions']);
+    }
+
     public function testAccountVersionsAreExposedAndCheckedWhenSupplied(): void
     {
         $id = $this->account('ada');

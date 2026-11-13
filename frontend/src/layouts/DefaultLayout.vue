@@ -1,27 +1,32 @@
 <template>
   <v-app>
+    <a
+      class="skip-link"
+      href="#main-content"
+    >Skip to content</a>
+
     <v-navigation-drawer
       v-model="drawer"
       class="app-drawer"
       :mobile-breakpoint="960"
       :temporary="!mdAndUp"
-      width="252"
+      width="248"
     >
       <div class="app-drawer__brand">
         <div class="brand-mark">
           <v-icon
             icon="mdi-church-outline"
-            size="25"
+            size="24"
           />
         </div>
 
         <div>
           <div class="app-drawer__wordmark">
-            Divine Community Space
+            Divine Community
             <span />
           </div>
 
-          <p>A place for your community</p>
+          <p>Space</p>
         </div>
 
         <v-btn
@@ -35,93 +40,48 @@
         />
       </div>
 
-      <v-list
-        v-model:opened="openedGroups"
+      <nav
         aria-label="Main navigation"
-        class="app-drawer__list"
-        density="comfortable"
-        nav
-        open-strategy="single"
-        slim
+        class="app-drawer__nav"
       >
-        <v-list-subheader class="app-drawer__label">
-          YOUR WORKSPACE
-        </v-list-subheader>
-
-        <v-list-item
-          v-for="item in homeItems"
-          :key="item.to"
-          :active="isActive(item.to)"
-          :aria-current="isActive(item.to) ? 'page' : undefined"
-          class="app-drawer__item app-drawer__home"
-          exact
-          :prepend-icon="item.icon"
-          :title="item.title"
+        <router-link
+          v-for="item in navItems"
+          :key="item.key"
+          :aria-current="item.active ? 'page' : undefined"
+          class="nav-link"
+          :class="{ 'nav-link--active': item.active }"
           :to="item.to"
           @click="closeMobileNavigation"
-        />
-
-        <div class="app-drawer__rule" />
-
-        <v-list-group
-          v-for="group in navigationGroups"
-          :key="group.title"
-          class="app-drawer__group"
-          :value="group.title"
         >
-          <template #activator="{ props }">
-            <v-list-item
-              v-bind="props"
-              class="app-drawer__section"
-              :class="{
-                'app-drawer__section--current': group.items.some((item) =>
-                  routeMatches(route.path, item.to),
-                ),
-              }"
-              :prepend-icon="group.icon"
-              :title="group.title"
-            />
-          </template>
-
-          <v-list-item
-            v-for="item in group.items"
-            :key="item.to"
-            :active="isActive(item.to)"
-            :aria-current="isActive(item.to) ? 'page' : undefined"
-            class="app-drawer__item app-drawer__child"
-            exact
-            :prepend-icon="navigationIcon(item.to)"
-            :title="item.title"
-            :to="item.to"
-            @click="closeMobileNavigation"
+          <v-icon
+            :icon="item.icon"
+            size="20"
           />
-        </v-list-group>
-      </v-list>
+
+          <span>{{ item.title }}</span>
+        </router-link>
+      </nav>
 
       <template #append>
         <div class="app-drawer__footer">
           <v-avatar
             class="app-drawer__avatar"
-            size="34"
+            size="36"
           >
             {{ initials }}
           </v-avatar>
 
           <div>
             <strong>{{ authStore.displayName }}</strong>
-
-            <span>
-              <i />
-              Your church workspace
-            </span>
+            <span>Signed in</span>
           </div>
 
           <v-btn
-            aria-label="Workspace settings"
-            icon="mdi-cog-outline"
+            aria-label="Sign out"
+            icon="mdi-logout"
             size="small"
-            to="/settings"
             variant="text"
+            @click="handleLogout"
           />
         </div>
       </template>
@@ -130,11 +90,12 @@
     <v-app-bar
       class="app-bar"
       flat
-      height="68"
+      height="64"
     >
       <v-app-bar-nav-icon
         :aria-expanded="drawer"
         aria-label="Toggle navigation"
+        class="d-md-none"
         @click="drawer = !drawer"
       />
 
@@ -147,8 +108,33 @@
       </div>
 
       <v-spacer />
-      <span class="app-bar__date">{{ formattedDate }}</span>
+
+      <button
+        aria-label="Search pages, people and actions"
+        class="app-bar__search"
+        type="button"
+        @click="paletteOpen = true"
+      >
+        <v-icon
+          icon="mdi-magnify"
+          size="18"
+        />
+
+        <span class="d-none d-sm-inline">Search or jump to…</span>
+        <kbd class="d-none d-md-inline">{{ shortcut }}</kbd>
+      </button>
+
       <QuickActions />
+
+      <NotificationsMenu />
+
+      <v-btn
+        :aria-label="mode === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'"
+        class="d-none d-sm-inline-flex ml-1"
+        :icon="mode === 'dark' ? 'mdi-weather-sunny' : 'mdi-weather-night'"
+        variant="text"
+        @click="toggleTheme"
+      />
 
       <v-menu
         location="bottom end"
@@ -191,6 +177,12 @@
           <v-divider class="my-2" />
 
           <v-list-item
+            :prepend-icon="mode === 'dark' ? 'mdi-weather-sunny' : 'mdi-weather-night'"
+            :title="mode === 'dark' ? 'Light theme' : 'Dark theme'"
+            @click="toggleTheme"
+          />
+
+          <v-list-item
             prepend-icon="mdi-cog-outline"
             title="Settings"
             to="/settings"
@@ -205,7 +197,10 @@
       </v-menu>
     </v-app-bar>
 
-    <v-main class="app-main">
+    <v-main
+      id="main-content"
+      class="app-main"
+    >
       <v-container
         class="workspace-content"
         fluid
@@ -227,110 +222,80 @@
           </v-btn>
         </v-alert>
 
-        <router-view />
+        <SectionTabs :area="currentArea" />
+
+        <router-view v-slot="{ Component }">
+          <transition
+            mode="out-in"
+            name="router-fade"
+          >
+            <component :is="Component" />
+          </transition>
+        </router-view>
       </v-container>
     </v-main>
 
+    <CommandPalette v-model="paletteOpen" />
     <AppSnackbar />
     <ConfirmDialog />
   </v-app>
 </template>
 <script lang="ts" setup>
-  import { computed, ref, watch } from 'vue'
+  import { computed, onMounted, ref, watch } from 'vue'
   import { useRoute, useRouter } from 'vue-router'
   import { useDisplay } from 'vuetify'
   import AppSnackbar from '@/components/common/AppSnackbar.vue'
   import ConfirmDialog from '@/components/common/ConfirmDialog.vue'
+  import { useAppTheme } from '@/composables/useAppTheme'
+  import { activeAreaItem, visibleAreas } from '@/navigation/areas'
+  import CommandPalette from '@/navigation/components/CommandPalette.vue'
+  import NotificationsMenu from '@/navigation/components/NotificationsMenu.vue'
   import QuickActions from '@/navigation/components/QuickActions.vue'
-  import {
-    navigationIcon,
-    routeMatches,
-    visibleNavigation,
-  } from '@/navigation/workspace'
+  import SectionTabs from '@/navigation/components/SectionTabs.vue'
+  import { routeMatches } from '@/navigation/workspace'
   import { useAuthStore } from '@/stores/auth'
   const { mdAndUp } = useDisplay()
   const drawer = ref(mdAndUp.value),
+        paletteOpen = ref(false),
         route = useRoute(),
         router = useRouter(),
-        authStore = useAuthStore()
+        authStore = useAuthStore(),
+        { mode, init: initTheme, toggle: toggleTheme } = useAppTheme()
+  const shortcut = /Mac|iPhone|iPad/.test(globalThis.navigator?.platform ?? '') ? '⌘K' : 'Ctrl K'
+  const areas = computed(() =>
+    visibleAreas(permission => authStore.hasPermission(permission)),
+  )
   const homeItems = computed(() => [
-    {
-      title: 'Community',
-      to: '/',
-      icon: 'mdi-view-dashboard-outline',
-    },
+    { key: 'home', title: 'Home', to: '/', icon: 'mdi-view-dashboard-outline' },
     ...(authStore.hasPermission('member.portal')
-      ? [
-        {
-          title: 'My church',
-          to: '/member',
-          icon: 'mdi-account-circle-outline',
-        },
-      ]
+      ? [{ key: 'member', title: 'My church', to: '/member', icon: 'mdi-account-circle-outline' }]
       : []),
   ])
-  const navigationGroups = computed(() =>
-    visibleNavigation(permission => authStore.hasPermission(permission)).map(
-      group => ({
-        ...group,
-        title: {
-          'Engagement & reports': 'Communications',
-          'Accounts & access': 'Administration',
-          'My account': 'Preferences',
-        }[group.title] || group.title,
-      }),
-    ),
+  const currentArea = computed(() =>
+    areas.value.find(area => activeAreaItem(area, route.path) !== ''),
   )
-  const activeDestination = computed(() =>
-    [
-      ...homeItems.value,
-      ...navigationGroups.value.flatMap(group => group.items),
-    ]
-      .filter(item => routeMatches(route.path, item.to))
-      .filter(
-        item =>
-          item.to !== '/children'
-          || route.path === '/children'
-          || /^\/children\/(?:programmes|participants)\//.test(route.path),
-      )
-      .reduce(
-        (best, item) => (item.to.length > best.length ? item.to : best),
-        '',
-      ),
-  )
+  const navItems = computed(() => [
+    ...homeItems.value.map(item => ({
+      ...item,
+      active: item.to === '/' ? route.path === '/' : routeMatches(route.path, item.to),
+    })),
+    ...areas.value.map(area => ({
+      key: area.key,
+      title: area.title,
+      to: area.to,
+      icon: area.icon,
+      active: currentArea.value?.key === area.key,
+    })),
+  ])
   const activeSection = computed(
-    () =>
-      navigationGroups.value.find(group =>
-        group.items.some(item => routeMatches(route.path, item.to)),
-      )?.title || 'Church workspace',
+    () => currentArea.value?.title || (route.path === '/' ? 'Home' : 'Church workspace'),
   )
-  const openedGroups = ref<string[]>([])
   watch(mdAndUp, wide => {
     drawer.value = wide
   })
-  watch(
-    [() => route.path, navigationGroups],
-    () => {
-      const active = navigationGroups.value.find(group =>
-        group.items.some(item => routeMatches(route.path, item.to)),
-      )
-      openedGroups.value = active
-        ? [active.title]
-        : openedGroups.value.filter(title =>
-          navigationGroups.value.some(group => group.title === title),
-        )
-      closeMobileNavigation()
-    },
-    { immediate: true },
-  )
+  watch(() => route.path, closeMobileNavigation)
+  onMounted(initTheme)
   const pageTitle = computed(() => (route.meta.title as string) ?? 'Divine Community Space')
-  const formattedDate = computed(() =>
-    new Date().toLocaleDateString(undefined, {
-      weekday: 'short',
-      month: 'short',
-      day: 'numeric',
-    }),
-  )
   const initials = computed(() =>
     (authStore.displayName || 'A')
       .split(/\s+/)
@@ -340,9 +305,6 @@
       .join('')
       .toUpperCase(),
   )
-  function isActive (to: string) {
-    return to === activeDestination.value
-  }
   function closeMobileNavigation () {
     if (!mdAndUp.value) drawer.value = false
   }
@@ -356,24 +318,39 @@
   }
 </script>
 <style scoped>
+  .skip-link {
+    position: absolute;
+    left: 12px;
+    top: -48px;
+    z-index: 3000;
+    padding: 8px 14px;
+    border-radius: 8px;
+    background: var(--workspace-blue);
+    color: #fff;
+    transition: top 0.15s;
+  }
+  .skip-link:focus {
+    top: 12px;
+  }
   .app-drawer {
-    background: #fbfcf9;
-    border-right: 1px solid #e2e8df !important;
+    background: var(--nav-bg) !important;
+    border-right: 0 !important;
+    color: var(--nav-ink);
   }
   .app-drawer__brand {
     display: flex;
     align-items: center;
-    gap: 11px;
-    padding: 24px 18px 22px;
+    gap: 12px;
+    padding: 24px 20px 20px;
   }
   .brand-mark {
     display: grid;
     place-items: center;
-    width: 42px;
-    height: 46px;
-    border-radius: 15px;
-    background: #315642;
-    color: #f4f3df;
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    background: linear-gradient(145deg, #c8b07a, #a58b55);
+    color: #1b2a41;
     flex-shrink: 0;
   }
   .app-drawer__wordmark {
@@ -381,116 +358,84 @@
     align-items: center;
     gap: 6px;
     font:
-      700 20px 'Plus Jakarta Sans',
+      700 16px 'Plus Jakarta Sans',
       sans-serif;
-    letter-spacing: -0.8px;
-    color: #2e4637;
+    letter-spacing: -0.2px;
+    color: #fff;
   }
   .app-drawer__wordmark span {
     width: 5px;
     height: 5px;
-    background: #b8a47c;
+    background: var(--workspace-gold);
     border-radius: 50%;
-    margin-top: 10px;
+    margin-top: 8px;
   }
   .app-drawer__brand p {
-    font-size: 9px;
-    color: #86927f;
-    margin-top: 4px;
-  }
-  .app-drawer__list {
-    --v-list-prepend-gap: 12px;
-    --v-list-slim-spacer-width: 8px;
-    padding: 0 12px 18px;
-  }
-  .app-drawer__label {
-    min-height: 32px;
-    color: #96a18d;
-    font-size: 9px;
-    font-weight: 700;
-    letter-spacing: 1.7px;
-    padding-inline: 12px;
-  }
-  .app-drawer__rule {
-    margin: 18px 12px 12px;
-    height: 1px;
-    background: #e5eadf;
-  }
-  .app-drawer__item {
-    color: #6b7b69;
-    border-radius: 11px !important;
-    min-height: 42px;
-    margin-bottom: 3px;
-    position: relative;
-  }
-  .app-drawer__item :deep(.v-list-item-title) {
     font-size: 12px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--nav-muted);
+    margin-top: 2px;
+  }
+  .app-drawer__nav {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 8px 12px 16px;
+  }
+  .nav-link {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    min-height: 44px;
+    padding: 0 14px;
+    border-radius: 12px;
+    color: var(--nav-ink);
+    font-size: 14px;
     font-weight: 500;
-    letter-spacing: 0;
+    text-decoration: none;
+    transition:
+      background-color 0.18s ease,
+      color 0.18s ease;
   }
-  .app-drawer__item :deep(.v-icon) {
-    font-size: 18px;
-    color: #86977f;
+  .nav-link .v-icon {
+    color: var(--nav-muted);
+    transition: color 0.18s ease;
   }
-  .app-drawer__item :deep(.v-list-item__overlay),
-  .app-drawer__section :deep(.v-list-item__overlay) {
-    display: none;
+  .nav-link:hover {
+    background: #ffffff0d;
+    color: #fff;
   }
-  .app-drawer__item.v-list-item--active {
-    background: #e8efe4;
-    color: #31543d;
+  .nav-link--active {
+    background: var(--nav-active-bg);
+    color: #fff;
+    font-weight: 600;
   }
-  .app-drawer__item.v-list-item--active :deep(.v-list-item-title) {
-    font-weight: 700;
+  .nav-link--active .v-icon {
+    color: var(--workspace-gold);
   }
-  .app-drawer__item.v-list-item--active :deep(.v-icon) {
-    color: #436b4b;
-  }
-  .app-drawer__item.v-list-item--active::before {
+  .nav-link--active::before {
     content: '';
     position: absolute;
-    left: 0;
-    top: 12px;
-    bottom: 12px;
+    left: -12px;
+    top: 10px;
+    bottom: 10px;
     width: 3px;
-    background: #6c8c60;
     border-radius: 0 3px 3px 0;
+    background: var(--workspace-gold);
   }
-  .app-drawer__section {
-    min-height: 46px;
-    border-radius: 10px;
-    color: #5e715d;
-    margin-top: 3px;
-    padding-inline: 12px !important;
-  }
-  .app-drawer__section :deep(.v-list-item-title) {
-    font-size: 11px;
-    font-weight: 650;
-  }
-  .app-drawer__section :deep(.v-icon) {
-    font-size: 18px;
-    color: #8e9d84;
-  }
-  .app-drawer__section :deep(.v-list-item__append .v-icon) {
-    font-size: 15px;
-  }
-  .app-drawer__section--current {
-    color: #32543c;
-  }
-  .app-drawer__child {
-    padding-inline-start: 22px !important;
-    padding-inline-end: 8px !important;
-  }
-  .app-drawer__child :deep(.v-list-item__prepend > .v-icon) {
-    margin-inline-end: 0;
+  .nav-link:focus-visible {
+    outline: 2px solid var(--workspace-gold);
+    outline-offset: 2px;
   }
   .app-drawer__footer {
     display: flex;
     align-items: center;
-    gap: 9px;
-    padding: 15px 14px;
-    border-top: 1px solid #e4e9de;
-    background: #f5f7f0;
+    gap: 10px;
+    padding: 14px 16px;
+    border-top: 1px solid var(--nav-border);
+    color: var(--nav-ink);
   }
   .app-drawer__footer > div:nth-child(2) {
     min-width: 0;
@@ -498,90 +443,100 @@
   }
   .app-drawer__footer strong {
     display: block;
-    color: #4c6048;
-    font-size: 11px;
+    color: #fff;
+    font-size: 13px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
-  .app-drawer__footer > div:nth-child(2) > span {
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    font-size: 9px;
-    color: #8c9881;
-    margin-top: 4px;
-  }
-  .app-drawer__footer > div:nth-child(2) > span > i {
-    width: 5px;
-    height: 5px;
-    border-radius: 50%;
-    background: #8fa67b;
+  .app-drawer__footer span {
+    font-size: 12px;
+    color: var(--nav-muted);
   }
   .app-drawer__avatar {
-    background: #e8eee1;
-    color: #54704c;
-    font-size: 11px;
+    background: var(--workspace-tint);
+    color: var(--workspace-blue);
+    font-size: 12px;
     font-weight: 700;
-    border: 1px solid #dbe4d1;
+    border: 1px solid var(--workspace-tint-border);
   }
   .app-bar {
-    border-bottom: 1px solid #e5e9e1;
-    background: #fff;
+    border-bottom: 1px solid var(--workspace-border);
+    background: var(--workspace-paper) !important;
     padding-inline: 6px 12px;
   }
   .app-bar__heading {
     min-width: 0;
-    margin-left: 4px;
+    margin-left: 8px;
   }
   .app-bar__eyebrow {
     display: block;
-    color: #8b9988;
-    font-size: 9px;
-    letter-spacing: 1.1px;
-    margin-bottom: 3px;
+    color: var(--workspace-gold);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    margin-bottom: 2px;
   }
   .app-bar__title {
     font:
-      600 14px 'Plus Jakarta Sans',
+      700 17px 'Plus Jakarta Sans',
       sans-serif;
-    color: #344b3b;
+    color: var(--workspace-ink);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
-  .app-bar__date {
-    color: #93a08a;
-    font-size: 11px;
-    margin-right: 24px;
+  .app-bar__search {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    height: 40px;
+    min-width: 40px;
+    justify-content: center;
+    padding: 0 14px;
+    margin-right: 12px;
+    border: 1px solid var(--workspace-border);
+    border-radius: 12px;
+    background: var(--workspace-soft);
+    color: var(--workspace-muted);
+    font-size: 14px;
+    cursor: pointer;
+    transition:
+      border-color 0.18s ease,
+      box-shadow 0.18s ease;
+  }
+  .app-bar__search:hover {
+    border-color: var(--workspace-blue);
+    box-shadow: 0 0 0 3px var(--workspace-tint);
+  }
+  @media (min-width: 600px) {
+    .app-bar__search {
+      min-width: 240px;
+      justify-content: flex-start;
+    }
+    .app-bar__search kbd {
+      margin-left: auto;
+    }
+  }
+  .app-bar__search kbd {
+    padding: 1px 7px;
+    border: 1px solid var(--workspace-border);
+    border-radius: 6px;
+    background: var(--workspace-paper);
+    font: 600 11px 'Manrope', sans-serif;
   }
   .app-bar__account {
     min-width: 48px;
     padding-inline: 6px;
-    margin-left: 12px;
+    margin-left: 4px;
   }
   .app-account-menu {
-    border: 1px solid #e5e9e1;
+    border: 1px solid var(--workspace-border);
     padding: 8px;
   }
   .app-main {
     background: var(--workspace-background);
-  }
-  @media (max-width: 959px) {
-    .app-drawer__brand {
-      padding: 20px 12px;
-      gap: 8px;
-    }
-    .app-drawer__wordmark {
-      font-size: 18px;
-    }
-    .brand-mark {
-      width: 34px;
-      height: 40px;
-    }
-    .app-bar__date {
-      display: none;
-    }
   }
   @media (max-width: 599px) {
     .app-bar {
@@ -592,15 +547,13 @@
       margin-right: 8px;
     }
     .app-bar__title {
-      font-size: 12px;
-      max-width: 46vw;
+      font-size: 15px;
+      max-width: 40vw;
     }
-    .app-bar__eyebrow {
-      font-size: 8px;
-    }
-    .app-bar__account {
-      margin-left: 4px;
-      min-width: 40px;
+    .app-bar__search {
+      margin-right: 6px;
+      padding: 0;
+      width: 40px;
     }
   }
 </style>

@@ -13,10 +13,10 @@
 </template>
 
 <style scoped>
-.not-found { display: grid; place-items: center; min-height: 100vh; padding: 24px; background: linear-gradient(115deg, #f7f5ef, #edf2fa); }
-.not-found__card { padding: 48px 40px; max-width: 540px; border: 1px solid var(--workspace-border); border-radius: 24px; background: #fff; box-shadow: var(--workspace-shadow); }
-.not-found__number { display: block; font: 700 96px 'Plus Jakarta Sans', sans-serif; color: #263c61; letter-spacing: -6px; }
+.not-found { display: grid; place-items: center; min-height: 100vh; padding: 24px; background: linear-gradient(115deg, var(--workspace-tint), var(--workspace-tint)); }
+.not-found__card { padding: 48px 40px; max-width: 540px; border: 1px solid var(--workspace-border); border-radius: 24px; background: var(--workspace-paper); box-shadow: var(--workspace-shadow); }
+.not-found__number { display: block; font: 700 96px 'Plus Jakarta Sans', sans-serif; color: var(--workspace-ink); letter-spacing: -6px; }
 .not-found__number > span { color: var(--workspace-gold); }
 .not-found h1 { font: 700 25px 'Plus Jakarta Sans', sans-serif; color: var(--workspace-ink); }
-.not-found p { color: var(--workspace-muted); font-size: 13px; line-height: 1.8; margin: 16px 0 28px; }
+.not-found p { color: var(--workspace-muted); font-size: 14px; line-height: 1.8; margin: 16px 0 28px; }
 </style>

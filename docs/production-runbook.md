@@ -110,3 +110,11 @@ Apply migrations Version20261012030000 and Version20261012040000 before starting
 ## Reporting and follow-up worker
 
 Apply migration Version20261012050000 before starting updated workers. Start the followups service alongside outbox and communications. The operations check now reports followupRulesNeedingReview and fails when a rule needs review, even if the worker itself is healthy. Resolve the review in Reports and segments or keep the rule deliberately disabled after review. Daily rules create tasks only; no outbound notifications are sent. See [the reporting guide](reporting-segments-and-followups.md).
+
+## Forms retention purge
+
+`app:forms:purge` runs daily from the Symfony scheduler (`backend-symfony/src/Schedule.php`) and hard-deletes form
+responses past their retention (at most 3 months), with the participation marks and leaderboards derived from them. The
+audit table keeps only counts. Backups taken before a purge still contain the deleted responses until they expire:
+either keep backup retention at or below the promised retention period, or state the longer backup retention in the
+privacy notice.

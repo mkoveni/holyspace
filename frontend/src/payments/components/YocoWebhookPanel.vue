@@ -309,7 +309,7 @@
 </script>
 <style scoped>
 .webhook-panel {
-  border: 1px solid #e1e8e3;
+  border: 1px solid var(--workspace-border);
   border-radius: 18px;
   padding: 20px;
 }
@@ -320,7 +320,7 @@
   justify-content: space-between;
   flex-wrap: wrap;
   padding: 16px 0;
-  border-bottom: 1px solid #e1e8e3;
+  border-bottom: 1px solid var(--workspace-border);
 }
 .webhook-row > div {
   min-width: 0;
@@ -332,7 +332,7 @@
 }
 .webhook-row p,
 .webhook-row small {
-  color: #667971;
+  color: var(--workspace-muted);
   font-size: 0.8rem;
   margin-top: 6px;
 }

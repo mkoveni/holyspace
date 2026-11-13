@@ -1,51 +1,47 @@
 <template>
-  <v-dialog v-model="model" max-width="720" persistent>
-    <v-card>
-      <v-card-title>{{ event ? 'Edit event details' : 'Create event' }}</v-card-title>
+  <FormDialog
+    ref="formRef"
+    v-model="model"
+    :error="error"
+    :loading="store.isSaving"
+    size="md"
+    :submit-label="event ? 'Save details' : 'Create event'"
+    :title="event ? 'Edit event details' : 'Create event'"
+    @submit="save"
+  >
+    <v-text-field v-model="form.title" label="Title" maxlength="200" :rules="[required]" />
+    <v-select v-model="form.type" :items="eventTypes" label="Event type" />
+    <v-textarea v-model="form.description" label="Description" maxlength="5000" rows="2" />
 
-      <v-form ref="formRef" @submit.prevent="save">
-        <v-card-text>
-          <v-alert v-if="error" class="mb-4" type="error" variant="tonal">{{ error }}</v-alert>
-          <v-text-field v-model="form.title" label="Title" maxlength="200" :rules="[required]" />
-          <v-select v-model="form.type" :items="eventTypes" label="Event type" />
-          <v-textarea v-model="form.description" label="Description" maxlength="5000" rows="2" />
+    <template v-if="!event">
+      <v-text-field v-model="form.location" label="Location" maxlength="255" :rules="[required]" />
+      <v-autocomplete v-model="form.timezone" :items="timezones" label="Timezone" :rules="[required]" />
+      <p class="text-caption mb-3">Enter times in the selected timezone. Weekly events keep the same local time.</p>
 
-          <template v-if="!event">
-            <v-text-field v-model="form.location" label="Location" maxlength="255" :rules="[required]" />
-            <v-autocomplete v-model="form.timezone" :items="timezones" label="Timezone" :rules="[required]" />
-            <p class="text-caption mb-3">Enter times in the selected timezone. Weekly events keep the same local time.</p>
+      <v-row>
+        <v-col cols="12" sm="6"><v-text-field v-model="form.startsAt" label="Starts" :rules="[required]" type="datetime-local" /></v-col>
+        <v-col cols="12" sm="6"><v-text-field v-model="form.endsAt" label="Ends" :rules="[required, endAfterStart]" type="datetime-local" /></v-col>
+      </v-row>
 
-            <v-row>
-              <v-col cols="12" sm="6"><v-text-field v-model="form.startsAt" label="Starts" :rules="[required]" type="datetime-local" /></v-col>
-              <v-col cols="12" sm="6"><v-text-field v-model="form.endsAt" label="Ends" :rules="[required, endAfterStart]" type="datetime-local" /></v-col>
-            </v-row>
+      <v-select v-model="form.recurrence" :items="[{ title: 'One-off', value: 'once' }, { title: 'Weekly', value: 'weekly' }]" label="Schedule" />
 
-            <v-select v-model="form.recurrence" :items="[{ title: 'One-off', value: 'once' }, { title: 'Weekly', value: 'weekly' }]" label="Schedule" />
-
-            <v-text-field
-              v-if="form.recurrence === 'weekly'"
-              v-model.number="form.occurrenceCount"
-              label="Number of occurrences"
-              max="52"
-              min="1"
-              :rules="[validCount]"
-              type="number"
-            />
-          </template>
-        </v-card-text>
-
-        <v-card-actions>
-          <v-spacer />
-          <v-btn :disabled="store.isSaving" @click="model = false">Cancel</v-btn>
-          <v-btn color="primary" :loading="store.isSaving" type="submit" variant="flat">{{ event ? 'Save details' : 'Create event' }}</v-btn>
-        </v-card-actions>
-      </v-form>
-    </v-card>
-  </v-dialog>
+      <v-text-field
+        v-if="form.recurrence === 'weekly'"
+        v-model.number="form.occurrenceCount"
+        label="Number of occurrences"
+        max="52"
+        min="1"
+        :rules="[validCount]"
+        type="number"
+      />
+    </template>
+  </FormDialog>
 </template>
 <script setup lang="ts">
   import type { ChurchEvent, CreateEventPayload } from '@/types/event'
   import { computed, reactive, ref, watch } from 'vue'
+  import FormDialog from '@/components/common/FormDialog.vue'
+  import { extractErrorMessage } from '@/composables/apiErrors'
   import { useEventsStore } from '@/stores/events'
   import { eventTypes } from '@/types/event'
 
@@ -80,7 +76,7 @@
       model.value = false
       emit('saved', id)
     } catch (error_) {
-      error.value = error_ instanceof Error ? error_.message : 'Unable to save event.'
+      error.value = extractErrorMessage(error_, 'Unable to save event.')
     }
   }
 </script>

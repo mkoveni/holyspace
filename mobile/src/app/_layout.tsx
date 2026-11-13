@@ -71,6 +71,8 @@ function Routes() {
         <Stack.Screen name="meeting/[id]" />
         <Stack.Screen name="security" />
         <Stack.Screen name="volunteering" />
+        <Stack.Screen name="forms" />
+        <Stack.Screen name="form/[id]" />
         <Stack.Screen name="children" />
         <Stack.Screen name="inbox" />
         <Stack.Screen name="notification-preferences" />

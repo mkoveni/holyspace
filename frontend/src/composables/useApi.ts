@@ -19,7 +19,7 @@ export function apiUrl (path: string): string {
   return (import.meta.env.VITE_API_BASE_URL ?? '/').replace(/\/+$/, '') + path
 }
 
-function createApiClient(): AxiosInstance {
+function createApiClient (): AxiosInstance {
   const client = axios.create({
     baseURL: import.meta.env.VITE_API_BASE_URL ?? '/',
     timeout: 15_000,
@@ -64,38 +64,12 @@ function createApiClient(): AxiosInstance {
   return client
 }
 
-export function useApi(): AxiosInstance {
+export function useApi (): AxiosInstance {
   if (!instance) {
     instance = createApiClient()
   }
   return instance
 }
 
-export function extractErrorMessage(error: unknown, fallback = 'Something went wrong. Please try again.'): string {
-  if (axios.isCancel(error)) {
-    return error.message
-  }
-  if (axios.isAxiosError(error)) {
-    const data = error.response?.data as { message?: string, detail?: string, violations?: { propertyPath?: string, title?: string, message?: string }[] } | undefined
-    if (data?.violations?.length) {
-      return data.violations.map(violation => [violation.propertyPath, violation.title ?? violation.message].filter(Boolean).join(': ')).join('; ')
-    }
-    if (data?.message || data?.detail) {
-      return data.message ?? data.detail ?? fallback
-    }
-    if (!error.response) {
-      return 'Unable to reach the server. Check your connection and try again.'
-    }
-    if (error.response.status === 403) {
-      return 'You do not have permission to perform this action.'
-    }
-    if (error.response.status >= 500) {
-      return 'The server could not complete this request. Please try again.'
-    }
-    return fallback
-  }
-  if (error instanceof Error) {
-    return error.message
-  }
-  return fallback
-}
+export { classifyError, extractErrorMessage, isConflict } from './apiErrors'
+export type { ApiErrorInfo, ApiErrorKind } from './apiErrors'

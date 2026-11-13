@@ -1,9 +1,9 @@
 <template>
-  <v-dialog v-model="model" max-width="560">
+  <v-dialog v-model="model" max-width="640" scrollable>
     <v-card v-if="account">
       <v-card-title class="d-flex align-center justify-space-between">
-        {{ account.username }}
-        <StatusChip :status="account.status" />
+        {{ live.displayName || live.username }}
+        <StatusChip :status="live.status" />
       </v-card-title>
 
       <v-divider />
@@ -19,47 +19,89 @@
       <v-window v-model="tab">
         <v-window-item value="roles">
           <v-card-text>
-            <v-autocomplete
-              v-model="roleId"
-              item-title="name"
-              item-value="id"
-              :items="rolesStore.roles"
-              label="Role"
-            />
+            <h3 class="section-label">
+              Assigned roles ({{ (live.roles ?? []).length }})
+            </h3>
 
-            <div class="d-flex ga-2 mb-2">
-              <v-btn color="primary" size="small" variant="tonal" @click="handleAssignRole">Assign</v-btn>
-              <v-btn color="error" size="small" variant="tonal" @click="handleRemoveRole">Remove</v-btn>
+            <div
+              v-if="(live.roles ?? []).length > 0"
+              class="chip-row mb-5"
+            >
+              <v-chip
+                v-for="name in live.roles"
+                :key="name"
+                closable
+                color="primary"
+                @click:close="handleRemoveRole(name)"
+              >
+                {{ name }}
+              </v-chip>
             </div>
 
-            <v-alert density="compact" type="info" variant="tonal">
-              Choose an existing church role to assign or remove.
-            </v-alert>
+            <p
+              v-else
+              class="text-medium-emphasis mb-5"
+            >
+              This account has no roles, so it cannot open any staff pages.
+            </p>
+
+            <div class="d-flex ga-2 align-start">
+              <v-autocomplete
+                v-model="roleId"
+                class="flex-grow-1"
+                hide-details
+                item-title="name"
+                item-value="id"
+                :items="availableRoles"
+                label="Add a role"
+                no-data-text="Every role is already assigned"
+              />
+
+              <v-btn
+                color="primary"
+                :disabled="!roleId"
+                height="48"
+                variant="flat"
+                @click="handleAssignRole"
+              >
+                Assign
+              </v-btn>
+            </div>
           </v-card-text>
         </v-window-item>
 
         <v-window-item value="permissions">
           <v-card-text>
-            <v-btn
-              class="mb-2"
-              size="small"
-              variant="tonal"
-              @click="loadPermissions"
-            >Refresh Permissions</v-btn>
+            <h3 class="section-label">
+              Effective permissions ({{ userAccountsStore.permissions.length }})
+            </h3>
 
-            <v-list v-if="userAccountsStore.permissions.length > 0" density="compact">
-              <v-list-item
+            <v-progress-linear
+              v-if="permissionsLoading"
+              class="mb-3"
+              indeterminate
+            />
+
+            <div
+              v-if="userAccountsStore.permissions.length > 0"
+              class="chip-row"
+            >
+              <v-chip
                 v-for="permission in userAccountsStore.permissions"
                 :key="permission"
-                :title="permission"
+                prepend-icon="mdi-key-outline"
+                size="small"
               >
-                <template #prepend>
-                  <v-icon color="primary" icon="mdi-key-outline" />
-                </template>
-              </v-list-item>
-            </v-list>
+                {{ permission }}
+              </v-chip>
+            </div>
 
-            <div v-else class="text-medium-emphasis">No permissions loaded yet.</div>
+            <p
+              v-else-if="!permissionsLoading"
+              class="text-medium-emphasis"
+            >
+              No permissions. Assign a role to grant access.
+            </p>
           </v-card-text>
         </v-window-item>
 
@@ -116,6 +158,8 @@
   import type { UserAccount } from '@/types/userAccount'
   import { computed, ref, watch } from 'vue'
   import StatusChip from '@/components/common/StatusChip.vue'
+  import { extractErrorMessage } from '@/composables/apiErrors'
+  import { useAction } from '@/composables/useAction'
   import { useRolesStore } from '@/stores/roles'
   import { useUiStore } from '@/stores/ui'
   import { useUserAccountsStore } from '@/stores/userAccounts'
@@ -126,6 +170,7 @@
   const rolesStore = useRolesStore()
   const userAccountsStore = useUserAccountsStore()
   const ui = useUiStore()
+  const action = useAction()
 
   const tab = ref('roles')
   const roleId = ref('')
@@ -137,6 +182,13 @@
   })
 
   const account = computed(() => props.account)
+  // Prefer the freshly reloaded copy so assigned roles appear straight away.
+  const live = computed(() => (props.account ? (userAccountsStore.byId(props.account.id) ?? props.account) : ({} as UserAccount)))
+  const permissionsLoading = ref(false)
+  const availableRoles = computed(() => {
+    const held = new Set(live.value.roles)
+    return rolesStore.roles.filter(role => !held.has(role.name))
+  })
 
   watch(
     () => props.modelValue,
@@ -144,9 +196,10 @@
       if (value) {
         void rolesStore
           .fetchAll()
-          .catch(error => ui.notifyError(error instanceof Error ? error.message : 'Unable to load roles.'))
+          .catch(error => ui.notifyError(extractErrorMessage(error, 'Unable to load roles.')))
         tab.value = 'roles'
         roleId.value = ''
+        void loadPermissions()
         newPassword.value = ''
       }
     },
@@ -154,61 +207,76 @@
 
   async function loadPermissions () {
     if (!account.value) return
+    permissionsLoading.value = true
     try {
       await userAccountsStore.fetchPermissions(account.value.id)
     } catch (error) {
-      ui.notifyError(error instanceof Error ? error.message : 'Unable to load permissions.')
+      ui.notifyError(extractErrorMessage(error, 'Unable to load permissions.'))
+    } finally {
+      permissionsLoading.value = false
     }
   }
 
   async function handleAssignRole () {
     if (!account.value || !roleId.value) return
-    try {
-      await userAccountsStore.assignRole(account.value.id, roleId.value)
-      ui.notifySuccess('Role assigned.')
-    } catch (error) {
-      ui.notifyError(error instanceof Error ? error.message : 'Unable to assign role.')
+    const id = account.value.id,
+          role = roleId.value
+    const ok = await action.run(() => userAccountsStore.assignRole(id, role), {
+      success: 'Role assigned.',
+      failure: 'Unable to assign role.',
+    })
+    if (ok) {
+      roleId.value = ''
+      void loadPermissions()
+      emit('saved')
     }
   }
 
-  async function handleRemoveRole () {
-    if (!account.value || !roleId.value) return
-    try {
-      await userAccountsStore.removeRole(account.value.id, roleId.value)
-      ui.notifySuccess('Role removed.')
-    } catch (error) {
-      ui.notifyError(error instanceof Error ? error.message : 'Unable to remove role.')
+  async function handleRemoveRole (name: string) {
+    const role = rolesStore.roles.find(item => item.name === name)
+    if (!account.value || !role) return
+    const id = account.value.id
+    const ok = await action.run(() => userAccountsStore.removeRole(id, role.id), {
+      confirm: { title: `Remove the ${name} role?`, message: 'This account will lose the access the role gives.', confirmText: 'Remove', color: 'error' },
+      success: `${name} role removed.`,
+      failure: 'Unable to remove role.',
+      undo: () => userAccountsStore.assignRole(id, role.id).then(loadPermissions),
+    })
+    if (ok) {
+      void loadPermissions()
+      emit('saved')
     }
   }
 
   async function handleChangePassword () {
     if (!account.value || !newPassword.value) return
-    try {
-      await userAccountsStore.changePassword(account.value.id, { password: newPassword.value })
-      ui.notifySuccess('Password updated.')
-      newPassword.value = ''
-    } catch (error) {
-      ui.notifyError(error instanceof Error ? error.message : 'Unable to update password.')
-    }
+    const id = account.value.id,
+          password = newPassword.value
+    const ok = await action.run(() => userAccountsStore.changePassword(id, { password }), {
+      confirm: { title: 'Change this password?', message: 'The person is signed out everywhere and must use the new password.', confirmText: 'Change password' },
+      success: 'Password updated.',
+      failure: 'Unable to update password.',
+    })
+    if (ok) newPassword.value = ''
   }
 
   async function handleDisable () {
     if (!account.value) return
-    try {
-      await userAccountsStore.disable(account.value.id)
-      ui.notifySuccess('Account disabled.')
-    } catch (error) {
-      ui.notifyError(error instanceof Error ? error.message : 'Unable to disable account.')
-    }
+    const id = account.value.id
+    await action.run(() => userAccountsStore.disable(id), {
+      confirm: { title: 'Disable this account?', message: 'The person is signed out everywhere and cannot sign in until you enable the account again.', confirmText: 'Disable', color: 'error' },
+      success: 'Account disabled.',
+      failure: 'Unable to disable account.',
+      undo: () => userAccountsStore.enable(id),
+    })
   }
 
   async function handleEnable () {
     if (!account.value) return
-    try {
-      await userAccountsStore.enable(account.value.id)
-      ui.notifySuccess('Account enabled.')
-    } catch (error) {
-      ui.notifyError(error instanceof Error ? error.message : 'Unable to enable account.')
-    }
+    const id = account.value.id
+    await action.run(() => userAccountsStore.enable(id), {
+      success: 'Account enabled.',
+      failure: 'Unable to enable account.',
+    })
   }
 </script>

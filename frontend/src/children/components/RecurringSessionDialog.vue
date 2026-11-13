@@ -359,7 +359,7 @@
     gap: 12px;
     align-items: flex-start;
     padding: 16px 0;
-    border-top: 1px solid #e7ecef;
+    border-top: 1px solid var(--workspace-border);
   }
   .series-preview article > :first-child {
     flex: 0 0 44px;
@@ -375,10 +375,10 @@
     opacity: 0.6;
   }
   .series-conflict {
-    color: #ad4040;
+    color: var(--workspace-muted);
   }
   .series-warning {
-    color: #8f6b2a;
+    color: var(--workspace-muted);
     font-size: 0.85rem;
   }
   @media (max-width: 500px) {

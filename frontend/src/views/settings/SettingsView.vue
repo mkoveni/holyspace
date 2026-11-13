@@ -27,8 +27,8 @@
 </script>
 
 <style scoped>
-.integration-icon { background: #eef2fa; color: #2c4d94; }
+.integration-icon { background: var(--workspace-tint); color: var(--workspace-blue); }
 .integration-card h2 { font: 700 20px 'Plus Jakarta Sans', sans-serif; color: var(--workspace-ink); margin-bottom: 12px; }
 .integration-card p { color: var(--workspace-muted); max-width: 420px; }
-.integration-footer { display: flex; align-items: center; gap: 9px; border-top: 1px solid var(--workspace-border); padding-top: 20px; margin-top: 28px; color: var(--workspace-muted); font-size: 11px; }
+.integration-footer { display: flex; align-items: center; gap: 9px; border-top: 1px solid var(--workspace-border); padding-top: 20px; margin-top: 28px; color: var(--workspace-muted); font-size: 12px; }
 </style>

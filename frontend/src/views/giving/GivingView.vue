@@ -1,6 +1,6 @@
 <template>
   <div>
-    <v-btn class="mb-4" to="/giving/reports" color="primary">Statements and reports</v-btn>
+    <v-btn class="mb-4" color="primary" to="/giving/reports">Statements and reports</v-btn>
     <v-btn v-if="auth.hasPermission('payments.manage')" class="ml-2 mb-4" to="/payments" variant="outlined">Online payments</v-btn>
     <WorkflowWorkspace :definition="givingDefinition" />
 
@@ -12,9 +12,9 @@
   </div>
 </template>
 <script setup lang="ts">
-  import { useAuthStore } from '@/stores/auth'
   import { computed, ref } from 'vue'
   import WorkflowWorkspace from '@/components/workflows/WorkflowWorkspace.vue'
+  import { useAuthStore } from '@/stores/auth'
   import { useWorkflowsStore } from '@/stores/workflows'
   import { givingDefinition } from '@/workflows/giving'
   const auth = useAuthStore()

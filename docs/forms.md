@@ -1,5 +1,9 @@
 # Forms and submission review
 
+> **Status.** The live API (`backend-symfony`) serves the newer Forms and quizzes context described in
+> [Forms and quizzes (Symfony)](#forms-and-quizzes-symfony) below. The review-then-link-person flow in the rest of this
+> page belongs to the legacy `backend/` application only and is not ported.
+
 Forms is a single-church bounded context. It owns form definitions, publication links, response snapshots and staff review decisions. People remains the identity owner; Events remains the booking owner. Anonymous responses never create or merge people, record attendance, start child custody, post gifts or grant communication consent.
 
 ## Staff use
@@ -71,3 +75,21 @@ Required fields and email validation are visible before sending. Failed requests
 retain entered answers and the submission key so retries do not create duplicate
 responses. The success screen explicitly describes staff review and does not
 promise a reservation or an automatic confirmation message.
+
+## Forms and quizzes (Symfony)
+
+Design: `docs/public-events-and-forms-design.md` section 7. Code: `backend-symfony/src/Forms`, migration `V43`.
+
+- **Audience**: public link, signed-in members, staff (`forms.respond`) or members of chosen groups. Internal forms are
+  either **identified** (the person is recorded) or **anonymous** (no respondent, date only; a signed-in respondent
+  leaves only a participation mark with no link to a response). Public forms are always anonymous.
+- **Quizzes**: scored on the server; the public and member projections never carry the answer key. Optional
+  leaderboard with nicknames only; staff can hide an entry (`forms.responses.moderate`).
+- **Versions**: publishing freezes an immutable version. Responses keep the version they answered. A public form's link
+  token is shown once at publish time; unpublish and publish again for a new link.
+- **Results**: summary per question (hidden for anonymous forms until enough people answered), the response list and a
+  CSV export (`forms.responses.read`). Reading or exporting an identified form's responses is audited.
+- **Retention**: responses, marks and derived leaderboards are hard-deleted after the form's retention (1 to 3 months,
+  default 3) by `app:forms:purge`, scheduled daily.
+- **Screens**: staff at `/forms` (builder, publish, results, export); members at `/member/forms`; public at
+  `/forms/public/:token`; mobile app "Forms" on the home screen.

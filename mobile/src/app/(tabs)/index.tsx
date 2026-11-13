@@ -246,6 +246,12 @@ export default function Home() {
           onPress={() => router.navigate("/volunteering")}
         />
         <QuickAction
+          icon="document-text-outline"
+          title="Forms"
+          label="Forms and quizzes"
+          onPress={() => router.navigate("/forms")}
+        />
+        <QuickAction
           icon="flower-outline"
           title="Family"
           label="My children & family ministry"

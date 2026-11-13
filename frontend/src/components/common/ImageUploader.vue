@@ -132,6 +132,7 @@
 </template>
 <script setup lang="ts">
   import { computed, nextTick, onBeforeUnmount, reactive, ref, shallowRef, watch } from 'vue'
+  import { extractErrorMessage } from '@/composables/apiErrors'
   import { cropRectangle, validateSize } from './image-uploader/crop'
 
   const props = withDefaults(defineProps<{
@@ -185,7 +186,7 @@
       context.clearRect(0, 0, props.width, props.height)
       context.drawImage(bitmap.value, rect.x, rect.y, rect.width, rect.height, 0, 0, props.width, props.height)
     } catch (error_) {
-      error.value = error_ instanceof Error ? error_.message : 'Unable to preview the crop.'
+      error.value = extractErrorMessage(error_, 'Unable to preview the crop.')
     }
   }
   async function choose (file?: File) {
@@ -214,7 +215,7 @@
       await nextTick()
       render()
     } catch (error_) {
-      if (current === generation) error.value = error_ instanceof Error ? error_.message : 'This image could not be opened. Try another file.'
+      if (current === generation) error.value = extractErrorMessage(error_, 'This image could not be opened. Try another file.')
     } finally {
       if (current === generation) decoding.value = false
     }
@@ -266,7 +267,7 @@
       emit('cropped', file)
       clearSelection()
     } catch (error_) {
-      if (current === generation) error.value = error_ instanceof Error ? error_.message : 'Unable to save the image. Your crop is ready to retry.'
+      if (current === generation) error.value = extractErrorMessage(error_, 'Unable to save the image. Your crop is ready to retry.')
     } finally {
       saving.value = false
     }
@@ -292,7 +293,7 @@
 .image-uploader__placeholder span, .image-uploader__hint, .image-uploader__crop-note { font-size: .75rem; color: rgb(var(--v-theme-on-surface), .6); }
 .image-uploader__hint { margin-top: 12px; }
 .image-uploader__existing { display: block; width: 100%; max-height: 320px; object-fit: contain; margin-bottom: 18px; border-radius: 10px; }
-.image-uploader__crop { margin-inline: auto; position: relative; overflow: hidden; border-radius: 10px; background: repeating-conic-gradient(#e4e7eb 0% 25%, #f5f6f8 0% 50%) 50% / 16px 16px; }
+.image-uploader__crop { margin-inline: auto; position: relative; overflow: hidden; border-radius: 10px; background: repeating-conic-gradient(var(--workspace-tint) 0% 25%, var(--workspace-soft) 0% 50%) 50% / 16px 16px; }
 .image-uploader__crop canvas { width: 100%; height: 100%; display: block; cursor: grab; touch-action: none; }
 .image-uploader__crop canvas:active { cursor: grabbing; }
 .image-uploader__grid { position: absolute; inset: 0; pointer-events: none; background: linear-gradient(to right, transparent 33.1%, #ffffff66 33.1%, #ffffff66 33.4%, transparent 33.4%, transparent 66.4%, #ffffff66 66.4%, #ffffff66 66.7%, transparent 66.7%), linear-gradient(to bottom, transparent 33.1%, #ffffff66 33.1%, #ffffff66 33.4%, transparent 33.4%, transparent 66.4%, #ffffff66 66.4%, #ffffff66 66.7%, transparent 66.7%); }

@@ -71,7 +71,7 @@
     gap: 8px;
     margin-bottom: 26px;
     padding-bottom: 14px;
-    border-bottom: 1px solid #e2e8e0;
+    border-bottom: 1px solid var(--workspace-border);
   }
   .serving-navigation a {
     display: flex;
@@ -79,13 +79,13 @@
     gap: 8px;
     padding: 11px 14px;
     border-radius: 12px;
-    font-size: 13px;
-    color: #7a8977;
+    font-size: 14px;
+    color: var(--workspace-muted);
     font-weight: 600;
   }
   .serving-navigation a.active {
-    background: #e8efe4;
-    color: #416044;
+    background: var(--workspace-tint);
+    color: var(--workspace-muted);
   }
   @media (max-width: 600px) {
     .serving-navigation {
@@ -94,7 +94,7 @@
       gap: 5px;
     }
     .serving-navigation a {
-      font-size: 12px;
+      font-size: 13px;
       padding: 10px;
     }
   }

@@ -266,7 +266,7 @@
     flex-wrap: wrap;
     gap: 16px;
     padding: 20px 0;
-    border-top: 1px solid #e5e9ef;
+    border-top: 1px solid var(--workspace-border);
   }
   .programme-roster__identity {
     display: flex;
@@ -280,17 +280,17 @@
   }
   .programme-roster__identity small {
     display: block;
-    color: #718087;
+    color: var(--workspace-muted);
     margin-top: 6px;
   }
   .programme-roster__name {
-    color: #26364c;
+    color: var(--workspace-ink);
     font-weight: 600;
     text-decoration: none;
     overflow-wrap: anywhere;
   }
   .programme-roster__name:hover {
-    color: #2c4d94;
+    color: var(--workspace-blue);
     text-decoration: underline;
   }
   .programme-roster__placement {

@@ -349,11 +349,13 @@
   import PageHeader from '@/components/common/PageHeader.vue'
   import PortalImage from '@/components/common/PortalImage.vue'
   import StatusChip from '@/components/common/StatusChip.vue'
+  import { extractErrorMessage } from '@/composables/apiErrors'
   import { useAuthStore } from '@/stores/auth'
   import { useLifeEventsStore } from '@/stores/lifeEvents'
   import { usePeopleStore } from '@/stores/people'
   import { useUiStore } from '@/stores/ui'
   import { type MembershipStatus, membershipStatuses } from '@/types/person'
+  import { formatDate } from '@/utils/format'
   import AddressFormDialog from './components/AddressFormDialog.vue'
   import CommunicationOptionFormDialog from './components/CommunicationOptionFormDialog.vue'
   import EducationFormDialog from './components/EducationFormDialog.vue'
@@ -404,10 +406,6 @@
     return related ? `${related.relatedFirstName} ${related.relatedLastName}` : 'Unknown person'
   }
 
-  function formatDate (value: string) {
-    return new Date(value).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
-  }
-
   function formatRange (start: string | null, end: string | null) {
     const from = start ? new Date(start).getFullYear() : '—'
     const to = end ? new Date(end).getFullYear() : 'Present'
@@ -428,7 +426,7 @@
         await peopleStore.fetchAll()
       }
     } catch (error) {
-      ui.notifyError(error instanceof Error ? error.message : 'Unable to load person.')
+      ui.notifyError(extractErrorMessage(error, 'Unable to load person.'))
     }
   }
 
@@ -438,7 +436,7 @@
       await peopleStore.changeStatus(props.id, { status: value })
       ui.notifySuccess('Membership status updated.')
     } catch (error) {
-      ui.notifyError(error instanceof Error ? error.message : 'Unable to update status.')
+      ui.notifyError(extractErrorMessage(error, 'Unable to update status.'))
       statusValue.value = person.value.status
     }
   }
@@ -456,7 +454,7 @@
       await peopleStore.endRelationship(props.id, relationshipId)
       ui.notifySuccess('Relationship ended.')
     } catch (error) {
-      ui.notifyError(error instanceof Error ? error.message : 'Unable to end relationship.')
+      ui.notifyError(extractErrorMessage(error, 'Unable to end relationship.'))
     }
   }
 

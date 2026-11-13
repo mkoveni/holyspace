@@ -494,18 +494,18 @@
   }
   .communication-row {
     padding: 24px;
-    border-top: 1px solid #e7ecef;
+    border-top: 1px solid var(--workspace-border);
     overflow-wrap: anywhere;
   }
   .communication-row h3 {
     margin: 7px 0;
   }
   .communication-row p {
-    color: #75818b;
+    color: var(--workspace-muted);
   }
   .communication-paging {
     padding: 18px 24px;
-    border-top: 1px solid #e7ecef;
+    border-top: 1px solid var(--workspace-border);
   }
   .message-body {
     white-space: pre-wrap;

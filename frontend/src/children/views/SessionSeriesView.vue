@@ -369,7 +369,7 @@
     justify-content: space-between;
     gap: 18px;
     padding: 22px 24px;
-    border-top: 1px solid #edf0f3;
+    border-top: 1px solid var(--workspace-border);
     flex-wrap: wrap;
   }
   .series-list-row h3 {
@@ -378,7 +378,7 @@
   .series-list-row p,
   .series-list-row small,
   .series-date-row small {
-    color: #75818b;
+    color: var(--workspace-muted);
   }
   .series-date-row small {
     display: block;

@@ -30,6 +30,19 @@ framework:
             policy: sliding_window
             limit: 120
             interval: '10 minutes'
+        # Public forms: 20 submissions per client address per hour, 300 per form per hour, 120 reads per client in 10 minutes.
+        public_forms:
+            policy: sliding_window
+            limit: 20
+            interval: '1 hour'
+        public_forms_form:
+            policy: sliding_window
+            limit: 300
+            interval: '1 hour'
+        public_forms_read:
+            policy: sliding_window
+            limit: 120
+            interval: '10 minutes'
 
 when@test:
     framework:
@@ -52,6 +65,18 @@ when@test:
                 limit: 100000
                 interval: '1 minute'
             public_giving_read:
+                policy: sliding_window
+                limit: 100000
+                interval: '1 minute'
+            public_forms:
+                policy: sliding_window
+                limit: 100000
+                interval: '1 minute'
+            public_forms_form:
+                policy: sliding_window
+                limit: 100000
+                interval: '1 minute'
+            public_forms_read:
                 policy: sliding_window
                 limit: 100000
                 interval: '1 minute'

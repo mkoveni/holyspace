@@ -15,7 +15,7 @@ const router = createRouter({
     {
       path: '/forms/public/:token',
       name: 'public-form',
-      component: () => import('@/views/forms/PublicFormView.vue'),
+      component: () => import('@/forms/views/PublicFormView.vue'),
       props: true,
       meta: { public: true },
     },
@@ -497,8 +497,41 @@ const router = createRouter({
         {
           path: 'forms',
           name: 'forms',
-          component: () => import('@/views/forms/FormsView.vue'),
+          component: () => import('@/forms/views/FormsView.vue'),
           meta: { title: 'Forms', permission: 'forms.read' },
+        },
+        {
+          path: 'forms/new',
+          name: 'form-new',
+          component: () => import('@/forms/views/FormEditorView.vue'),
+          meta: { title: 'Create form', permission: 'forms.manage' },
+        },
+        {
+          path: 'forms/:id',
+          name: 'form-edit',
+          component: () => import('@/forms/views/FormEditorView.vue'),
+          props: true,
+          meta: { title: 'Edit form', permission: 'forms.manage' },
+        },
+        {
+          path: 'forms/:id/results',
+          name: 'form-results',
+          component: () => import('@/forms/views/FormResultsView.vue'),
+          props: true,
+          meta: { title: 'Form results', permission: 'forms.read' },
+        },
+        {
+          path: 'member/forms',
+          name: 'member-forms',
+          component: () => import('@/forms/views/MemberFormsView.vue'),
+          meta: { title: 'Forms and quizzes', permission: 'member.portal' },
+        },
+        {
+          path: 'member/forms/:id',
+          name: 'member-form',
+          component: () => import('@/forms/views/MemberFormView.vue'),
+          props: true,
+          meta: { title: 'Form', permission: 'member.portal' },
         },
         {
           path: 'communications/templates',

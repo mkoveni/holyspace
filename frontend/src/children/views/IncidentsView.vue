@@ -348,7 +348,7 @@
   .incident-stats dt,
   .incident-row p,
   .incident-row small {
-    color: #75818b;
+    color: var(--workspace-muted);
   }
   .incident-stats dd {
     font-size: 1.8rem;
@@ -357,7 +357,7 @@
   }
   .incident-row {
     padding: 24px;
-    border-top: 1px solid #e7ecef;
+    border-top: 1px solid var(--workspace-border);
     overflow-wrap: anywhere;
   }
   .incident-row h3 {
@@ -365,7 +365,7 @@
   }
   .incident-paging {
     padding: 18px 24px;
-    border-top: 1px solid #e7ecef;
+    border-top: 1px solid var(--workspace-border);
   }
   @media (max-width: 650px) {
     .incident-stats {

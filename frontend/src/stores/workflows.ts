@@ -1,6 +1,6 @@
 import type { OperationalRecord, WorkflowAuditPage } from '@/types/workflow'
-import { defineStore } from 'pinia'
 import { isAxiosError } from 'axios'
+import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { extractErrorMessage, useApi } from '@/composables/useApi'
 
@@ -30,7 +30,9 @@ export const useWorkflowsStore = defineStore('workflows', () => {
       try {
         return (await useApi().get<WorkflowAuditPage>(`/api/audit/${context}/${id}`, { params })).data
       } catch (error) {
-        if (!isAxiosError(error) || error.response?.status !== 501) throw error
+        if (!isAxiosError(error) || error.response?.status !== 501) {
+          throw error
+        }
         return (await useApi().get<WorkflowAuditPage>(`/api/workflows/${context}/${id}/audit`, { params })).data
       }
     } catch (error) {

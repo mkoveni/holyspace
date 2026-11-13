@@ -601,7 +601,7 @@
     padding: 20px;
   }
   .report-stats dt {
-    color: #75818b;
+    color: var(--workspace-muted);
     font-size: 0.8rem;
   }
   .report-stats dd {
@@ -615,7 +615,7 @@
     gap: 20px;
     padding: 22px 24px;
     align-items: center;
-    border-top: 1px solid #edf0f3;
+    border-top: 1px solid var(--workspace-border);
     overflow-wrap: anywhere;
   }
   .report-row small {
@@ -627,14 +627,14 @@
   }
   .report-child small,
   .report-row p {
-    color: #75818b;
+    color: var(--workspace-muted);
   }
   .report-exception {
-    color: #9d6319;
+    color: var(--workspace-muted);
   }
   .report-pagination {
     padding: 16px 24px;
-    border-top: 1px solid #edf0f3;
+    border-top: 1px solid var(--workspace-border);
   }
   @media (max-width: 1100px) {
     .report-stats {

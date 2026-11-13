@@ -71,31 +71,31 @@
   }
   .quick-actions-menu {
     padding: 10px;
-    border: 1px solid #e4eae5;
+    border: 1px solid var(--workspace-border);
   }
   .quick-actions-menu :deep(.v-list-subheader) {
     min-height: 32px;
-    font-size: 10px;
+    font-size: 11px;
     letter-spacing: 1.6px;
     font-weight: 700;
-    color: #7b8d80;
+    color: var(--workspace-muted);
   }
   .quick-actions-menu :deep(.v-list-item) {
     border-radius: 12px;
     min-height: 66px;
   }
   .quick-actions-menu :deep(.v-list-item-title) {
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 600;
-    color: #2c4435;
+    color: var(--workspace-ink);
   }
   .quick-actions-menu :deep(.v-list-item-subtitle) {
-    font-size: 11px;
+    font-size: 12px;
     margin-top: 4px;
     white-space: normal;
   }
   .quick-actions-menu :deep(.v-icon) {
-    color: #5a7b62;
+    color: var(--workspace-blue);
     font-size: 22px;
   }
 </style>

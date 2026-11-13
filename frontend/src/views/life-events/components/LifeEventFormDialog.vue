@@ -1,65 +1,60 @@
 <template>
-  <v-dialog v-model="model" max-width="640" persistent>
-    <v-card>
-      <v-card-title>{{ isEdit ? 'Edit Life Event' : 'Record Life Event' }}</v-card-title>
-      <v-divider />
+  <FormDialog
+    ref="formRef"
+    v-model="model"
+    :loading="lifeEventsStore.isSaving"
+    size="md"
+    :submit-label="isEdit ? 'Save Changes' : 'Record Event'"
+    :title="isEdit ? 'Edit Life Event' : 'Record Life Event'"
+    @cancel="close"
+    @submit="handleSubmit"
+  >
+    <v-row>
+      <v-col cols="12" sm="6">
+        <v-select v-model="form.type" :items="eventTypes" label="Event type" :rules="[required]" />
+      </v-col>
 
-      <v-form ref="formRef" @submit.prevent="handleSubmit">
-        <v-card-text>
-          <v-row>
-            <v-col cols="12" sm="6">
-              <v-select v-model="form.type" :items="eventTypes" label="Event type" :rules="[required]" />
-            </v-col>
+      <v-col cols="12" sm="6">
+        <v-text-field v-model="form.eventDate" label="Event date" :rules="[required]" type="datetime-local" />
+      </v-col>
 
-            <v-col cols="12" sm="6">
-              <v-text-field v-model="form.eventDate" label="Event date" :rules="[required]" type="datetime-local" />
-            </v-col>
+      <v-col cols="12">
+        <PeopleSearch
+          v-model="form.participants"
+          label="Participants"
+          multiple
+          :rules="[minOne]"
+        />
+      </v-col>
 
-            <v-col cols="12">
-              <PeopleSearch
-                v-model="form.participants"
-                label="Participants"
-                multiple
-                :rules="[minOne]"
-              />
-            </v-col>
+      <v-col v-for="(personId, index) in form.participants" :key="personId" cols="12" sm="6">
+        <v-select
+          :items="participantRoles"
+          :label="`${peopleStore.byId(personId) ? `${peopleStore.byId(personId)?.firstName} ${peopleStore.byId(personId)?.lastName}` : 'Participant'} role`"
+          :model-value="form.roles[personId] ?? defaultRole(index)"
+          @update:model-value="form.roles[personId] = $event"
+        />
+      </v-col>
 
-            <v-col v-for="(personId, index) in form.participants" :key="personId" cols="12" sm="6">
-              <v-select
-                :items="participantRoles"
-                :label="`${peopleStore.byId(personId) ? `${peopleStore.byId(personId)?.firstName} ${peopleStore.byId(personId)?.lastName}` : 'Participant'} role`"
-                :model-value="form.roles[personId] ?? defaultRole(index)"
-                @update:model-value="form.roles[personId] = $event"
-              />
-            </v-col>
+      <v-col cols="12">
+        <v-textarea v-model="form.notes" label="Notes" rows="3" />
+      </v-col>
+    </v-row>
 
-            <v-col cols="12">
-              <v-textarea v-model="form.notes" label="Notes" rows="3" />
-            </v-col>
-          </v-row>
-        </v-card-text>
-
-        <v-card-actions>
-          <v-spacer />
-          <v-btn variant="text" @click="close">Cancel</v-btn>
-
-          <v-btn color="primary" :loading="lifeEventsStore.isSaving" type="submit" variant="flat">
-            {{ isEdit ? 'Save Changes' : 'Record Event' }}
-          </v-btn>
-        </v-card-actions>
-      </v-form>
-    </v-card>
-  </v-dialog>
+  </FormDialog>
 </template>
 
 <script lang="ts" setup>
   import type { LifeEvent, LifeEventType, ParticipantRole } from '@/types/lifeEvent'
   import { computed, reactive, ref, watch } from 'vue'
+  import FormDialog from '@/components/common/FormDialog.vue'
   import PeopleSearch from '@/components/common/PeopleSearch.vue'
+  import { extractErrorMessage } from '@/composables/apiErrors'
   import { useLifeEventsStore } from '@/stores/lifeEvents'
   import { usePeopleStore } from '@/stores/people'
   import { useUiStore } from '@/stores/ui'
   import { lifeEventTypes, participantRoles } from '@/types/lifeEvent'
+  import { required } from '@/utils/rules'
 
   const props = defineProps<{
     modelValue: boolean
@@ -90,7 +85,6 @@
     notes: '',
   })
 
-  const required = (value: string) => Boolean(value) || 'This field is required.'
   const minOne = (value: string[]) => (value && value.length > 0) || 'Select at least one participant.'
 
   watch(() => props.modelValue, value => {
@@ -150,7 +144,7 @@
       emit('saved')
       close()
     } catch (error) {
-      ui.notifyError(error instanceof Error ? error.message : 'Unable to save life event.')
+      ui.notifyError(extractErrorMessage(error, 'Unable to save life event.'))
     }
   }
 

@@ -41,6 +41,7 @@
   import { computed, onBeforeUnmount, ref, watch } from 'vue'
   import { apiUrl, extractErrorMessage, useApi } from '@/composables/useApi'
   import { useAuthStore } from '@/stores/auth'
+  import { useUiStore } from '@/stores/ui'
   import { imagePresets } from './image-uploader/crop'
   import ImageUploader from './ImageUploader.vue'
   const props = defineProps<{ target: 'person' | 'family' | 'event' | 'community' | 'form', ownerId?: string, label: string, editable?: boolean, publicToken?: string, width?: number, height?: number }>()
@@ -106,8 +107,17 @@
       busy.value = false
     }
   }
+  const ui = useUiStore()
   const upload = (file: File) => change(file)
-  const remove = () => change()
+  async function remove () {
+    const confirmed = await ui.confirmAction({
+      title: 'Remove this image?',
+      message: 'The image will no longer be shown. You can upload a new one at any time.',
+      confirmText: 'Remove',
+      color: 'error',
+    })
+    if (confirmed) await change()
+  }
   watch(() => [props.target, props.ownerId, props.publicToken, auth.token], () => {
     void load()
   }, { immediate: true })

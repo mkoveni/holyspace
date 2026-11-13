@@ -47,6 +47,9 @@ security:
         # throttles; the outcome is read only with the order's own access token (sent in the body, never a URL).
         - { path: ^/api/public/giving$, methods: [GET], roles: PUBLIC_ACCESS }
         - { path: ^/api/public/giving/(checkouts|orders/status)$, methods: [POST], roles: PUBLIC_ACCESS }
+        # Public forms and quizzes: the link token is the credential; submits are guarded by a captcha and throttles.
+        - { path: ^/api/public/forms/[A-Za-z0-9_-]+(/leaderboard)?$, methods: [GET], roles: PUBLIC_ACCESS }
+        - { path: ^/api/public/forms/[A-Za-z0-9_-]+$, methods: [POST], roles: PUBLIC_ACCESS }
         - { path: ^/api/, roles: IS_AUTHENTICATED_FULLY }
         - { path: ^/, roles: ROLE_NEVER_GRANTED }
 

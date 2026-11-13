@@ -12,14 +12,17 @@ export const useRolesStore = defineStore('roles', () => {
   const isSaving = ref(false)
 
   async function fetchAll () {
-    try { roles.value = (await useApi().get<Role[]>('/api/roles')).data }
-    catch (error) { throw new Error(extractErrorMessage(error, 'Unable to load roles.'), {cause:error}) }
+    try {
+      roles.value = (await useApi().get<Role[]>('/api/roles')).data
+    } catch (error) {
+      throw new Error(extractErrorMessage(error, 'Unable to load roles.'), { cause: error })
+    }
   }
   async function create (payload: CreateRolePayload) {
     isSaving.value = true
     try {
       const { data } = await useApi().post<CreatedId>('/api/roles', payload)
-      const role: Role = { id: data.id, name: payload.name, description: payload.description }
+      const role: Role = { id: data.id, name: payload.name, description: payload.description, permissions: [] }
       roles.value.unshift(role)
       return role
     } catch (error) {
@@ -29,17 +32,26 @@ export const useRolesStore = defineStore('roles', () => {
     }
   }
 
-  async function addPermission (roleId: string, permissionId: string) {
+  async function addPermission (roleId: string, permissionId: string, code?: string) {
     try {
       await useApi().post(`/api/roles/${roleId}/permissions/${permissionId}`)
+      const role = roles.value.find(item => item.id === roleId)
+      if (role && code && !(role.permissions ?? []).includes(code)) {
+        // eslint-disable-next-line unicorn/no-array-sort
+        role.permissions = [...(role.permissions ?? []), code].sort()
+      }
     } catch (error) {
       throw new Error(extractErrorMessage(error, 'Unable to add permission to role.'), { cause: error })
     }
   }
 
-  async function removePermission (roleId: string, permissionId: string) {
+  async function removePermission (roleId: string, permissionId: string, code?: string) {
     try {
       await useApi().delete(`/api/roles/${roleId}/permissions/${permissionId}`)
+      const role = roles.value.find(item => item.id === roleId)
+      if (role && code) {
+        role.permissions = (role.permissions ?? []).filter(item => item !== code)
+      }
     } catch (error) {
       throw new Error(extractErrorMessage(error, 'Unable to remove permission from role.'), { cause: error })
     }

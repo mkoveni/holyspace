@@ -28,18 +28,24 @@ export const useUserAccountsStore = defineStore('userAccounts', () => {
   async function fetchAll (search = '') {
     isLoading.value = true
     try {
-      const { data } = await useApi().get<{items:UserAccount[]}>('/api/users', {params:{search,limit:50}})
+      const { data } = await useApi().get<{ items: UserAccount[] }>('/api/users', { params: { search, limit: 50 } })
       accounts.value = data.items
     } catch (error) {
-      throw new Error(extractErrorMessage(error, 'Unable to load accounts.'), {cause:error})
-    } finally {isLoading.value = false}
+      throw new Error(extractErrorMessage(error, 'Unable to load accounts.'), { cause: error })
+    } finally {
+      isLoading.value = false
+    }
   }
 
-  async function enableMemberAccess (id:string, personId:string, expectedPersonId:string | null) {
+  async function enableMemberAccess (id: string, personId: string, expectedPersonId: string | null) {
     isSaving.value = true
-    try {await useApi().post('/api/users/' + id + '/member-access', {personId,expectedPersonId})}
-    catch (error) {throw new Error(extractErrorMessage(error, 'Unable to enable member access.'), {cause:error})}
-    finally {isSaving.value = false}
+    try {
+      await useApi().post('/api/users/' + id + '/member-access', { personId, expectedPersonId })
+    } catch (error) {
+      throw new Error(extractErrorMessage(error, 'Unable to enable member access.'), { cause: error })
+    } finally {
+      isSaving.value = false
+    }
   }
 
   async function fetchOne (id: string) {
@@ -108,6 +114,7 @@ export const useUserAccountsStore = defineStore('userAccounts', () => {
   async function assignRole (id: string, roleId: string) {
     try {
       await useApi().post(`/api/users/${id}/roles/${roleId}`)
+      await fetchOne(id)
     } catch (error) {
       throw new Error(extractErrorMessage(error, 'Unable to assign role.'), { cause: error })
     }
@@ -116,6 +123,7 @@ export const useUserAccountsStore = defineStore('userAccounts', () => {
   async function removeRole (id: string, roleId: string) {
     try {
       await useApi().delete(`/api/users/${id}/roles/${roleId}`)
+      await fetchOne(id)
     } catch (error) {
       throw new Error(extractErrorMessage(error, 'Unable to remove role.'), { cause: error })
     }

@@ -601,6 +601,7 @@
 <script setup lang="ts">
   import { computed, onMounted, reactive, ref, watch } from 'vue'
   import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router'
+  import { extractErrorMessage } from '@/composables/apiErrors'
   import DirectoryHeading from '@/directory/components/DirectoryHeading.vue'
   import { useAuthStore } from '@/stores/auth'
   import {
@@ -665,9 +666,7 @@
     () => previewSource.value !== JSON.stringify({ ...draft, values }),
   )
   function message (err: unknown) {
-    return (
-      (err as { response?: { data?: { message?: string } } }).response?.data?.message || 'We could not complete this request. Please try again.'
-    )
+    return extractErrorMessage(err, 'We could not complete this request. Please try again.')
   }
   function statusLabel (status: string) {
     return status === 'PUBLISHED'
@@ -993,7 +992,7 @@
     margin-bottom: 22px;
   }
   .template-preview-panel__heading p {
-    font-size: 13px;
+    font-size: 14px;
     color: #7b8776;
     margin-top: 6px;
   }
@@ -1027,7 +1026,7 @@
     gap: 12px;
     padding: 12px 0;
     color: #6a7865;
-    font-size: 13px;
+    font-size: 14px;
     border-bottom: 1px solid #edf0e8;
   }
   @media (max-width: 850px) {

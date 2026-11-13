@@ -34,10 +34,10 @@ final class AccountJson
         ];
     }
 
-    /** @return array<string, string> */
+    /** @return array<string, mixed> */
     public static function role(RoleSummary $role): array
     {
-        return ['id' => $role->id, 'name' => $role->name, 'description' => $role->description];
+        return ['id' => $role->id, 'name' => $role->name, 'description' => $role->description, 'permissions' => $role->permissions];
     }
 
     /** @return array<string, string> */

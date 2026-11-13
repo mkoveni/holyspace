@@ -1,56 +1,51 @@
 <template>
-  <v-dialog v-model="model" max-width="560" persistent>
-    <v-card>
-      <v-card-title>{{ isEdit ? 'Edit Person' : 'Add Person' }}</v-card-title>
-      <v-divider />
+  <FormDialog
+    ref="formRef"
+    v-model="model"
+    :loading="peopleStore.isSaving"
+    size="md"
+    :submit-label="isEdit ? 'Save Changes' : 'Create Person'"
+    :title="isEdit ? 'Edit Person' : 'Add Person'"
+    @cancel="close"
+    @submit="handleSubmit"
+  >
+    <v-row>
+      <v-col cols="12" sm="6">
+        <v-text-field v-model="form.firstName" label="First name" :rules="[required]" />
+      </v-col>
 
-      <v-form ref="formRef" @submit.prevent="handleSubmit">
-        <v-card-text>
-          <v-row>
-            <v-col cols="12" sm="6">
-              <v-text-field v-model="form.firstName" label="First name" :rules="[required]" />
-            </v-col>
+      <v-col cols="12" sm="6">
+        <v-text-field v-model="form.lastName" label="Last name" :rules="[required]" />
+      </v-col>
 
-            <v-col cols="12" sm="6">
-              <v-text-field v-model="form.lastName" label="Last name" :rules="[required]" />
-            </v-col>
+      <v-col cols="12" sm="6">
+        <v-text-field v-model="form.dateOfBirth" label="Date of birth" type="date" />
+      </v-col>
 
-            <v-col cols="12" sm="6">
-              <v-text-field v-model="form.dateOfBirth" label="Date of birth" type="date" />
-            </v-col>
+      <v-col cols="12" sm="6">
+        <v-select v-model="form.gender" :items="genderOptions" label="Gender" />
+      </v-col>
 
-            <v-col cols="12" sm="6">
-              <v-select v-model="form.gender" :items="genderOptions" label="Gender" />
-            </v-col>
+      <v-col cols="12" sm="6">
+        <v-text-field v-model="form.email" label="Email" type="email" />
+      </v-col>
 
-            <v-col cols="12" sm="6">
-              <v-text-field v-model="form.email" label="Email" type="email" />
-            </v-col>
+      <v-col cols="12" sm="6">
+        <v-text-field v-model="form.phone" label="Phone" />
+      </v-col>
+    </v-row>
 
-            <v-col cols="12" sm="6">
-              <v-text-field v-model="form.phone" label="Phone" />
-            </v-col>
-          </v-row>
-        </v-card-text>
-
-        <v-card-actions>
-          <v-spacer />
-          <v-btn variant="text" @click="close">Cancel</v-btn>
-
-          <v-btn color="primary" :loading="peopleStore.isSaving" type="submit" variant="flat">
-            {{ isEdit ? 'Save Changes' : 'Create Person' }}
-          </v-btn>
-        </v-card-actions>
-      </v-form>
-    </v-card>
-  </v-dialog>
+  </FormDialog>
 </template>
 
 <script lang="ts" setup>
   import type { Person, PersonGender } from '@/types/person'
   import { computed, reactive, ref, watch } from 'vue'
+  import FormDialog from '@/components/common/FormDialog.vue'
+  import { extractErrorMessage } from '@/composables/apiErrors'
   import { usePeopleStore } from '@/stores/people'
   import { useUiStore } from '@/stores/ui'
+  import { required } from '@/utils/rules'
 
   const props = defineProps<{
     modelValue: boolean
@@ -88,8 +83,6 @@
     email: '',
     phone: '',
   })
-
-  const required = (value: string) => Boolean(value) || 'This field is required.'
 
   watch(() => props.modelValue, value => {
     if (value) {
@@ -131,7 +124,7 @@
       emit('saved')
       close()
     } catch (error) {
-      ui.notifyError(error instanceof Error ? error.message : 'Unable to save person.')
+      ui.notifyError(extractErrorMessage(error, 'Unable to save person.'))
     }
   }
 </script>

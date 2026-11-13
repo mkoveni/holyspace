@@ -243,8 +243,8 @@
     justify-content: space-between;
     gap: 16px;
     padding: 28px;
-    background: #f5f6ef;
-    border-bottom: 1px solid #e5e9e5;
+    background: var(--workspace-tint);
+    border-bottom: 1px solid var(--workspace-border);
     h2 {
       margin: 8px 0;
       font-size: 1.5rem;
@@ -253,14 +253,14 @@
     }
     p {
       margin: 0;
-      color: #718087;
+      color: var(--workspace-muted);
     }
   }
   .date-time-panel__eyebrow {
     font-size: 0.62rem;
     font-weight: 700;
     letter-spacing: 0.16em;
-    color: #6b8185;
+    color: var(--workspace-muted);
   }
   .date-time-panel__body {
     display: grid;
@@ -277,8 +277,8 @@
     padding: 0 12px;
   }
   .date-time-panel__time {
-    background: #f7f9fc;
-    border-left: 1px solid #e5e9ef;
+    background: var(--workspace-soft);
+    border-left: 1px solid var(--workspace-border);
     padding: 28px 20px;
     min-width: 0;
   }
@@ -288,7 +288,7 @@
     font-variant-numeric: tabular-nums;
     letter-spacing: -0.06em;
     margin: 14px 0 22px;
-    color: #2c4d94;
+    color: var(--workspace-blue);
     span {
       opacity: 0.4;
       padding: 0 3px;
@@ -303,7 +303,7 @@
     display: flex;
     gap: 10px;
     margin-top: 28px;
-    color: #718087;
+    color: var(--workspace-muted);
     font-size: 0.75rem;
     strong,
     span {
@@ -311,7 +311,7 @@
       overflow-wrap: anywhere;
     }
     strong {
-      color: #34465c;
+      color: var(--workspace-ink);
       margin-bottom: 4px;
     }
   }
@@ -320,7 +320,7 @@
     justify-content: flex-end;
     gap: 8px;
     padding: 18px 24px;
-    border-top: 1px solid #e5e9ef;
+    border-top: 1px solid var(--workspace-border);
   }
   @media (max-width: 600px) {
     .date-time-panel__body {
@@ -331,7 +331,7 @@
     }
     .date-time-panel__time {
       border-left: 0;
-      border-top: 1px solid #e5e9ef;
+      border-top: 1px solid var(--workspace-border);
       padding: 20px;
     }
     .date-time-panel__clock {

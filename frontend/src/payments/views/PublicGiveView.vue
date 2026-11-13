@@ -109,6 +109,7 @@
 <script setup lang="ts">
   import type { PublicGivingOptions } from '@/payments/public-giving'
   import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue'
+  import { extractErrorMessage } from '@/composables/apiErrors'
   import { launchCheckout, publicGiving, randsToMinor, tokenKey } from '@/payments/public-giving'
 
   declare global {
@@ -204,7 +205,7 @@
       }
       launchCheckout(started.checkout)
     } catch (error_) {
-      error.value = error_ instanceof Error ? error_.message : 'We could not start your gift. Please try again.'
+      error.value = extractErrorMessage(error_, 'We could not start your gift. Please try again.')
       humanToken = null
       if (widgetId) window.turnstile?.reset(widgetId)
     } finally {
@@ -218,7 +219,7 @@
       form.fundId = options.value.funds[0]?.id ?? ''
       form.provider = options.value.providers[0]?.id ?? ''
     } catch (error_) {
-      error.value = error_ instanceof Error ? error_.message : ''
+      error.value = extractErrorMessage(error_, '')
     } finally {
       loading.value = false
     }

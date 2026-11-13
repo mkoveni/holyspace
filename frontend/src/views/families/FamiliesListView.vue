@@ -2,7 +2,13 @@
   <div>
     <PageHeader eyebrow="People & community" subtitle="A clear view of your households, contacts, and shared milestones." title="Family directory">
       <template #actions>
-        <v-btn v-if="access.hasPermission('families.manage')" color="primary" prepend-icon="mdi-plus" variant="flat" @click="createDialog = true">Add family</v-btn>
+        <v-btn
+          v-if="access.hasPermission('families.manage')"
+          color="primary"
+          prepend-icon="mdi-plus"
+          variant="flat"
+          @click="createDialog = true"
+        >Add family</v-btn>
       </template>
     </PageHeader>
 
@@ -36,10 +42,11 @@
 </template>
 
 <script lang="ts" setup>
-import { useAuthStore } from '@/stores/auth'
   import { computed, onMounted, ref } from 'vue'
   import PageHeader from '@/components/common/PageHeader.vue'
   import StatStrip from '@/components/common/StatStrip.vue'
+  import { extractErrorMessage } from '@/composables/apiErrors'
+  import { useAuthStore } from '@/stores/auth'
   import { useFamiliesStore } from '@/stores/families'
   import FamilyDirectoryTable from './components/FamilyDirectoryTable.vue'
   import FamilyFormDialog from './components/FamilyFormDialog.vue'
@@ -69,10 +76,10 @@ import { useAuthStore } from '@/stores/auth'
       await familiesStore.fetchOverviews()
       loaded.value = true
     } catch (error) {
-      loadError.value = error instanceof Error ? error.message : 'Unable to load families.'
+      loadError.value = extractErrorMessage(error, 'Unable to load families.')
     }
   }
   onMounted(load)
 
-const access = useAuthStore()
+  const access = useAuthStore()
 </script>

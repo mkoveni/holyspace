@@ -269,7 +269,7 @@
   }
   .email-verification {
     padding: 20px;
-    background: #f5f8f5;
+    background: var(--workspace-soft);
     border-radius: 14px;
   }
   .email-verification p {

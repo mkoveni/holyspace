@@ -157,6 +157,10 @@ services:
         arguments:
             $secret: '%kernel.secret%'
 
+    App\Forms\Infrastructure\HmacFormKeys:
+        arguments:
+            $secret: '%kernel.secret%'
+
     App\Payments\Infrastructure\Gateway\TurnstileHumanCheck:
         arguments:
             $secret: '%env(TURNSTILE_SECRET_KEY)%'

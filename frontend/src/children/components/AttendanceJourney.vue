@@ -152,7 +152,7 @@
     list-style: none;
     padding: 0 0 0 18px;
     margin: 20px 0;
-    border-left: 2px solid #dce7e3;
+    border-left: 2px solid var(--workspace-border);
   }
   .attendance-journey li {
     position: relative;

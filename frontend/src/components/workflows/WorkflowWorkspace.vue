@@ -33,7 +33,9 @@
           </v-col>
         </v-row>
 
-        <v-btn :loading="loading" variant="tonal" @click="load">Apply filters</v-btn>
+        <div v-if="activeFilterCount" class="filter-chips">
+          <v-chip closable size="small" @click:close="clearFilters">{{ activeFilterCount }} filter{{ activeFilterCount === 1 ? '' : 's' }} applied · Clear all</v-chip>
+        </div>
       </v-card-text>
     </v-card>
 
@@ -69,10 +71,15 @@
 
       <v-data-table :headers="headers(section)" :items="records(section.key)" :loading="loading">
         <template #item="{ item }">
-          <tr>
+          <tr
+            class="row-clickable"
+            tabindex="0"
+            @click="inspect(item)"
+            @keydown.enter.self="inspect(item)"
+          >
             <td v-for="column in headers(section).filter(header => header.key !== 'actions')" :key="column.key">{{ display(item[column.key], section.fields.find(field => field.key === column.key) ?? { key: column.key, label: column.title }, item) }}</td>
 
-            <td>
+            <td @click.stop>
               <v-btn size="small" variant="text" @click="inspect(item)">Details</v-btn>
 
               <v-btn
@@ -244,9 +251,10 @@
 </template>
 <script setup lang="ts">
   import type { OperationalRecord, WorkflowAction, WorkflowAuditEntry, WorkflowDefinition, WorkflowField, WorkflowSection } from '@/types/workflow'
-  import { computed, onMounted, reactive, ref } from 'vue'
+  import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
   import PageHeader from '@/components/common/PageHeader.vue'
   import PeopleSearch from '@/components/common/PeopleSearch.vue'
+  import { extractErrorMessage } from '@/composables/apiErrors'
   import { useEventsStore } from '@/stores/events'
   import { usePeopleStore } from '@/stores/people'
   import { useUiStore } from '@/stores/ui'
@@ -284,6 +292,28 @@
 
   const form = reactive<Record<string, any>>({})
   const filters = reactive<Record<string, unknown>>({})
+  const activeFilterCount = computed(() => Object.values(filters).filter(Boolean).length)
+  let filterTimer: ReturnType<typeof setTimeout> | undefined
+  // Filters apply as people type or choose, so there is no separate "Apply" click.
+  watch(filters, () => {
+    clearTimeout(filterTimer)
+    filterTimer = setTimeout(applyFilters, 400)
+  }, { deep: true })
+  onBeforeUnmount(() => clearTimeout(filterTimer))
+  async function applyFilters () {
+    loading.value = true
+    loadError.value = ''
+    try {
+      await store.load(props.definition.context, filterParams())
+    } catch (error) {
+      loadError.value = extractErrorMessage(error, 'Unable to load data.')
+    } finally {
+      loading.value = false
+    }
+  }
+  function clearFilters () {
+    for (const key of Object.keys(filters)) filters[key] = ''
+  }
   const filterParams = () => Object.fromEntries(Object.entries(filters).filter(([, value]) => Boolean(value)))
   const browserTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone
   const activeSections = computed(() => props.definition.sections.filter(section => section.key === tab.value))
@@ -345,7 +375,7 @@
         auditNext.value = page.nextBefore
       }
     } catch (error) {
-      if (inspected.value?.id === id) auditError.value = error instanceof Error ? error.message : 'Unable to load change history.'
+      if (inspected.value?.id === id) auditError.value = extractErrorMessage(error, 'Unable to load change history.')
     } finally {
       if (inspected.value?.id === id) auditLoading.value = false
     }
@@ -383,7 +413,7 @@
     try {
       await Promise.all([store.load(props.definition.context, filterParams()), people.fetchAll(), events.fetchAll(), ...(props.definition.dependencies ?? []).map(context => store.load(context))])
     } catch (error) {
-      loadError.value = error instanceof Error ? error.message : 'Unable to load data.'
+      loadError.value = extractErrorMessage(error, 'Unable to load data.')
     } finally {
       loading.value = false
     }
@@ -429,7 +459,7 @@
         if (section.key === 'assignments') form.shiftId = previousShiftId
       }
     } catch (error) {
-      formError.value = error instanceof Error ? error.message : 'Unable to save.'
+      formError.value = extractErrorMessage(error, 'Unable to save.')
     }
   }
   async function act (action: WorkflowAction, record: OperationalRecord) {
@@ -439,7 +469,7 @@
       await store.load(props.definition.context, filterParams())
       ui.notifySuccess('Updated.')
     } catch (error) {
-      ui.notifyError(error instanceof Error ? error.message : 'Unable to update.')
+      ui.notifyError(extractErrorMessage(error, 'Unable to update.'))
     }
   }
   onMounted(load)

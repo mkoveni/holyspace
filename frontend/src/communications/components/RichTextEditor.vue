@@ -284,7 +284,7 @@
     padding: 10px 16px;
     border-top: 1px solid #eef1ec;
     color: #6c7d72;
-    font-size: 12px;
+    font-size: 13px;
   }
   .rich-editor--disabled {
     opacity: 0.75;

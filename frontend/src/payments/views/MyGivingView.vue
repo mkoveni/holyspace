@@ -1,9 +1,9 @@
 <template>
   <div class="directory-workspace donor-workspace">
     <DirectoryHeading
-      eyebrow="MY GIVING"
-      subtitle="A secure place to give, follow your payments and see your contribution history."
-      title="Generosity, made personal."
+      eyebrow="Giving"
+      subtitle="Give securely, follow your payments and see your contribution history."
+      title="My giving"
     >
       <v-btn
         :loading="loading"
@@ -819,11 +819,11 @@
   justify-content: space-between;
   gap: 20px;
   align-items: center;
-  background: linear-gradient(120deg, #163d35, #286758);
+  background: linear-gradient(120deg, #14223a, #2c4d94);
   color: white;
 }
 .donor-hero .directory-eyebrow {
-  color: #b4ddce;
+  color: #e3d3a8;
 }
 .donor-hero h2 {
   font-size: clamp(1.6rem, 3vw, 2.3rem);

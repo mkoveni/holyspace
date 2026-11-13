@@ -133,7 +133,7 @@
   .community-notice-preview {
     width: 100%;
     min-height: 240px;
-    border: 1px solid #dde3e9;
+    border: 1px solid var(--workspace-border);
     border-radius: 12px;
     background: white;
   }

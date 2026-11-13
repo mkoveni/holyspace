@@ -1,3 +1,4 @@
+import { extractErrorMessage } from '@/composables/apiErrors'
 import { useApi } from '@/composables/useApi'
 export interface Volunteer {
   id: string
@@ -217,9 +218,7 @@ export const servingApi = {
     >('/activities', { kind, from, until, limit: 100, offset }),
 }
 export function servingError (error: unknown) {
-  return (
-    (error as { response?: { data?: { message?: string } } }).response?.data?.message || 'Unable to complete this request. Please try again.'
-  )
+  return extractErrorMessage(error, 'Unable to complete this request. Please try again.')
 }
 export function required (value: unknown) {
   return Boolean(value) || 'This field is required.'

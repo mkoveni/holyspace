@@ -1,0 +1,207 @@
+import type { ChangePasswordPayload, CreateUserAccountPayload, UserAccount } from '@/types/userAccount';
+/** Account directory and session-scoped management cache. */
+export declare const useUserAccountsStore: import("pinia").StoreDefinition<"userAccounts", Pick<{
+    reset: () => void;
+    accounts: import("vue").Ref<{
+        id: string;
+        email?: string | undefined;
+        displayName?: string | undefined;
+        username: string;
+        personId: string | null;
+        status: string;
+        roles?: string[] | undefined;
+        createdAt: string;
+        updatedAt: string;
+    }[], UserAccount[] | {
+        id: string;
+        email?: string | undefined;
+        displayName?: string | undefined;
+        username: string;
+        personId: string | null;
+        status: string;
+        roles?: string[] | undefined;
+        createdAt: string;
+        updatedAt: string;
+    }[]>;
+    current: import("vue").Ref<{
+        id: string;
+        email?: string | undefined;
+        displayName?: string | undefined;
+        username: string;
+        personId: string | null;
+        status: string;
+        roles?: string[] | undefined;
+        createdAt: string;
+        updatedAt: string;
+    } | null, UserAccount | {
+        id: string;
+        email?: string | undefined;
+        displayName?: string | undefined;
+        username: string;
+        personId: string | null;
+        status: string;
+        roles?: string[] | undefined;
+        createdAt: string;
+        updatedAt: string;
+    } | null>;
+    permissions: import("vue").Ref<string[], string[]>;
+    isLoading: import("vue").Ref<boolean, boolean>;
+    isSaving: import("vue").Ref<boolean, boolean>;
+    byId: (id: string) => {
+        id: string;
+        email?: string | undefined;
+        displayName?: string | undefined;
+        username: string;
+        personId: string | null;
+        status: string;
+        roles?: string[] | undefined;
+        createdAt: string;
+        updatedAt: string;
+    } | undefined;
+    fetchAll: (search?: string) => Promise<void>;
+    enableMemberAccess: (id: string, personId: string, expectedPersonId: string | null) => Promise<void>;
+    fetchOne: (id: string) => Promise<UserAccount>;
+    create: (payload: CreateUserAccountPayload) => Promise<string>;
+    fetchPermissions: (id: string) => Promise<string[]>;
+    changePassword: (id: string, payload: ChangePasswordPayload) => Promise<void>;
+    disable: (id: string) => Promise<void>;
+    enable: (id: string) => Promise<void>;
+    assignRole: (id: string, roleId: string) => Promise<void>;
+    removeRole: (id: string, roleId: string) => Promise<void>;
+}, "current" | "isLoading" | "isSaving" | "permissions" | "accounts">, Pick<{
+    reset: () => void;
+    accounts: import("vue").Ref<{
+        id: string;
+        email?: string | undefined;
+        displayName?: string | undefined;
+        username: string;
+        personId: string | null;
+        status: string;
+        roles?: string[] | undefined;
+        createdAt: string;
+        updatedAt: string;
+    }[], UserAccount[] | {
+        id: string;
+        email?: string | undefined;
+        displayName?: string | undefined;
+        username: string;
+        personId: string | null;
+        status: string;
+        roles?: string[] | undefined;
+        createdAt: string;
+        updatedAt: string;
+    }[]>;
+    current: import("vue").Ref<{
+        id: string;
+        email?: string | undefined;
+        displayName?: string | undefined;
+        username: string;
+        personId: string | null;
+        status: string;
+        roles?: string[] | undefined;
+        createdAt: string;
+        updatedAt: string;
+    } | null, UserAccount | {
+        id: string;
+        email?: string | undefined;
+        displayName?: string | undefined;
+        username: string;
+        personId: string | null;
+        status: string;
+        roles?: string[] | undefined;
+        createdAt: string;
+        updatedAt: string;
+    } | null>;
+    permissions: import("vue").Ref<string[], string[]>;
+    isLoading: import("vue").Ref<boolean, boolean>;
+    isSaving: import("vue").Ref<boolean, boolean>;
+    byId: (id: string) => {
+        id: string;
+        email?: string | undefined;
+        displayName?: string | undefined;
+        username: string;
+        personId: string | null;
+        status: string;
+        roles?: string[] | undefined;
+        createdAt: string;
+        updatedAt: string;
+    } | undefined;
+    fetchAll: (search?: string) => Promise<void>;
+    enableMemberAccess: (id: string, personId: string, expectedPersonId: string | null) => Promise<void>;
+    fetchOne: (id: string) => Promise<UserAccount>;
+    create: (payload: CreateUserAccountPayload) => Promise<string>;
+    fetchPermissions: (id: string) => Promise<string[]>;
+    changePassword: (id: string, payload: ChangePasswordPayload) => Promise<void>;
+    disable: (id: string) => Promise<void>;
+    enable: (id: string) => Promise<void>;
+    assignRole: (id: string, roleId: string) => Promise<void>;
+    removeRole: (id: string, roleId: string) => Promise<void>;
+}, never>, Pick<{
+    reset: () => void;
+    accounts: import("vue").Ref<{
+        id: string;
+        email?: string | undefined;
+        displayName?: string | undefined;
+        username: string;
+        personId: string | null;
+        status: string;
+        roles?: string[] | undefined;
+        createdAt: string;
+        updatedAt: string;
+    }[], UserAccount[] | {
+        id: string;
+        email?: string | undefined;
+        displayName?: string | undefined;
+        username: string;
+        personId: string | null;
+        status: string;
+        roles?: string[] | undefined;
+        createdAt: string;
+        updatedAt: string;
+    }[]>;
+    current: import("vue").Ref<{
+        id: string;
+        email?: string | undefined;
+        displayName?: string | undefined;
+        username: string;
+        personId: string | null;
+        status: string;
+        roles?: string[] | undefined;
+        createdAt: string;
+        updatedAt: string;
+    } | null, UserAccount | {
+        id: string;
+        email?: string | undefined;
+        displayName?: string | undefined;
+        username: string;
+        personId: string | null;
+        status: string;
+        roles?: string[] | undefined;
+        createdAt: string;
+        updatedAt: string;
+    } | null>;
+    permissions: import("vue").Ref<string[], string[]>;
+    isLoading: import("vue").Ref<boolean, boolean>;
+    isSaving: import("vue").Ref<boolean, boolean>;
+    byId: (id: string) => {
+        id: string;
+        email?: string | undefined;
+        displayName?: string | undefined;
+        username: string;
+        personId: string | null;
+        status: string;
+        roles?: string[] | undefined;
+        createdAt: string;
+        updatedAt: string;
+    } | undefined;
+    fetchAll: (search?: string) => Promise<void>;
+    enableMemberAccess: (id: string, personId: string, expectedPersonId: string | null) => Promise<void>;
+    fetchOne: (id: string) => Promise<UserAccount>;
+    create: (payload: CreateUserAccountPayload) => Promise<string>;
+    fetchPermissions: (id: string) => Promise<string[]>;
+    changePassword: (id: string, payload: ChangePasswordPayload) => Promise<void>;
+    disable: (id: string) => Promise<void>;
+    enable: (id: string) => Promise<void>;
+    assignRole: (id: string, roleId: string) => Promise<void>;
+    removeRole: (id: string, roleId: string) => Promise<void>;
+}, "reset" | "fetchAll" | "fetchOne" | "create" | "byId" | "enableMemberAccess" | "fetchPermissions" | "changePassword" | "disable" | "enable" | "assignRole" | "removeRole">>;

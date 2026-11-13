@@ -20,7 +20,7 @@
   .email-preview {
     width: 100%;
     min-height: 340px;
-    border: 1px solid #e1e8e3;
+    border: 1px solid var(--workspace-border);
     border-radius: 16px;
     background: white;
   }

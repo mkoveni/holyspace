@@ -18,37 +18,39 @@
       </v-data-table>
     </v-card>
 
-    <v-dialog v-model="dialog" max-width="480" persistent>
-      <v-card>
-        <v-card-title>Create Permission</v-card-title>
-        <v-divider />
+    <FormDialog
+      ref="formRef"
+      v-model="dialog"
+      :loading="permissionsStore.isSaving"
+      submit-label="Create"
+      title="Create Permission"
+      @submit="handleCreate"
+    >
+      <v-text-field v-model="form.code" label="Permission code" placeholder="e.g. people.manage" :rules="[required]" />
+      <v-textarea v-model="form.description" label="Description" rows="2" />
 
-        <v-form ref="formRef" @submit.prevent="handleCreate">
-          <v-card-text>
-            <v-text-field v-model="form.code" label="Permission code" placeholder="e.g. people.manage" :rules="[required]" />
-            <v-textarea v-model="form.description" label="Description" rows="2" />
-          </v-card-text>
-
-          <v-card-actions>
-            <v-spacer />
-            <v-btn variant="text" @click="dialog = false">Cancel</v-btn>
-            <v-btn color="primary" :loading="permissionsStore.isSaving" type="submit" variant="flat">Create</v-btn>
-          </v-card-actions>
-        </v-form>
-      </v-card>
-    </v-dialog>
+    </FormDialog>
   </div>
 </template>
 
 <script lang="ts" setup>
   import { onMounted, reactive, ref } from 'vue'
+  import FormDialog from '@/components/common/FormDialog.vue'
   import PageHeader from '@/components/common/PageHeader.vue'
+  import { extractErrorMessage } from '@/composables/apiErrors'
   import { usePermissionsStore } from '@/stores/permissions'
   import { useUiStore } from '@/stores/ui'
+  import { required } from '@/utils/rules'
 
   const permissionsStore = usePermissionsStore()
   const ui = useUiStore()
-  onMounted(async () => {try {await permissionsStore.fetchAll()} catch (error) {ui.notifyError(error instanceof Error ? error.message : 'Unable to load permissions.')} })
+  onMounted(async () => {
+    try {
+      await permissionsStore.fetchAll()
+    } catch (error) {
+      ui.notifyError(extractErrorMessage(error, 'Unable to load permissions.'))
+    }
+  })
 
   const dialog = ref(false)
   const formRef = ref()
@@ -58,8 +60,6 @@
     { title: 'Code', key: 'code', sortable: false },
     { title: 'Description', key: 'description', sortable: false },
   ] as const
-
-  const required = (value: string) => Boolean(value) || 'This field is required.'
 
   async function handleCreate () {
     const { valid } = await formRef.value.validate()
@@ -71,7 +71,7 @@
       form.code = ''
       form.description = ''
     } catch (error) {
-      ui.notifyError(error instanceof Error ? error.message : 'Unable to create permission.')
+      ui.notifyError(extractErrorMessage(error, 'Unable to create permission.'))
     }
   }
 </script>

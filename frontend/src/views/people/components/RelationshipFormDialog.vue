@@ -1,41 +1,37 @@
 <template>
-  <v-dialog v-model="model" max-width="480" persistent>
-    <v-card>
-      <v-card-title>Add Relationship</v-card-title>
-      <v-divider />
+  <FormDialog
+    ref="formRef"
+    v-model="model"
+    :loading="saving"
+    title="Add Relationship"
+    @cancel="close"
+    @submit="handleSubmit"
+  >
+    <v-select
+      v-model="form.type"
+      :items="relationshipTypes"
+      label="Relationship type"
+      :rules="[required]"
+    />
 
-      <v-form ref="formRef" @submit.prevent="handleSubmit">
-        <v-card-text>
-          <v-select
-            v-model="form.type"
-            :items="relationshipTypes"
-            label="Relationship type"
-            :rules="[required]"
-          />
+    <PeopleSearch
+      v-model="form.relatedPersonId"
+      :exclude-ids="[personId]"
+      label="Related person"
+      :rules="[required]"
+    />
 
-          <PeopleSearch
-            v-model="form.relatedPersonId"
-            :exclude-ids="[personId]"
-            label="Related person"
-            :rules="[required]"
-          />
-        </v-card-text>
-
-        <v-card-actions>
-          <v-spacer />
-          <v-btn variant="text" @click="close">Cancel</v-btn>
-          <v-btn color="primary" :loading="saving" type="submit" variant="flat">Save</v-btn>
-        </v-card-actions>
-      </v-form>
-    </v-card>
-  </v-dialog>
+  </FormDialog>
 </template>
 
 <script lang="ts" setup>
   import { computed, reactive, ref } from 'vue'
+  import FormDialog from '@/components/common/FormDialog.vue'
   import PeopleSearch from '@/components/common/PeopleSearch.vue'
+  import { extractErrorMessage } from '@/composables/apiErrors'
   import { usePeopleStore } from '@/stores/people'
   import { useUiStore } from '@/stores/ui'
+  import { required } from '@/utils/rules'
 
   const props = defineProps<{
     modelValue: boolean
@@ -64,8 +60,6 @@
     relatedPersonId: '',
   })
 
-  const required = (value: string) => Boolean(value) || 'This field is required.'
-
   function close () {
     model.value = false
   }
@@ -84,7 +78,7 @@
       emit('saved')
       close()
     } catch (error) {
-      ui.notifyError(error instanceof Error ? error.message : 'Unable to create relationship.')
+      ui.notifyError(extractErrorMessage(error, 'Unable to create relationship.'))
     } finally {
       saving.value = false
     }

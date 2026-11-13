@@ -1701,7 +1701,7 @@
 .session-arrival-reason {
   display: block;
   margin-top: 8px;
-  color: #946021;
+  color: var(--workspace-muted);
   font-size: 0.75rem;
   line-height: 1.5;
   white-space: normal;
@@ -1714,7 +1714,7 @@
   flex-wrap: wrap;
   margin-bottom: 24px;
   padding: 18px 24px;
-  color: #69798e;
+  color: var(--workspace-muted);
   font-size: 0.8rem;
 }
 .session-day-guide span {
@@ -1728,8 +1728,8 @@
   border-radius: 50%;
   width: 26px;
   height: 26px;
-  background: #eef2fa;
-  color: #2c4d94;
+  background: var(--workspace-tint);
+  color: var(--workspace-blue);
 }
 .session-day-mobile-issues {
   display: none;
@@ -1737,14 +1737,14 @@
 @media (max-width: 600px) {
   .session-day-mobile-issues {
     display: block;
-    color: #946021;
+    color: var(--workspace-muted);
     white-space: normal;
   }
 }
 .session-day-issues {
   padding-left: 16px;
   min-width: 150px;
-  color: #946021;
+  color: var(--workspace-muted);
   font-size: 0.78rem;
   line-height: 1.6;
 }

@@ -462,61 +462,17 @@
           </p>
         </template>
 
-        <template v-if="tab === 'deliveries'">
-          <h2 class="mb-4">Every member notice, accounted for</h2>
+        <MemberDeliveryList
+          v-if="tab === 'deliveries'"
+          :loading="sectionLoading"
+          :rows="deliveryRows"
+        />
 
-          <p class="directory-muted mb-4">
-            Approved content stays frozen. Sending rechecks membership, contact
-            and sender access. Captured messages remain in the local email
-            inbox.
-          </p>
-
-          <article
-            v-for="item in deliveryRows"
-            :key="item.id"
-            class="community-record"
-          >
-            <strong>{{ item.status }}</strong>
-
-            <p class="directory-muted">
-              {{ dateLabel(item.scheduledAt) }} · {{ item.attempts }} attempts
-              <span v-if="item.captured">· Captured locally</span>
-            </p>
-
-            <p v-if="item.errorCode">{{ item.errorCode }}</p>
-          </article>
-
-          <p
-            v-if="!sectionLoading && deliveryRows.length === 0"
-            class="directory-muted py-5"
-          >
-            No member notices on this page.
-          </p>
-        </template>
-
-        <template v-if="tab === 'history'">
-          <h2 class="mb-4">A clear record of changes</h2>
-
-          <article
-            v-for="entry in history"
-            :key="entry.id"
-            class="community-record"
-          >
-            <strong>{{ entry.action.replaceAll('_', ' ') }}</strong>
-            <p class="community-note">{{ entry.reason }}</p>
-
-            <p class="directory-muted mt-2">
-              {{ dateLabel(entry.occurredAt) }}
-            </p>
-          </article>
-
-          <p
-            v-if="!sectionLoading && history.length === 0"
-            class="directory-muted py-5"
-          >
-            No history on this page.
-          </p>
-        </template>
+        <CommunityHistoryList
+          v-if="tab === 'history'"
+          :entries="history"
+          :loading="sectionLoading"
+        />
 
         <div class="community-footer">
           <span v-if="total !== null">{{ total }} records</span>
@@ -833,7 +789,9 @@
   } from '../api'
   import AccountPicker from '../components/AccountPicker.vue'
   import CommunityDialog from '../components/CommunityDialog.vue'
+  import CommunityHistoryList from '../components/CommunityHistoryList.vue'
   import GroupAttendance from '../components/GroupAttendance.vue'
+  import MemberDeliveryList from '../components/MemberDeliveryList.vue'
   import MemberNotice from '../components/MemberNotice.vue'
   import '@/directory/directory.scss'
   import '../communities.css'

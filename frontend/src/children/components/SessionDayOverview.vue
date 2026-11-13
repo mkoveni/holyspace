@@ -102,12 +102,12 @@
   .session-day-overview span,
   .session-day-overview small {
     display: block;
-    color: #718087;
+    color: var(--workspace-muted);
     font-size: 0.75rem;
   }
   .session-day-overview strong {
     display: block;
-    color: #26364c;
+    color: var(--workspace-ink);
     font-size: 2rem;
     font-weight: 600;
     margin: 10px 0;

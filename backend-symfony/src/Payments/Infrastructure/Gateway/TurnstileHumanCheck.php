@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Payments\Infrastructure\Gateway;
 
-use App\Payments\Application\Contract\HumanCheck;
 use App\Payments\Domain\PaymentException;
+use App\Shared\Application\HumanCheck;
 use JsonException;
 use SensitiveParameter;
 

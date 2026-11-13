@@ -1,34 +1,30 @@
 <template>
-  <v-dialog v-model="model" max-width="520" persistent>
-    <v-card>
-      <v-card-title>Add Address</v-card-title>
-      <v-divider />
+  <FormDialog
+    ref="formRef"
+    v-model="model"
+    :loading="peopleStore.isSaving"
+    title="Add Address"
+    @cancel="close"
+    @submit="handleSubmit"
+  >
+    <v-select v-model="form.type" :items="typeOptions" label="Address type" :rules="[required]" />
+    <v-text-field v-model="form.line1" label="Address line 1" :rules="[required]" />
+    <v-text-field v-model="form.line2" label="Address line 2 (optional)" />
+    <v-text-field v-model="form.city" label="City" :rules="[required]" />
+    <v-text-field v-model="form.province" label="Province (optional)" />
+    <v-text-field v-model="form.postalCode" label="Postal code (optional)" />
+    <v-text-field v-model="form.country" label="Country" :rules="[required]" />
 
-      <v-form ref="formRef" @submit.prevent="handleSubmit">
-        <v-card-text>
-          <v-select v-model="form.type" :items="typeOptions" label="Address type" :rules="[required]" />
-          <v-text-field v-model="form.line1" label="Address line 1" :rules="[required]" />
-          <v-text-field v-model="form.line2" label="Address line 2 (optional)" />
-          <v-text-field v-model="form.city" label="City" :rules="[required]" />
-          <v-text-field v-model="form.province" label="Province (optional)" />
-          <v-text-field v-model="form.postalCode" label="Postal code (optional)" />
-          <v-text-field v-model="form.country" label="Country" :rules="[required]" />
-        </v-card-text>
-
-        <v-card-actions>
-          <v-spacer />
-          <v-btn variant="text" @click="close">Cancel</v-btn>
-          <v-btn color="primary" :loading="peopleStore.isSaving" type="submit" variant="flat">Save</v-btn>
-        </v-card-actions>
-      </v-form>
-    </v-card>
-  </v-dialog>
+  </FormDialog>
 </template>
 
 <script lang="ts" setup>
   import { computed, reactive, ref } from 'vue'
+  import FormDialog from '@/components/common/FormDialog.vue'
+  import { extractErrorMessage } from '@/composables/apiErrors'
   import { usePeopleStore } from '@/stores/people'
   import { useUiStore } from '@/stores/ui'
+  import { required } from '@/utils/rules'
 
   const props = defineProps<{ modelValue: boolean, personId: string }>()
   const emit = defineEmits<{ 'update:model-value': [value: boolean], 'saved': [] }>()
@@ -54,8 +50,6 @@
     country: 'South Africa',
   })
 
-  const required = (value: string) => Boolean(value) || 'This field is required.'
-
   function close () {
     model.value = false
   }
@@ -79,7 +73,7 @@
       emit('saved')
       close()
     } catch (error) {
-      ui.notifyError(error instanceof Error ? error.message : 'Unable to add address.')
+      ui.notifyError(extractErrorMessage(error, 'Unable to add address.'))
     }
   }
 </script>

@@ -9,6 +9,7 @@ use App\IdentityAccess\Application\Contract\AccessWriter;
 use App\IdentityAccess\Application\Contract\PermissionSummary;
 use App\IdentityAccess\Application\Contract\RoleSummary;
 use App\Shared\Infrastructure\Persistence\AdvisoryLock;
+use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
 
 final readonly class DbalAccessStore implements AccessReader, AccessWriter
@@ -23,11 +24,35 @@ final readonly class DbalAccessStore implements AccessReader, AccessWriter
     {
         $rows = $this->connection->createQueryBuilder()
             ->select('id', 'name', 'description')->from('roles')->orderBy('name')->fetchAllAssociative();
+        $granted = [];
+        foreach ($this->connection->createQueryBuilder()
+            ->select('rp.role_id', 'p.code')->from('role_permissions', 'rp')
+            ->join('rp', 'permissions', 'p', 'p.id = rp.permission_id')
+            ->orderBy('p.code')->fetchAllAssociative() as $grant) {
+            $granted[(string) $grant['role_id']][] = (string) $grant['code'];
+        }
 
         return array_values(array_map(
-            static fn (array $r): RoleSummary => new RoleSummary((string) $r['id'], (string) $r['name'], (string) $r['description']),
+            static fn (array $r): RoleSummary => new RoleSummary((string) $r['id'], (string) $r['name'], (string) $r['description'], $granted[(string) $r['id']] ?? []),
             $rows,
         ));
+    }
+
+    public function roleNamesByAccount(array $accountIds): array
+    {
+        if ([] === $accountIds) {
+            return [];
+        }
+        $names = [];
+        foreach ($this->connection->createQueryBuilder()
+            ->select('ur.user_id', 'r.name')->from('user_roles', 'ur')
+            ->join('ur', 'roles', 'r', 'r.id = ur.role_id')
+            ->where('ur.user_id IN (:accounts)')->setParameter('accounts', $accountIds, ArrayParameterType::STRING)
+            ->orderBy('r.name')->fetchAllAssociative() as $row) {
+            $names[(string) $row['user_id']][] = (string) $row['name'];
+        }
+
+        return $names;
     }
 
     public function permissions(): array

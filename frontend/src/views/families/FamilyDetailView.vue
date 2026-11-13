@@ -13,13 +13,19 @@
 
     <v-skeleton-loader v-if="isLoading" type="article, list-item-avatar-three-line, article" />
 
-    <PortalImage v-if="family && !isLoading" target="family" :owner-id="family.id" label="Family picture" :editable="access.hasPermission('families.manage')" />
+    <PortalImage
+      v-if="family && !isLoading"
+      :editable="access.hasPermission('families.manage')"
+      label="Family picture"
+      :owner-id="family.id"
+      target="family"
+    />
 
     <FamilyOverviewCard
       v-if="family && !isLoading"
       :busy="Boolean(familiesStore.savingContactId)"
-      :family="family"
       :can-manage="access.hasPermission('families.manage')"
+      :family="family"
       @add-address="addressDialog = true"
       @add-member="memberDialog = true"
       @primary-contact="setContact"
@@ -31,9 +37,10 @@
 </template>
 
 <script lang="ts" setup>
-import PortalImage from '@/components/common/PortalImage.vue'
   import { computed, onMounted, ref, watch } from 'vue'
   import PageHeader from '@/components/common/PageHeader.vue'
+  import PortalImage from '@/components/common/PortalImage.vue'
+  import { extractErrorMessage } from '@/composables/apiErrors'
   import { useAuthStore } from '@/stores/auth'
   import { useFamiliesStore } from '@/stores/families'
   import { useUiStore } from '@/stores/ui'
@@ -56,7 +63,7 @@ import PortalImage from '@/components/common/PortalImage.vue'
       await familiesStore.setPrimaryContact(props.id, personId)
       ui.notifySuccess(personId ? 'Primary contact updated.' : 'Primary contact cleared.')
     } catch (error) {
-      ui.notifyError(error instanceof Error ? error.message : 'Unable to update primary contact.')
+      ui.notifyError(extractErrorMessage(error, 'Unable to update primary contact.'))
     }
   }
 
@@ -68,7 +75,7 @@ import PortalImage from '@/components/common/PortalImage.vue'
     try {
       await familiesStore.fetchOverview(props.id)
     } catch (error) {
-      loadError.value = error instanceof Error ? error.message : 'Unable to load family.'
+      loadError.value = extractErrorMessage(error, 'Unable to load family.')
     } finally {
       isLoading.value = false
     }

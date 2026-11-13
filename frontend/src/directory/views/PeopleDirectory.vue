@@ -6,6 +6,14 @@
       title="Every person. A story."
     >
       <v-btn
+        prepend-icon="mdi-download-outline"
+        variant="tonal"
+        @click="exportCsv(false)"
+      >
+        Export page
+      </v-btn>
+
+      <v-btn
         v-if="canManage"
         color="primary"
         prepend-icon="mdi-plus"
@@ -75,7 +83,92 @@
         >
           Options
         </v-btn>
+
+        <v-menu :close-on-content-click="false">
+          <template #activator="{ props: menuProps }">
+            <v-btn
+              v-bind="menuProps"
+              append-icon="mdi-chevron-down"
+              prepend-icon="mdi-bookmark-outline"
+              variant="text"
+            >
+              Saved views
+            </v-btn>
+          </template>
+
+          <v-list min-width="280">
+            <v-list-item
+              v-for="view in savedFilters.views.value"
+              :key="view.name"
+              :title="view.name"
+              @click="savedFilters.apply(view)"
+            >
+              <template #append>
+                <v-btn
+                  :aria-label="`Delete view ${view.name}`"
+                  icon="mdi-close"
+                  size="x-small"
+                  variant="text"
+                  @click.stop="savedFilters.remove(view.name)"
+                />
+              </template>
+            </v-list-item>
+
+            <v-list-item
+              v-if="savedFilters.views.value.length === 0"
+              subtitle="Save the current search and filters to reuse them."
+              title="No saved views yet"
+            />
+
+            <v-divider class="my-2" />
+
+            <div class="d-flex ga-2 pa-2">
+              <v-text-field
+                v-model="newViewName"
+                density="compact"
+                hide-details
+                label="Name this view"
+                @keyup.enter="saveView"
+              />
+
+              <v-btn
+                :disabled="!newViewName.trim()"
+                variant="tonal"
+                @click="saveView"
+              >
+                Save
+              </v-btn>
+            </div>
+          </v-list>
+        </v-menu>
       </div>
+
+      <v-expand-transition>
+        <div
+          v-if="selected.length > 0"
+          class="directory-bulk-bar"
+        >
+          <strong>{{ selected.length }} selected</strong>
+          <v-spacer />
+
+          <v-btn
+            prepend-icon="mdi-download-outline"
+            size="small"
+            variant="text"
+            @click="exportCsv(true)"
+          >
+            Export selected
+          </v-btn>
+
+          <v-btn
+            size="small"
+            variant="text"
+            @click="selected = []"
+          >
+            Clear
+          </v-btn>
+        </div>
+      </v-expand-transition>
 
       <div
         v-if="filters"
@@ -146,6 +239,14 @@
         <table class="directory-table">
           <thead>
             <tr>
+              <th class="directory-check">
+                <v-checkbox-btn
+                  aria-label="Select everyone on this page"
+                  :model-value="allSelected"
+                  @update:model-value="toggleAll"
+                />
+              </th>
+
               <th>Person</th>
               <th>Membership</th>
               <th>Age group</th>
@@ -158,7 +259,20 @@
             <tr
               v-for="person in people"
               :key="person.id"
+              class="row-clickable"
+              @click="router.push(`/people/${person.id}`)"
             >
+              <td
+                class="directory-check"
+                @click.stop
+              >
+                <v-checkbox-btn
+                  :aria-label="`Select ${fullName(person)}`"
+                  :model-value="selected.includes(person.id)"
+                  @update:model-value="toggleOne(person.id)"
+                />
+              </td>
+
               <td>
                 <router-link
                   class="directory-identity"
@@ -222,6 +336,7 @@
                   size="small"
                   :to="`/people/${person.id}`"
                   variant="text"
+                  @click.stop
                 />
               </td>
             </tr>
@@ -300,8 +415,11 @@
   import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
   import { useRouter } from 'vue-router'
   import { extractErrorMessage } from '@/composables/useApi'
+  import { useSavedFilters } from '@/composables/useSavedFilters'
   import { useCreateAction } from '@/navigation/useCreateAction'
   import { useAuthStore } from '@/stores/auth'
+  import { useUiStore } from '@/stores/ui'
+  import { type CsvColumn, downloadCsv, toCsv } from '@/utils/csv'
   import { directoryApi } from '../api'
   import DirectoryEmpty from '../components/DirectoryEmpty.vue'
   import DirectoryHeading from '../components/DirectoryHeading.vue'
@@ -323,11 +441,35 @@
   const people = ref<PersonSummary[]>([])
   const loading = ref(true)
   const error = ref('')
-  const search = ref('')
-  const membership = ref<MembershipType | null>(null)
-  const age = ref<AgeCategory | null>(null)
-  const archived = ref(false)
-  const asOf = ref('')
+  const ui = useUiStore()
+  interface DirectoryFilters {
+    search: string
+    membership: MembershipType | null
+    age: AgeCategory | null
+    archived: boolean
+    asOf: string
+  }
+  const emptyFilters: DirectoryFilters = { search: '', membership: null, age: null, archived: false, asOf: '' }
+  // One object so saved views can capture and restore every filter together.
+  const state = ref<DirectoryFilters>({ ...emptyFilters })
+  const savedFilters = useSavedFilters<DirectoryFilters>('people-directory', state, emptyFilters)
+  const search = computed({ get: () => state.value.search, set: value => {
+    state.value.search = value ?? ''
+  } })
+  const membership = computed({ get: () => state.value.membership, set: value => {
+    state.value.membership = value ?? null
+  } })
+  const age = computed({ get: () => state.value.age, set: value => {
+    state.value.age = value ?? null
+  } })
+  const archived = computed({ get: () => state.value.archived, set: value => {
+    state.value.archived = Boolean(value)
+  } })
+  const asOf = computed({ get: () => state.value.asOf, set: value => {
+    state.value.asOf = value ?? ''
+  } })
+  const newViewName = ref('')
+  const selected = ref<string[]>([])
   const offset = ref(0)
   const filters = ref(false)
   const editor = ref(false)
@@ -384,19 +526,42 @@
     }
   }
   function clearFilters () {
-    search.value = ''
-    membership.value = null
-    age.value = null
-    archived.value = false
-    asOf.value = ''
+    savedFilters.reset()
     offset.value = 0
   }
-  watch([search, membership, age, archived, asOf], () => {
+  const allSelected = computed(() => people.value.length > 0 && people.value.every(person => selected.value.includes(person.id)))
+  function toggleAll (on: boolean | null) {
+    selected.value = on ? people.value.map(person => person.id) : []
+  }
+  function toggleOne (id: string) {
+    selected.value = selected.value.includes(id) ? selected.value.filter(item => item !== id) : [...selected.value, id]
+  }
+  function saveView () {
+    savedFilters.save(newViewName.value)
+    ui.notifySuccess(`Saved view “${newViewName.value.trim()}”.`)
+    newViewName.value = ''
+  }
+  const csvColumns: CsvColumn<PersonSummary>[] = [
+    { header: 'First name', value: person => person.details.firstName },
+    { header: 'Last name', value: person => person.details.lastName },
+    { header: 'Membership', value: person => membershipLabels[person.membershipType] },
+    { header: 'Age group', value: person => ageLabels[person.ageCategory] },
+    { header: 'Date of birth', value: person => person.details.dateOfBirth },
+  ]
+  function exportCsv (onlySelected: boolean) {
+    const rows = onlySelected ? people.value.filter(person => selected.value.includes(person.id)) : people.value
+    downloadCsv('people.csv', toCsv(rows, csvColumns))
+    ui.notifySuccess(`Exported ${rows.length} ${rows.length === 1 ? 'person' : 'people'} from this page.`)
+  }
+  watch(people, () => {
+    selected.value = selected.value.filter(id => people.value.some(person => person.id === id))
+  })
+  watch(state, () => {
     controller?.abort()
     clearTimeout(timer)
     if (offset.value !== 0) offset.value = 0
     timer = setTimeout(load, 250)
-  })
+  }, { deep: true })
   watch(offset, () => {
     clearTimeout(timer)
     void load()

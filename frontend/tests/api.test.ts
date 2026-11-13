@@ -108,7 +108,9 @@ it('uses the backend users routes for account management and bearer authenticati
     'post /api/users', 'get /api/users/user-1', 'get /api/users/user-1/permissions',
     'put /api/users/user-1/password', 'post /api/users/user-1/disable', 'get /api/users/user-1',
     'post /api/users/user-1/enable', 'get /api/users/user-1',
-    'post /api/users/user-1/roles/role-1', 'delete /api/users/user-1/roles/role-1',
+    // Changing a role reloads the account so its role list stays current.
+    'post /api/users/user-1/roles/role-1', 'get /api/users/user-1',
+    'delete /api/users/user-1/roles/role-1', 'get /api/users/user-1',
   ])
 })
 
