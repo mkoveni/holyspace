@@ -61,6 +61,7 @@ final class MobileCheckoutApiTest extends PaymentApiTestCase
     {
         $path = $this->prepare();
         self::assertSame(200, $this->open($path, 'GET'));
+        self::assertStringContainsString("form-action 'self' https://c.yoco.com", (string) $this->client->getResponse()->headers->get('Content-Security-Policy'), 'the landing form may follow the Yoco redirect');
         self::assertSame(200, $this->open($path, 'GET'));
         self::assertSame(200, $this->open($path, 'POST'));
         $response = $this->client->getResponse();

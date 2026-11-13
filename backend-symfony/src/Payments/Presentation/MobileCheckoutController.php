@@ -23,6 +23,12 @@ use Symfony\Component\Routing\Attribute\Route;
  */
 final readonly class MobileCheckoutController
 {
+    /**
+     * Where the landing form may lead. Chrome applies `form-action` to the redirect that answers the post too, so a Yoco
+     * checkout (a 303 to c.yoco.com) is blocked silently, after the one-use token was already spent, unless it is listed.
+     * Payfast answers with a page of its own whose form carries its own policy.
+     */
+    private const string LANDING_FORM_ORIGINS = "'self' https://c.yoco.com";
     private const array PAYFAST_HOSTS = ['www.payfast.co.za', 'sandbox.payfast.co.za'];
 
     public function __construct(private CommandBus $commands, private AuthenticatedAccount $account, private PrepareMobileCheckoutHandler $prepare)
@@ -41,7 +47,7 @@ final readonly class MobileCheckoutController
     #[Route('/api/mobile-checkouts/{token}', methods: ['GET'])]
     public function landing(string $token): Response
     {
-        return self::page("<h1>Continue your gift.</h1><p>Your payment is handled securely by the provider. After payment, close this browser and refresh Divine Community Space.</p><form method='post'><button type='submit'>Continue to secure payment</button></form>", "'self'");
+        return self::page("<h1>Continue your gift.</h1><p>Your payment is handled securely by the provider. After payment, close this browser and refresh Divine Community Space.</p><form method='post'><button type='submit'>Continue to secure payment</button></form>", self::LANDING_FORM_ORIGINS);
     }
 
     #[Route('/api/mobile-checkouts/{token}', methods: ['POST'])]
