@@ -73,11 +73,6 @@ export const donorApi = {
   checkout: async (id: string) =>
     (await useApi().post<Checkout>(`/api/my-giving/payments/${id}/checkout`))
       .data,
-  subscription: async (id: string, expectedVersion: number, cancel: boolean) =>
-    useApi().post(`/api/my-giving/payments/${id}/subscription`, {
-      expectedVersion,
-      cancel,
-    }),
   access: async (offset = 0) =>
     (
       await useApi().get<{

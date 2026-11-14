@@ -30,11 +30,6 @@ final class ScriptedConnectionProbe implements ProviderConnectionProbe
         $this->inTransaction = false;
     }
 
-    public function validateNetworks(string $ipRanges): void
-    {
-        $this->real->validateNetworks($ipRanges);
-    }
-
     public function check(ProviderConfiguration $configuration, ProviderCredentials $credentials): ProbeResult
     {
         ++$this->checks;

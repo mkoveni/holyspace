@@ -7,15 +7,7 @@ import { useSession } from "@/core/session";
 import { safeHandoff } from "@/core/http";
 import { date, label, money } from "@/core/money";
 import { useLoad } from "@/hooks/use-load";
-import {
-  Badge,
-  Button,
-  Check,
-  IconTile,
-  Message,
-  Screen,
-  Sheet,
-} from "@/ui/components";
+import { Badge, Button, IconTile, Message, Screen } from "@/ui/components";
 import { colors, fonts, ui } from "@/ui/theme";
 export default function Payment() {
   const { id } = useLocalSearchParams<{ id: string }>(),
@@ -28,14 +20,9 @@ export default function Payment() {
     [id],
   );
   const [busy, setBusy] = useState(false),
-    [actionError, setActionError] = useState(""),
-    [cancelOpen, setCancelOpen] = useState(false),
-    [confirmed, setConfirmed] = useState(false);
+    [actionError, setActionError] = useState("");
   const order = data?.order,
-    canCheckout =
-      order &&
-      ["PENDING", "READY"].includes(order.status) &&
-      !["CANCEL_REQUESTED", "CANCELLED"].includes(order.subscriptionStatus);
+    canCheckout = order && ["PENDING", "READY"].includes(order.status);
   async function checkout() {
     if (!order || busy) return;
     setBusy(true);
@@ -56,29 +43,6 @@ export default function Payment() {
       );
     } finally {
       setBusy(false);
-    }
-  }
-  async function monthly(cancel: boolean) {
-    if (!order || busy || (cancel && !confirmed)) return;
-    setBusy(true);
-    setActionError("");
-    try {
-      await session.api(
-        `/api/my-giving/payments/${order.id}/subscription`,
-        "POST",
-        { expectedVersion: order.version, cancel },
-      );
-      setCancelOpen(false);
-      await reload();
-    } catch (e) {
-      setCancelOpen(false);
-      await reload();
-      setActionError(
-        e instanceof Error ? e.message : "Unable to check monthly giving.",
-      );
-    } finally {
-      setBusy(false);
-      setConfirmed(false);
     }
   }
   return (
@@ -124,8 +88,7 @@ export default function Payment() {
             <Text
               style={[ui.caption, { color: colors.onDarkMuted, fontSize: 13 }]}
             >
-              {order.provider === "payfast" ? "Payfast" : "Yoco"} ·{" "}
-              {order.recurring ? "Monthly giving" : "One-off gift"}
+              Yoco · One-off gift
             </Text>
             <View style={{ alignSelf: "center", marginTop: 4 }}>
               <Badge
@@ -144,14 +107,6 @@ export default function Payment() {
             {order.mode === "test" && (
               <Message text="Test payment · No real contribution will be recorded." />
             )}
-            {order.recurring && (
-              <Text style={ui.body}>
-                Monthly arrangement: {label(order.subscriptionStatus)}
-              </Text>
-            )}
-            {order.subscriptionStatus === "CANCEL_REQUESTED" && (
-              <Message text="Cancellation is requested and awaits provider confirmation. A payment already in progress may still complete." />
-            )}
             {canCheckout && (
               <>
                 <Button
@@ -165,25 +120,6 @@ export default function Payment() {
                   After payment, close the browser to return here. Refresh to
                   see the provider-verified outcome.
                 </Text>
-              </>
-            )}
-            {order.recurring && order.subscriptionStatus !== "CANCELLED" && (
-              <>
-                <Button
-                  title="Check monthly status"
-                  subtle
-                  disabled={busy}
-                  onPress={() => void monthly(false)}
-                />
-                <Button
-                  title="Cancel future monthly gifts"
-                  variant="ghost"
-                  disabled={busy}
-                  onPress={() => {
-                    setConfirmed(false);
-                    setCancelOpen(true);
-                  }}
-                />
               </>
             )}
           </View>
@@ -248,30 +184,6 @@ export default function Payment() {
           ))}
         </>
       )}
-      <Sheet
-        title="Cancel monthly giving?"
-        visible={cancelOpen}
-        onClose={() => !busy && setCancelOpen(false)}
-      >
-        <Text style={ui.body}>
-          This requests cancellation of future monthly payments. It does not
-          refund earlier contributions. Cancellation is complete only when the
-          provider confirms.
-        </Text>
-        <Check
-          label="I want to cancel future monthly payments."
-          checked={confirmed}
-          onChange={() => setConfirmed(!confirmed)}
-          disabled={busy}
-        />
-        <Button
-          title="Request cancellation"
-          danger
-          busy={busy}
-          disabled={!confirmed}
-          onPress={() => void monthly(true)}
-        />
-      </Sheet>
     </Screen>
   );
 }

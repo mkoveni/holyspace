@@ -25,8 +25,8 @@ final class DonorGivingApiTest extends PaymentApiTestCase
         $this->token = $this->login('donor');
         $this->fund = $this->fund('General');
         $this->scriptGateway('test');
-        $this->gateway()->providers = static fn (): array => [new PaymentProvider('payfast', 'Payfast', true, 'test', true), new PaymentProvider('yoco', 'Yoco', false, 'test', false)];
-        $this->gateway()->checkout = static fn (): HostedCheckout => new HostedCheckout('checkout', 'https://sandbox.payfast.co.za/eng/process', ['merchant_id' => 'fixture']);
+        $this->gateway()->providers = static fn (): array => [new PaymentProvider('yoco', 'Yoco', true, 'test', false)];
+        $this->gateway()->checkout = static fn (): HostedCheckout => new HostedCheckout('checkout', 'https://c.yoco.com/checkout/one', []);
     }
 
     private function link(bool $active, int $version, ?string $person = null, string $account = ''): int
@@ -49,12 +49,12 @@ final class DonorGivingApiTest extends PaymentApiTestCase
     }
 
     /** @return array<string, mixed> */
-    private function start(string $id, bool $recurring): array
+    private function start(string $id, bool $recurring = false): array
     {
-        return ['requestId' => $id, 'fundId' => $this->fund, 'amountMinor' => 10000, 'provider' => 'payfast', 'recurring' => $recurring];
+        return ['requestId' => $id, 'fundId' => $this->fund, 'amountMinor' => 10000, 'provider' => 'yoco', 'recurring' => $recurring];
     }
 
-    private function own(bool $monthly): string
+    private function own(bool $monthly = false): string
     {
         return $this->created('/api/my-giving/payments', $this->start(Uuid::v4()->toRfc4122(), $monthly), $this->token);
     }
@@ -108,18 +108,16 @@ final class DonorGivingApiTest extends PaymentApiTestCase
         self::assertSame(200, $this->code());
     }
 
-    public function testAnotherDonorCannotReadCheckoutOrCancelAnyonesOrder(): void
+    public function testAnotherDonorCannotReadCheckoutOfAnyonesOrder(): void
     {
         $this->ready();
-        $id = $this->own(true);
+        $id = $this->own(false);
         $second = $this->account('second');
         $other = $this->login('second');
         self::assertSame(204, $this->link(true, 0, $this->person('Other'), $second));
         $this->call('GET', "/api/my-giving/payments/$id", $other);
         self::assertSame(404, $this->code());
         $this->call('POST', "/api/my-giving/payments/$id/checkout", $other);
-        self::assertSame(404, $this->code());
-        $this->call('POST', "/api/my-giving/payments/$id/subscription", $other, ['expectedVersion' => 0, 'cancel' => true]);
         self::assertSame(404, $this->code());
         $this->call('GET', '/api/my-giving', $other);
         self::assertStringNotContainsString($id, $this->body());
@@ -129,7 +127,7 @@ final class DonorGivingApiTest extends PaymentApiTestCase
     {
         $this->ready();
         $this->scriptGateway('live');
-        $this->gateway()->providers = static fn (): array => [new PaymentProvider('payfast', 'Payfast', true, 'live', true), new PaymentProvider('yoco', 'Yoco', false, 'live', false)];
+        $this->gateway()->providers = static fn (): array => [new PaymentProvider('yoco', 'Yoco', true, 'live', false)];
         $id = $this->own(false);
         $this->event($id, 'PAID', 'charge_own');
         $this->call('POST', '/api/giving/gifts', $this->admin, ['requestId' => Uuid::v4()->toRfc4122(), 'amountMinor' => 5000, 'currency' => 'ZAR',
@@ -138,7 +136,7 @@ final class DonorGivingApiTest extends PaymentApiTestCase
         $this->call('GET', '/api/my-giving', $this->token);
         self::assertSame(200, $this->code(), $this->body());
         self::assertSame(1, $this->json()['giftTotal']);
-        self::assertCount(1, $this->json()['providers'], 'only available providers are offered');
+        self::assertCount(1, $this->json()['providers'], 'only Yoco is offered');
         $this->call('GET', "/api/my-giving/payments/$id", $this->token);
         self::assertStringContainsString('POSTED', $this->body());
         self::assertStringContainsString('NOT_ISSUED', $this->body());
@@ -157,22 +155,6 @@ final class DonorGivingApiTest extends PaymentApiTestCase
         self::assertStringContainsString('SIMULATION', $this->body());
         $this->call('GET', '/api/my-giving', $this->token);
         self::assertSame(0, $this->json()['giftTotal']);
-    }
-
-    public function testCancellationWaitsForProviderAndNeverInventsARefund(): void
-    {
-        $this->ready();
-        $id = $this->own(true);
-        $this->call('POST', "/api/my-giving/payments/$id/subscription", $this->token, ['expectedVersion' => $this->version($id), 'cancel' => true]);
-        self::assertSame(409, $this->code());
-        $this->call('GET', "/api/my-giving/payments/$id", $this->token);
-        self::assertStringContainsString('CANCEL_REQUESTED', $this->body());
-        $this->event($id, 'PAID', 'month', token: '12345678-1234-1234-1234-123456789012', mode: 'test');
-        $this->call('POST', "/api/my-giving/payments/$id/subscription", $this->token, ['expectedVersion' => $this->version($id), 'cancel' => true]);
-        self::assertSame(204, $this->code(), $this->body());
-        $this->call('GET', "/api/my-giving/payments/$id", $this->token);
-        self::assertStringContainsString('"subscriptionStatus":"CANCELLED"', $this->body());
-        self::assertSame(0, $this->rows('payments_refunds'));
     }
 
     public function testRevocationIsImmediateVersionedAndIdentityCannotBeReassigned(): void

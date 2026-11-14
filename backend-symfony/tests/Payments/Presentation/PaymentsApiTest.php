@@ -11,8 +11,6 @@ use Symfony\Component\Uid\Uuid;
 /** Port of Java PaymentsApiIntegrationTest and PaymentPostingRecoveryIntegrationTest (scripted gateway, real Giving). */
 final class PaymentsApiTest extends PaymentApiTestCase
 {
-    private const string TOKEN = '12345678-1234-1234-1234-123456789012';
-
     protected function setUp(): void
     {
         parent::setUp();
@@ -93,6 +91,7 @@ final class PaymentsApiTest extends PaymentApiTestCase
     {
         $id = $this->order();
         $this->event($id, 'PAID', 'charged');
+        $this->event($id, 'REFUNDED', 'refund_1', 2500);
         $body = ['chargeId' => $this->chargeOf($id), 'providerReference' => 'refund_1', 'amountMinor' => 2500, 'refundedOn' => $this->today()->iso(), 'reason' => 'Completed in provider dashboard'];
         $this->call('POST', "/api/payments/$id/refunds", $this->admin, $body);
         self::assertSame(204, $this->code(), $this->body());
@@ -135,23 +134,6 @@ final class PaymentsApiTest extends PaymentApiTestCase
         self::assertStringContainsString('BANK-001', $detail);
     }
 
-    public function testRecurringChargesRemainSeparateAndCancellationNeedsProviderConfirmation(): void
-    {
-        $id = $this->order(recurring: true);
-        $this->event($id, 'PAID', 'month_1', token: self::TOKEN);
-        $this->event($id, 'PAID', 'month_2', token: self::TOKEN);
-        self::assertSame(2, $this->rows('giving_gifts'));
-        $this->call('POST', "/api/payments/$id/subscription", $this->admin, ['expectedVersion' => $this->version($id), 'cancel' => true]);
-        self::assertSame(204, $this->code(), $this->body());
-        $detail = $this->detail($id);
-        self::assertStringContainsString('CANCELLED', $detail);
-        self::assertStringNotContainsString(self::TOKEN, $detail);
-        self::assertStringNotContainsString((string) $this->connection->fetchOne('SELECT encrypted_token FROM payments_orders'), $detail);
-        $this->event($id, 'PAID', 'inflight', token: self::TOKEN);
-        self::assertSame(3, $this->rows('giving_gifts'));
-        self::assertStringContainsString('CANCELLED', $this->detail($id));
-    }
-
     public function testRevokedWritePermissionsDoNotInheritFromManagement(): void
     {
         $id = $this->order();
@@ -170,21 +152,9 @@ final class PaymentsApiTest extends PaymentApiTestCase
     {
         $this->order();
         $this->gateway()->verify = static fn () => throw PaymentException::invalid('Invalid signature');
-        $this->call('POST', '/api/payments/webhooks/payfast', null, []);
+        $this->call('POST', '/api/payments/webhooks/yoco', null, []);
         self::assertSame(400, $this->code());
         self::assertSame([0, 0], [$this->rows('payments_notifications'), $this->rows('giving_gifts')]);
-    }
-
-    public function testPendingCancellationBlocksResumingCheckoutButRetainsInFlightPayments(): void
-    {
-        $id = $this->order(recurring: true);
-        $this->call('POST', "/api/payments/$id/subscription", $this->admin, ['expectedVersion' => 0, 'cancel' => true]);
-        self::assertSame(409, $this->code());
-        $this->call('POST', "/api/payments/$id/checkout", $this->admin);
-        self::assertSame(409, $this->code());
-        $this->event($id, 'PAID', 'in-flight-pending', token: self::TOKEN);
-        self::assertSame(1, $this->rows('giving_gifts'));
-        self::assertStringContainsString('CANCEL_REQUESTED', $this->detail($id));
     }
 
     public function testCaseSensitiveProviderReferencesRetainDistinctRealCollections(): void
@@ -210,8 +180,6 @@ final class PaymentsApiTest extends PaymentApiTestCase
         self::assertSame(400, $this->code());
         $this->call('GET', '/api/payments/not-a-uuid', $this->admin);
         self::assertSame(400, $this->code());
-        $this->call('POST', "/api/payments/$id/subscription", $this->admin, ['cancel' => true]);
-        self::assertSame(400, $this->code(), 'a missing expectedVersion is a 400');
         $this->call('GET', '/api/payments/'.Uuid::v4()->toRfc4122(), $this->admin);
         self::assertSame([404, 'Payment was not found.'], [$this->code(), $this->message()]);
     }

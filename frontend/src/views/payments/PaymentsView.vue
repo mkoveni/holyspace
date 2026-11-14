@@ -59,7 +59,6 @@
               label="Payment provider"
             />
 
-            <v-checkbox v-model="recurring" :disabled="provider !== 'payfast'" label="Give this amount every month until I cancel" />
             <v-btn color="primary" :disabled="Boolean(pendingRequest) || !fundId || !provider || minorAmount === null" :loading="busy" @click="startGiving">Continue to secure checkout</v-btn>
           </template>
         </v-card>
@@ -85,8 +84,7 @@
         <p v-if="data.orders.length === 0" class="workspace-empty">No online payments recorded.</p>
 
         <div v-for="order in sortedOrders" :key="order.id" class="payment-record">
-          <div class="panel-heading"><div><h3>{{ order.purpose === 'giving' ? (order.recurring ? 'Monthly giving' : 'One-off giving') : 'Event ticket' }} · {{ money(order.amountMinor) }}</h3><p>{{ order.provider === 'payfast' ? 'Payfast' : 'Yoco' }} · {{ dateTime(order.createdAt) }} · {{ order.mode === 'test' ? 'Sandbox only' : 'Live' }}</p><p v-if="!member">{{ order.personName ?? order.personId }}</p></div><v-chip :color="order.status === 'review' ? 'warning' : order.status === 'paid' ? 'success' : undefined">{{ order.status }}</v-chip></div>
-          <p v-if="order.recurring">Subscription: {{ order.subscriptionStatus.replaceAll('_', ' ') }}</p>
+          <div class="panel-heading"><div><h3>{{ order.purpose === 'giving' ? 'One-off giving' : 'Event ticket' }} · {{ money(order.amountMinor) }}</h3><p>Yoco · {{ dateTime(order.createdAt) }} · {{ order.mode === 'test' ? 'Sandbox only' : 'Live' }}</p><p v-if="!member">{{ order.personName ?? order.personId }}</p></div><v-chip :color="order.status === 'review' ? 'warning' : order.status === 'paid' ? 'success' : undefined">{{ order.status }}</v-chip></div>
           <v-alert v-if="order.reviewReason" class="my-3" type="warning" variant="tonal">{{ order.reviewReason }}</v-alert>
           <p v-if="order.status === 'created' || order.status === 'ready'">Awaiting provider verification. {{ order.purpose === 'ticket' ? 'Your reserved place is held until' : 'You can resume this request until' }} {{ dateTime(order.expiresAt) }}. A late ticket payment requires staff refund review.</p>
           <p v-if="order.mode === 'test'">This is a sandbox payment. It does not appear in giving statements or confirm a real ticket.</p>
@@ -102,8 +100,6 @@
 
           <div class="workspace-actions mt-4">
             <v-btn v-if="member && ['created','ready'].includes(order.status) && !expired(order)" :disabled="busy" variant="outlined" @click="retry(order)">Resume this checkout</v-btn>
-            <v-btn v-if="member && order.recurring && ['active','paused','locked','cancel_requested'].includes(order.subscriptionStatus)" :disabled="busy" variant="outlined" @click="cancelling = order">Cancel monthly giving</v-btn>
-            <v-btn v-if="!member && order.recurring && order.subscriptionStatus !== 'pending'" :disabled="busy" variant="outlined" @click="sync(order)">Check subscription status</v-btn>
             <v-btn v-if="!member && order.reviewReason" :disabled="busy" variant="outlined" @click="reviewing = order; note = ''">Record reconciliation</v-btn>
           </div>
 
@@ -112,14 +108,13 @@
       </v-card>
     </template>
 
-    <v-dialog max-width="520" :model-value="Boolean(cancelling)" persistent><v-card title="Cancel monthly giving"><v-card-text>Request cancellation of future payments at Payfast. Previous gifts remain recorded. A payment already in progress may still complete.<v-alert v-if="error" class="mt-4" type="error">{{ error }}</v-alert></v-card-text><v-card-actions><v-btn :disabled="busy" @click="cancelling = null">Close</v-btn><v-btn color="primary" :loading="busy" @click="cancel">Confirm cancellation</v-btn></v-card-actions></v-card></v-dialog>
     <v-dialog max-width="600" :model-value="Boolean(reviewing)" persistent><v-card title="Record reconciliation"><v-card-text><p>Verify the provider’s transactions and refund records first. This records your review and retries posting verified gifts; it does not charge or refund the customer.</p><v-textarea v-model="note" label="Reconciliation evidence and outcome" maxlength="1000" /><v-alert v-if="error" type="error">{{ error }}</v-alert></v-card-text><v-card-actions><v-btn :disabled="busy" @click="reviewing = null">Close</v-btn><v-btn :disabled="!note.trim()" :loading="busy" @click="reconcile">Save reconciliation</v-btn></v-card-actions></v-card></v-dialog>
     <v-dialog max-width="600" :model-value="Boolean(refunding)" persistent><v-card title="Record completed provider refund"><v-card-text><p>Complete the refund in the provider dashboard first. Record its exact refund ID here. Yoco’s verified refund callbacks normally record this automatically.</p><v-text-field v-model="refundAmount" inputmode="decimal" label="Refund amount (ZAR)" /><v-text-field v-model="refundReference" label="Provider refund ID" maxlength="150" /><v-checkbox v-model="refundConfirmed" label="I verified that this refund completed in the provider dashboard" /><v-alert v-if="error" type="error">{{ error }}</v-alert></v-card-text><v-card-actions><v-btn :disabled="busy" @click="refunding = null">Close</v-btn><v-btn :disabled="!refundConfirmed || !refundReference.trim() || refundMinor === null" :loading="busy" @click="refund">Record refund</v-btn></v-card-actions></v-card></v-dialog>
   </div>
 </template>
 <script setup lang="ts">
   import { isAxiosError } from 'axios'
-  import { computed, onMounted, ref, watch } from 'vue'
+  import { computed, onMounted, ref } from 'vue'
   import PageHeader from '@/components/common/PageHeader.vue'
   import { extractErrorMessage, useApi } from '@/composables/useApi'
   import { zarMinorAmount } from '@/payments/money'
@@ -196,7 +191,7 @@
   const props = withDefaults(defineProps<{
     member?: boolean
   }>(), { member: false })
-  const auth = useAuthStore(), data = ref<Data | null>(null), error = ref(''), busy = ref(false), fundIds = ref<string[]>([]), fundId = ref<string | null>(null), amount = ref(''), provider = ref<string | null>(null), recurring = ref(false)
+  const auth = useAuthStore(), data = ref<Data | null>(null), error = ref(''), busy = ref(false), fundIds = ref<string[]>([]), fundId = ref<string | null>(null), amount = ref(''), provider = ref<string | null>(null)
   const requestStorageKey = 'divinecommunityspace.payment-request.' + (auth.user?.personId ?? 'unlinked')
   const pendingRequest = ref<CheckoutRequest | null>(null)
   try {
@@ -206,15 +201,11 @@
   } catch {
     sessionStorage.removeItem(requestStorageKey)
   }
-  const cancelling = ref<Order | null>(null), reviewing = ref<Order | null>(null), note = ref(''), refunding = ref<Charge | null>(null), refundAmount = ref(''), refundReference = ref(''), refundConfirmed = ref(false)
+  const reviewing = ref<Order | null>(null), note = ref(''), refunding = ref<Charge | null>(null), refundAmount = ref(''), refundReference = ref(''), refundConfirmed = ref(false)
   const minorAmount = computed(() => zarMinorAmount(amount.value, 500)), refundMinor = computed(() => zarMinorAmount(refundAmount.value, 1))
   const availableProviders = computed(() => data.value?.providers.filter(p => p.available) ?? [])
   // eslint-disable-next-line unicorn/no-array-sort -- Sort a copy for the project's configured JavaScript library.
   const sortedOrders = computed(() => [...(data.value?.orders ?? [])].sort((a, b) => b.createdAt.localeCompare(a.createdAt)))
-  watch(provider, () => {
-    if (provider.value !== 'payfast')
-      recurring.value = false
-  })
   function money (value: number) {
     return new Intl.NumberFormat('en-ZA', { style: 'currency', currency: 'ZAR' }).format(value / 100)
   }
@@ -273,7 +264,7 @@
         return
       const target = response.checkout
       const url = new URL(target.url)
-      if (url.protocol !== 'https:' || !['c.yoco.com', 'www.payfast.co.za', 'sandbox.payfast.co.za'].includes(url.hostname))
+      if (url.protocol !== 'https:' || url.hostname !== 'c.yoco.com')
         throw new Error('Invalid hosted payment destination.')
       if (target.method === 'GET')
         window.location.assign(url.href)
@@ -297,32 +288,13 @@
   function startGiving () {
     if (!provider.value || !fundId.value || minorAmount.value === null)
       return
-    void checkout({ provider: provider.value, purpose: 'giving', targetId: fundId.value, amountMinor: minorAmount.value, recurring: recurring.value, requestKey: crypto.randomUUID() })
+    void checkout({ provider: provider.value, purpose: 'giving', targetId: fundId.value, amountMinor: minorAmount.value, recurring: false, requestKey: crypto.randomUUID() })
   }
   function startTicket (event: EventOffer, providerId: string) {
     void checkout({ provider: providerId, purpose: 'ticket', targetId: event.id, amountMinor: null, recurring: false, requestKey: crypto.randomUUID() })
   }
   function retry (order: Order) {
     void checkout({ provider: order.provider, purpose: order.purpose, targetId: order.targetId, amountMinor: order.purpose === 'giving' ? order.amountMinor : null, recurring: order.recurring, requestKey: order.requestKey })
-  }
-  async function cancel () {
-    await action(async () => {
-      const id = cancelling.value!.id
-      try {
-        await useApi().post('/api/payments/member/' + id + '/cancel-subscription', { expectedVersion: cancelling.value!.version })
-        cancelling.value = null
-      } finally {
-        await refresh()
-        if (cancelling.value)
-          cancelling.value = data.value!.orders.find(order => order.id === id) ?? null
-      }
-    })
-  }
-  async function sync (order: Order) {
-    await action(async () => {
-      await useApi().post('/api/payments/' + order.id + '/subscription-status', { expectedVersion: order.version })
-      await refresh()
-    })
   }
   async function reconcile () {
     await action(async () => {

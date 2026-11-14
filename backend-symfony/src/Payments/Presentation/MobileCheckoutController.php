@@ -26,10 +26,8 @@ final readonly class MobileCheckoutController
     /**
      * Where the landing form may lead. Chrome applies `form-action` to the redirect that answers the post too, so a Yoco
      * checkout (a 303 to c.yoco.com) is blocked silently, after the one-use token was already spent, unless it is listed.
-     * Payfast answers with a page of its own whose form carries its own policy.
      */
     private const string LANDING_FORM_ORIGINS = "'self' https://c.yoco.com";
-    private const array PAYFAST_HOSTS = ['www.payfast.co.za', 'sandbox.payfast.co.za'];
 
     public function __construct(private CommandBus $commands, private AuthenticatedAccount $account, private PrepareMobileCheckoutHandler $prepare)
     {
@@ -83,22 +81,7 @@ final readonly class MobileCheckoutController
 
             return $redirect;
         }
-        if (!\in_array($host, self::PAYFAST_HOSTS, true) || '/eng/process' !== ($url['path'] ?? '')) {
-            throw PaymentException::unavailable('Provider checkout could not be verified.');
-        }
-        $fields = '';
-        foreach ($checkout->fields as $name => $value) {
-            $fields .= "<input type='hidden' name='".self::escape((string) $name)."' value='".self::escape($value)."'>";
-        }
-
-        return self::page("<h1>Your gift is ready.</h1><p>Continue to Payfast to enter your payment details.</p><form method='post' action='"
-            .self::escape($checkout->url)."'>".$fields."<button type='submit'>Continue to Payfast</button></form>", 'https://'.$host);
-    }
-
-    /** Spring's `HtmlUtils.htmlEscape`: & < > " and ' as entities. */
-    private static function escape(string $value): string
-    {
-        return str_replace('&#039;', '&#39;', htmlspecialchars($value, \ENT_QUOTES | \ENT_HTML401, 'UTF-8'));
+        throw PaymentException::unavailable('Provider checkout could not be verified.');
     }
 
     private static function page(string $body, string $formOrigin): Response

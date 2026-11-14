@@ -33,7 +33,7 @@
 
         <div>
           <h2>Connect a payment provider</h2>
-          <p class="directory-muted">Payments are taken on Yoco's or Payfast's secure page. Card details never reach the church.</p>
+          <p class="directory-muted">Payments are taken on Yoco's secure page. Card details never reach the church.</p>
         </div>
       </div>
 

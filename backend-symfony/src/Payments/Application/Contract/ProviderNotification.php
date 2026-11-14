@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Payments\Application\Contract;
 
 use App\Shared\Domain\CalendarDate;
-use SensitiveParameter;
 
 /** An authenticated provider event (Java `PaymentGateway.Notification`); type is PAID, FAILED, REFUNDED or REFUND_FAILED. */
 final readonly class ProviderNotification
@@ -20,7 +19,6 @@ final readonly class ProviderNotification
         public ?string $orderId,
         public int $amountMinor,
         public string $currency,
-        #[SensitiveParameter] public ?string $token,
         public ?CalendarDate $date,
     ) {
     }

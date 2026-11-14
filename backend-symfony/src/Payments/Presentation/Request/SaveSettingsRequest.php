@@ -15,7 +15,6 @@ final readonly class SaveSettingsRequest
         public bool $enabled = false,
         public bool $monthly = false,
         #[Assert\Length(max: 1000)] public ?string $publicUrl = null,
-        #[Assert\Length(max: 2000)] public ?string $ipRanges = null,
         #[Assert\NotNull] #[Assert\Valid] public ?CredentialsRequest $credentials = null,
         #[Assert\NotBlank] #[Assert\Length(max: 1000)] public ?string $reason = null,
         #[Assert\Length(max: 1000)] public ?string $backendUrl = null,

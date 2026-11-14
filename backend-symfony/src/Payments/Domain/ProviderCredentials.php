@@ -10,22 +10,13 @@ use SensitiveParameter;
 /** Provider secrets (Java `ProviderCredentials`): blank means "not set", never logged or shown (`__debugInfo` redacts). */
 final readonly class ProviderCredentials
 {
-    public string $merchantId;
-    public string $merchantKey;
-    public string $passphrase;
     public string $yocoKey;
     public string $webhookSecret;
 
     public function __construct(
-        #[SensitiveParameter] ?string $merchantId = null,
-        #[SensitiveParameter] ?string $merchantKey = null,
-        #[SensitiveParameter] ?string $passphrase = null,
         #[SensitiveParameter] ?string $yocoKey = null,
         #[SensitiveParameter] ?string $webhookSecret = null,
     ) {
-        $this->merchantId = self::clean($merchantId);
-        $this->merchantKey = self::clean($merchantKey);
-        $this->passphrase = self::clean($passphrase);
         $this->yocoKey = self::clean($yocoKey);
         $this->webhookSecret = self::clean($webhookSecret);
     }
@@ -51,40 +42,19 @@ final readonly class ProviderCredentials
     public function replace(self $input): self
     {
         return new self(
-            '' === $input->merchantId ? $this->merchantId : $input->merchantId,
-            '' === $input->merchantKey ? $this->merchantKey : $input->merchantKey,
-            '' === $input->passphrase ? $this->passphrase : $input->passphrase,
             '' === $input->yocoKey ? $this->yocoKey : $input->yocoKey,
             '' === $input->webhookSecret ? $this->webhookSecret : $input->webhookSecret,
         );
     }
 
-    /** Only the secrets the provider uses are kept in its revision. */
-    public function forProvider(string $provider): self
+    public function complete(string $mode): bool
     {
-        return 'payfast' === $provider
-            ? new self($this->merchantId, $this->merchantKey, $this->passphrase)
-            : new self(null, null, null, $this->yocoKey, $this->webhookSecret);
-    }
-
-    public function complete(string $provider, string $mode): bool
-    {
-        return null === $this->validationIssue($provider, $mode);
+        return null === $this->validationIssue($mode);
     }
 
     /** Why these credentials cannot authenticate the provider, without echoing any of them. */
-    public function validationIssue(string $provider, string $mode): ?string
+    public function validationIssue(string $mode): ?string
     {
-        if ('payfast' === $provider) {
-            if (1 !== preg_match('/\A[0-9]{8}\z/', $this->merchantId)) {
-                return 'Enter the eight-digit Payfast merchant ID.';
-            }
-            if (JavaString::isBlank($this->merchantKey) || JavaString::isBlank($this->passphrase)) {
-                return 'Enter the Payfast merchant key and passphrase.';
-            }
-
-            return null;
-        }
         if (!str_starts_with($this->yocoKey, 'sk_'.$mode.'_')) {
             return 'Enter a Yoco secret API key for '.$mode.' mode (sk_'.$mode.'_...). Public keys cannot authenticate checkout requests.';
         }
@@ -112,7 +82,7 @@ final readonly class ProviderCredentials
     public function protectedValues(): array
     {
         return array_values(array_filter(
-            [$this->merchantId, $this->merchantKey, $this->passphrase, $this->yocoKey, $this->webhookSecret],
+            [$this->yocoKey, $this->webhookSecret],
             static fn (string $value): bool => JavaString::length($value) >= 4,
         ));
     }

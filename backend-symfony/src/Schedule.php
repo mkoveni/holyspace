@@ -36,6 +36,8 @@ final class Schedule implements ScheduleProviderInterface
             ->add(RecurringMessage::every('1 day', new RunCommandMessage('app:media:gc')))
             // Form responses are hard-deleted when their retention (at most 3 months) ends.
             ->add(RecurringMessage::every('1 day', new RunCommandMessage('app:forms:purge')))
+            // Public ticket holds that lapsed without payment free their seats.
+            ->add(RecurringMessage::every('1 minute', new RunCommandMessage('app:events:expire-ticket-holds')))
         ;
     }
 }

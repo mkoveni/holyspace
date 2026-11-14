@@ -32,8 +32,6 @@ interface PaymentRepository
 
     public function review(string $id, ?string $reason): void;
 
-    public function subscription(string $id, string $status, ?string $encryptedToken, ?string $tokenHash): void;
-
     /** The order holding this provider checkout id, or (when $checkoutId is null) this subscription token hash. */
     public function lookup(string $provider, string $mode, ?string $checkoutId, ?string $tokenHash): ?string;
 

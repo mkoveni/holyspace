@@ -18,7 +18,7 @@ final readonly class FixedSettingsSource implements ProviderSettingsSource
 
     public function current(string $provider): ResolvedSettings
     {
-        return new ResolvedSettings($this->settings, $this->settings->available($provider), 'payfast' === $provider);
+        return new ResolvedSettings($this->settings, $this->settings->available($provider), false);
     }
 
     public function forOrder(PaymentOrder $order): GatewaySettings

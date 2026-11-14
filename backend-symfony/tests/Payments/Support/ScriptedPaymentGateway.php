@@ -23,7 +23,6 @@ final class ScriptedPaymentGateway implements PaymentGateway
     public ?Closure $providers = null;
     public ?Closure $checkout = null;
     public ?Closure $verify = null;
-    public ?Closure $subscription = null;
     public int $checkouts = 0;
     public bool $inTransaction = false;
 
@@ -34,7 +33,7 @@ final class ScriptedPaymentGateway implements PaymentGateway
     public function reset(): void
     {
         $this->scripted = false;
-        $this->mode = $this->providers = $this->checkout = $this->verify = $this->subscription = null;
+        $this->mode = $this->providers = $this->checkout = $this->verify = null;
         $this->checkouts = 0;
         $this->inTransaction = false;
     }
@@ -69,13 +68,6 @@ final class ScriptedPaymentGateway implements PaymentGateway
         $this->record();
 
         return null === $this->verify ? $this->real->verify($provider, $rawBody, $headers, $ip) : ($this->verify)();
-    }
-
-    public function subscription(PaymentOrder $order, string $token, bool $cancel): string
-    {
-        $this->record();
-
-        return null === $this->subscription ? $this->real->subscription($order, $token, $cancel) : ($this->subscription)($order, $token, $cancel);
     }
 
     private function record(): void

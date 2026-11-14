@@ -132,7 +132,7 @@ final readonly class DbalProviderConfigurationStore implements ProviderConfigura
 
     public function settings(): array
     {
-        $rows = $this->connection->fetchAllAssociative('SELECT provider, mode, enabled, monthly, managed, version FROM payments_provider_settings ORDER BY provider');
+        $rows = $this->connection->fetchAllAssociative('SELECT provider, mode, enabled, monthly, managed, version FROM payments_provider_settings WHERE provider = \'yoco\' ORDER BY provider');
 
         return array_map(fn (array $row): ProviderSettingsView => new ProviderSettingsView(self::headRow($row), [
             $this->environment((string) $row['provider'], 'test'),

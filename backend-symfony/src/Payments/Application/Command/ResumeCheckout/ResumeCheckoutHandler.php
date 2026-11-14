@@ -6,8 +6,8 @@ namespace App\Payments\Application\Command\ResumeCheckout;
 
 use App\Payments\Application\Contract\CheckoutCodec;
 use App\Payments\Application\Contract\HostedCheckout;
+use App\Payments\Application\Contract\PayloadVault;
 use App\Payments\Application\Contract\PaymentGateway;
-use App\Payments\Application\Contract\SubscriptionVault;
 use App\Payments\Application\PaymentAccess;
 use App\Payments\Domain\PaymentException;
 use App\Payments\Domain\PaymentOrder;
@@ -34,7 +34,7 @@ final readonly class ResumeCheckoutHandler
         private PersonDirectory $people,
         private PersonEmailDirectory $emails,
         private CheckoutCodec $codec,
-        private SubscriptionVault $vault,
+        private PayloadVault $vault,
     ) {
     }
 
@@ -47,9 +47,6 @@ final readonly class ResumeCheckoutHandler
         $this->authorize($c, $order, false);
         if (!\in_array($order->status, PaymentOrder::OPEN, true)) {
             throw PaymentException::conflict('This payment already finished. Refresh its verified history.');
-        }
-        if (\in_array($order->subscriptionStatus, PaymentOrder::CANCELLING, true)) {
-            throw PaymentException::conflict('Monthly giving cancellation is requested. Refresh the subscription instead of resuming checkout.');
         }
         $this->gateway->validateOrder($order);
         if (null !== $order->checkoutUrl) {
@@ -78,9 +75,6 @@ final readonly class ResumeCheckoutHandler
             $this->authorize($c, $current, true);
             if (!\in_array($current->status, PaymentOrder::OPEN, true)) {
                 throw PaymentException::conflict('Payment confirmation arrived. Refresh its history.');
-            }
-            if (\in_array($current->subscriptionStatus, PaymentOrder::CANCELLING, true)) {
-                throw PaymentException::conflict('Monthly giving cancellation was requested while checkout was being created.');
             }
             if (null !== $current->checkoutUrl) {
                 return $this->existing($current);

@@ -135,22 +135,6 @@
             label="Payment provider"
           />
 
-          <v-switch
-            v-model="monthly"
-            color="primary"
-            :disabled="working || frozen || !selectedProvider?.recurring"
-            hide-details
-            label="Give this amount every month"
-          />
-
-          <p class="directory-muted mb-4">
-            {{
-              selectedProvider?.recurring
-                ? 'Monthly giving starts with today’s payment, followed by monthly payments. You can request cancellation here.'
-                : 'Monthly giving is available through Payfast when enabled by the church.'
-            }}
-          </p>
-
           <v-alert
             v-if="selectedProvider?.mode === 'test'"
             class="mb-4"
@@ -165,11 +149,7 @@
             v-model="reviewed"
             :disabled="working || frozen"
             hide-details
-            :label="
-              monthly
-                ? 'I agree to this amount being charged today and every month.'
-                : 'I have checked the amount and selected fund.'
-            "
+            label="I have checked the amount and selected fund."
           />
 
           <v-btn
@@ -196,10 +176,10 @@
         <div>
           <section class="directory-surface giving-section mb-5">
             <span class="directory-eyebrow">PAYMENT ACTIVITY</span>
-            <h2>One-off & monthly giving</h2>
+            <h2>Your giving</h2>
 
             <p class="directory-muted mb-4">
-              Track checkout progress and manage monthly arrangements.
+              Track your checkout progress.
             </p>
 
             <p
@@ -219,7 +199,7 @@
                 <strong>{{ money(order.amountMinor, 'ZAR') }}</strong>
 
                 <p>
-                  {{ order.recurring ? 'Monthly' : 'One-off' }} ·
+                  One-off ·
                   {{ providerName(order.provider) }}
                 </p>
 
@@ -233,14 +213,6 @@
                 >
                   {{ order.mode === 'test' ? 'Test · ' : ''
                   }}{{ statusLabel(order.status) }}
-                </v-chip>
-
-                <v-chip
-                  v-if="order.recurring"
-                  size="small"
-                  variant="outlined"
-                >
-                  {{ statusLabel(order.subscriptionStatus) }}
                 </v-chip>
               </div>
             </button>
@@ -358,7 +330,7 @@
         rounded="xl"
       >
         <v-card-title class="pa-6 donor-dialog-title">
-          Your {{ detail.order.recurring ? 'monthly gift' : 'online gift' }}
+          Your online gift
         </v-card-title>
 
         <v-card-text>
@@ -386,24 +358,6 @@
             {{ providerName(detail.order.provider) }} ·
             {{ statusLabel(detail.order.status) }}
           </p>
-
-          <p
-            v-if="detail.order.recurring"
-            class="mb-4"
-          >
-            Monthly arrangement:
-            <strong>{{ statusLabel(detail.order.subscriptionStatus) }}</strong>
-          </p>
-
-          <v-alert
-            v-if="detail.order.subscriptionStatus === 'CANCEL_REQUESTED'"
-            class="mb-4"
-            type="info"
-            variant="tonal"
-          >
-            Cancellation has been requested. It remains pending until the
-            provider confirms. A payment already in progress may still complete.
-          </v-alert>
 
           <article
             v-for="charge in detail.charges"
@@ -468,13 +422,6 @@
             </p>
           </article>
 
-          <v-checkbox
-            v-if="canCancel"
-            v-model="cancelConfirmed"
-            :disabled="working"
-            hide-details
-            label="I want to cancel future monthly payments."
-          />
         </v-card-text>
 
         <v-card-actions class="pa-5 donor-dialog-actions">
@@ -492,26 +439,6 @@
             @click="reloadDetail"
           >
             Refresh status
-          </v-btn>
-
-          <v-btn
-            v-if="
-              detail.order.recurring &&
-                detail.order.subscriptionStatus !== 'CANCELLED'
-            "
-            :disabled="working"
-            @click="manageMonthly(false)"
-          >
-            Check monthly status
-          </v-btn>
-
-          <v-btn
-            v-if="canCancel"
-            color="error"
-            :disabled="working || !cancelConfirmed"
-            @click="manageMonthly(true)"
-          >
-            Request cancellation
           </v-btn>
 
           <v-btn
@@ -553,10 +480,8 @@
   const fundId = ref(''),
         amount = ref(''),
         providerId = ref(''),
-        monthly = ref(false),
         reviewed = ref(false),
-        frozen = ref(false),
-        cancelConfirmed = ref(false)
+        frozen = ref(false)
   const paymentOffset = ref(0),
         giftOffset = ref(0)
   const requestKey = `divinecommunityspace.payment-request.donor.${auth.user?.id}`
@@ -578,18 +503,10 @@
   const canCheckout = computed(
     () =>
       detail.value
-      && ['PENDING', 'READY'].includes(detail.value.order.status)
-      && !['CANCEL_REQUESTED', 'CANCELLED'].includes(
-        detail.value.order.subscriptionStatus,
-      ),
-  )
-  const canCancel = computed(
-    () =>
-      detail.value?.order.recurring
-      && !['CANCELLED'].includes(detail.value.order.subscriptionStatus),
+      && ['PENDING', 'READY'].includes(detail.value.order.status),
   )
   function providerName (id: string) {
-    return id === 'payfast' ? 'Payfast' : 'Yoco'
+    return id === 'yoco' ? 'Yoco' : id
   }
   function statusLabel (status: string) {
     return (
@@ -670,7 +587,6 @@
       if (run === detailGeneration) {
         detail.value = result
         detailOpen.value = true
-        cancelConfirmed.value = false
       }
     } catch (error_) {
       if (run === detailGeneration) error.value = extractErrorMessage(error_)
@@ -683,11 +599,7 @@
     if (!open) {
       detailGeneration++
       detail.value = null
-      cancelConfirmed.value = false
     }
-  })
-  watch(providerId, () => {
-    if (!selectedProvider.value?.recurring) monthly.value = false
   })
   async function give () {
     if (!canGive.value || working.value) return
@@ -701,7 +613,7 @@
         fundId: fundId.value,
         amountMinor: zarMinorAmount(amount.value),
         provider: providerId.value,
-        recurring: monthly.value,
+        recurring: false,
       })
       sessionStorage.removeItem(requestKey)
       requestId = crypto.randomUUID()
@@ -756,26 +668,6 @@
       }
     } catch (error_) {
       actionError.value = extractErrorMessage(error_)
-    } finally {
-      working.value = false
-    }
-  }
-  async function manageMonthly (cancel: boolean) {
-    if (!detail.value || working.value || (cancel && !cancelConfirmed.value))
-      return
-    working.value = true
-    actionError.value = ''
-    try {
-      await donorApi.subscription(
-        detail.value.order.id,
-        detail.value.order.version,
-        cancel,
-      )
-      await reloadDetail()
-    } catch (error_) {
-      const message = extractErrorMessage(error_)
-      await reloadDetail()
-      actionError.value = message
     } finally {
       working.value = false
     }

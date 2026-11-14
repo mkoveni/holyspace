@@ -14,7 +14,7 @@ use App\Shared\Infrastructure\Persistence\Timestamps;
 /** Row mappers for the payments_* evidence tables. */
 final class PaymentRows
 {
-    public const string ORDER = 'id, donor_id, fund_id, amount_minor, provider, mode, recurring, status, checkout_id, checkout_url, checkout_fields, subscription_status, encrypted_token, token_hash, review_reason, version, request_hash, created_by, created_at, configuration_id, self_service, guest_name, guest_email_enc, guest_email_hash, guest_access_hash';
+    public const string ORDER = 'id, donor_id, fund_id, amount_minor, provider, mode, recurring, status, checkout_id, checkout_url, checkout_fields, subscription_status, encrypted_token, token_hash, review_reason, version, request_hash, created_by, created_at, configuration_id, self_service, guest_name, guest_email_enc, guest_email_hash, guest_access_hash, purpose, purpose_ref';
     public const string CHARGE = 'id, order_id, provider, mode, reference, amount_minor, received_on, gift_id, created_at';
     public const string REFUND = 'id, order_id, charge_id, provider, mode, reference, amount_minor, refunded_on, applied, reason, created_by, created_at';
     public const string REVIEW = 'id, order_id, charge_id, version, settlement_reference, fee_minor, bank_minor, refunded_minor, note, created_by, created_at, request_hash';
@@ -29,7 +29,7 @@ final class PaymentRows
         return PaymentOrder::reconstitute(
             (string) $r['id'],
             self::text($r['donor_id']),
-            (string) $r['fund_id'],
+            self::text($r['fund_id']),
             (int) $r['amount_minor'],
             (string) $r['provider'],
             (string) $r['mode'],
@@ -51,7 +51,9 @@ final class PaymentRows
             self::text($r['guest_name']),
             self::text($r['guest_email_enc']),
             self::text($r['guest_email_hash']),
-            self::text($r['guest_access_hash'])
+            self::text($r['guest_access_hash']),
+            (string) $r['purpose'],
+            self::text($r['purpose_ref'])
         );
     }
 

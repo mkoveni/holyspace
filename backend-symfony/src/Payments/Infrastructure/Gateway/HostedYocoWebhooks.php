@@ -49,7 +49,7 @@ final readonly class HostedYocoWebhooks implements YocoWebhookReader, YocoWebhoo
         $secret = ProviderJson::text(ProviderJson::path($result, 'secret'));
         if (1 !== preg_match('/\Asub_[A-Za-z0-9_-]{1,150}\z/', $id) || ProviderJson::text(ProviderJson::path($result, 'url')) !== $callback
             || ProviderJson::text(ProviderJson::path($result, 'mode')) !== $mode
-            || !new ProviderCredentials(null, null, null, $secretKey, $secret)->complete('yoco', $mode)) {
+            || !new ProviderCredentials($secretKey, $secret)->complete($mode)) {
             throw PaymentException::unavailable($failure);
         }
 

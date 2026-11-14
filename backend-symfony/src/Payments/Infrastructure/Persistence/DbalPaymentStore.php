@@ -61,11 +61,11 @@ final readonly class DbalPaymentStore implements PaymentRepository, PaymentReade
     {
         return 1 === $this->writes->execute(
             'INSERT INTO payments_orders (id, self_service, configuration_id, donor_id, fund_id, amount_minor, provider, mode, recurring, status, subscription_status, request_hash, created_by, created_at,
-                guest_name, guest_email_enc, guest_email_hash, guest_access_hash)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT DO NOTHING',
+                guest_name, guest_email_enc, guest_email_hash, guest_access_hash, purpose, purpose_ref)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT DO NOTHING',
             [$o->id, $o->selfService, $o->configurationId, $o->donorId, $o->fundId, $o->amountMinor, $o->provider, $o->mode, $o->recurring,
                 $o->status, $o->subscriptionStatus, $o->requestHash, $o->createdBy, Timestamps::toDatabase($o->createdAt),
-                $o->guestName, $o->guestEmailEncrypted, $o->guestEmailHash, $o->guestAccessHash],
+                $o->guestName, $o->guestEmailEncrypted, $o->guestEmailHash, $o->guestAccessHash, $o->purpose, $o->purposeRef],
             [1 => ParameterType::BOOLEAN, 5 => ParameterType::INTEGER, 8 => ParameterType::BOOLEAN],
         );
     }
@@ -86,14 +86,6 @@ final readonly class DbalPaymentStore implements PaymentRepository, PaymentReade
     public function review(string $id, ?string $reason): void
     {
         $this->writes->execute('UPDATE payments_orders SET review_reason = ?, version = version + 1 WHERE id = ?', [$reason, $id]);
-    }
-
-    public function subscription(string $id, string $status, ?string $encryptedToken, ?string $tokenHash): void
-    {
-        $this->writes->execute(
-            'UPDATE payments_orders SET subscription_status = ?, encrypted_token = ?, token_hash = ?, version = version + 1 WHERE id = ?',
-            [$status, $encryptedToken, $tokenHash, $id],
-        );
     }
 
     public function lookup(string $provider, string $mode, ?string $checkoutId, ?string $tokenHash): ?string

@@ -7,8 +7,8 @@ namespace App\Payments\Application;
 use App\Communications\Application\Contract\DeliverySnapshot;
 use App\Communications\Application\Contract\EmailDeliveries;
 use App\Communications\Application\Contract\EmailTemplates;
+use App\Payments\Application\Contract\PayloadVault;
 use App\Payments\Application\Contract\PaymentReader;
-use App\Payments\Application\Contract\SubscriptionVault;
 use App\Payments\Domain\GuestConfirmation;
 use App\Payments\Domain\PaymentOrder;
 use App\Payments\Domain\Repository\GuestConfirmationRepository;
@@ -29,7 +29,7 @@ final readonly class GuestConfirmations
         private PaymentRepository $payments,
         private PaymentReader $reader,
         private GuestConfirmationRepository $confirmations,
-        private SubscriptionVault $vault,
+        private PayloadVault $vault,
         private EmailTemplates $templates,
         private EmailDeliveries $deliveries,
         private UnitOfWork $transactions,
@@ -42,7 +42,7 @@ final readonly class GuestConfirmations
     {
         $this->transactions->execute(function () use ($orderId): void {
             $order = $this->payments->lock($orderId);
-            if (null === $order || !$order->isGuest() || !$order->isLive() || null === $order->guestEmailEncrypted) {
+            if (null === $order || PaymentOrder::GIVING !== $order->purpose || !$order->isGuest() || !$order->isLive() || null === $order->guestEmailEncrypted) {
                 return;
             }
             $detail = $this->reader->detail($orderId);

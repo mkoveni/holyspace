@@ -10,7 +10,7 @@ use App\Payments\Application\Command\ResumeCheckout\ResumeCheckoutCommand;
 use App\Payments\Application\Command\ResumeCheckout\ResumeCheckoutHandler;
 use App\Payments\Application\Contract\CheckoutCodec;
 use App\Payments\Application\Contract\MobileCheckoutOrigin;
-use App\Payments\Application\Contract\SubscriptionVault;
+use App\Payments\Application\Contract\PayloadVault;
 use App\Payments\Application\PaymentAccess;
 use App\Payments\Domain\MobileCheckout;
 use App\Payments\Domain\PaymentException;
@@ -35,7 +35,7 @@ final readonly class PrepareMobileCheckoutHandler
         private MobileCheckoutRepository $repository,
         private CurrentActor $actor,
         private TokenCodec $tokens,
-        private SubscriptionVault $vault,
+        private PayloadVault $vault,
         private MobileCheckoutOrigin $origins,
         private UnitOfWork $transactions,
         private ClockInterface $clock,

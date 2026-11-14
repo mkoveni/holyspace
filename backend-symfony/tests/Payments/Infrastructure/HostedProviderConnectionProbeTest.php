@@ -14,18 +14,17 @@ use App\Tests\Payments\Support\ScriptedProviderHttp;
 use Closure;
 use DateTimeImmutable;
 use PHPUnit\Framework\TestCase;
-use Symfony\Component\Clock\MockClock;
 use Symfony\Component\HttpClient\MockHttpClient;
 use Symfony\Component\HttpClient\Response\MockResponse;
 
 /** Port of Java HostedProviderConnectionProbeTest, plus the Yoco webhook adapter and the HTTP adapter (MockHttpClient). */
 final class HostedProviderConnectionProbeTest extends TestCase
 {
-    private static function configuration(string $provider): ProviderConfiguration
+    private static function configuration(): ProviderConfiguration
     {
         return new ProviderConfiguration(
             '77777777-7777-4777-8777-777777777777',
-            $provider,
+            'yoco',
             'test',
             1,
             'https://church.example',
@@ -48,25 +47,13 @@ final class HostedProviderConnectionProbeTest extends TestCase
         $provider = new ScriptedProviderHttp();
         $provider->handler = $http;
 
-        return new HostedProviderConnectionProbe($provider, new MockClock());
+        return new HostedProviderConnectionProbe($provider);
     }
 
     public function testACallbackRegisteredOnTheFrontendDoesNotApproveTheBackendConnection(): void
     {
         $probe = self::probe(static fn (): string => '{"subscriptions":[{"url":"https://church.example/api/payments/webhooks/yoco","mode":"test"}]}');
-        self::assertFalse($probe->check(self::configuration('yoco'), new ProviderCredentials(null, null, null, 'sk_test_fixture', 'whsec_fixture'))->successful);
-    }
-
-    public function testPayfastPingUsesAuthenticationWithoutCreatingOrChargingAnything(): void
-    {
-        $probe = self::probe(static function (string $method, string $url, array $headers, string $body): string {
-            self::assertSame(['GET', 'https://api.payfast.co.za/ping?testing=true', ''], [$method, $url, $body]);
-            self::assertSame('10000100', $headers['merchant-id']);
-            self::assertArrayHasKey('signature', $headers);
-
-            return 'API V1';
-        });
-        self::assertTrue($probe->check(self::configuration('payfast'), new ProviderCredentials('10000100', 'key', 'passphrase'))->successful);
+        self::assertFalse($probe->check(self::configuration(), new ProviderCredentials('sk_test_fixture', 'whsec_fixture'))->successful);
     }
 
     public function testYocoChecksRegisteredCallbackAndEnvironmentWithoutWritingProviderData(): void
@@ -76,21 +63,7 @@ final class HostedProviderConnectionProbeTest extends TestCase
 
             return '{"subscriptions":[{"url":"https://api.church.example/api/payments/webhooks/yoco","mode":"test"}]}';
         });
-        self::assertTrue($probe->check(self::configuration('yoco'), new ProviderCredentials(null, null, null, 'sk_test_fixture', 'whsec_fixture'))->successful);
-    }
-
-    public function testNotificationNetworksMustBeExplicitAndRestricted(): void
-    {
-        $probe = self::probe(null);
-        $probe->validateNetworks('197.97.145.144/28,41.74.179.192/27');
-        foreach (['0.0.0.0/0', '0.0.0.0/00', 'example.org', '127.0.0.1,', '999.1.1.1/24', implode(',', array_fill(0, 31, '127.0.0.1'))] as $bad) {
-            try {
-                $probe->validateNetworks($bad);
-                self::fail('Accepted '.$bad);
-            } catch (PaymentException) {
-                self::addToAssertionCount(1);
-            }
-        }
+        self::assertTrue($probe->check(self::configuration(), new ProviderCredentials('sk_test_fixture', 'whsec_fixture'))->successful);
     }
 
     public function testYocoRegistrationIsConfirmedBeforeItsSecretIsTrusted(): void
@@ -110,10 +83,10 @@ final class HostedProviderConnectionProbeTest extends TestCase
     {
         $responses = [new MockResponse('VALID', ['http_code' => 200]), new MockResponse('nope', ['http_code' => 302, 'response_headers' => ['Location' => 'https://evil.test']]), new MockResponse('', ['error' => 'timeout'])];
         $http = new SymfonyProviderHttp(new MockHttpClient($responses));
-        self::assertSame('VALID', $http->send('POST', 'https://sandbox.payfast.co.za/eng/query/validate', [], 'a=b'));
+        self::assertSame('VALID', $http->send('POST', 'https://payments.yoco.com/api/webhooks', [], 'a=b'));
         foreach ([1, 2] as $attempt) {
             try {
-                $http->send('GET', 'https://api.payfast.co.za/ping', [], '');
+                $http->send('GET', 'https://payments.yoco.com/api/webhooks', [], '');
                 self::fail('Accepted response '.$attempt);
             } catch (PaymentException) {
                 self::addToAssertionCount(1);

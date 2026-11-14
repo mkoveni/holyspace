@@ -79,17 +79,24 @@ abstract class PaymentApiTestCase extends IdentityApiTestCase
         $gateway = $this->gateway();
         $gateway->scripted = true;
         $gateway->mode = static fn (): string => $mode;
-        $gateway->providers = static fn (): array => [new PaymentProvider('yoco', 'Yoco', true, $mode, false), new PaymentProvider('payfast', 'Payfast', true, $mode, true)];
+        $gateway->providers = static fn (): array => [new PaymentProvider('yoco', 'Yoco', true, $mode, false)];
         $gateway->checkout ??= static fn ($order): HostedCheckout => new HostedCheckout('co_'.$order->id, 'https://c.yoco.com/checkout/one', []);
-        $gateway->subscription = static fn (): string => 'CANCELLED';
     }
 
-    /** Delivers an authenticated (scripted) Payfast notification for $order. */
-    protected function event(string $order, string $type, string $reference, int $amount = 10000, ?string $token = null, string $mode = 'live'): int
+    /** Delivers an authenticated (scripted) Yoco notification for $order, giving the order a checkout first if it has none. */
+    protected function event(string $order, string $type, string $reference, int $amount = 10000, string $mode = 'live'): int
     {
         $date = $this->today();
-        $this->gateway()->verify = static fn (): ProviderNotification => new ProviderNotification('payfast', $mode, $reference.':'.$type, $type, $reference, null, $order, $amount, 'ZAR', $token, $date);
-        $this->call('POST', '/api/payments/webhooks/payfast', null, ['event' => $reference]);
+        $checkout = 'co_'.$order;
+        if (null === $this->connection->fetchOne('SELECT checkout_id FROM payments_orders WHERE id = ?', [$order])) {
+            $this->connection->executeStatement('ALTER TABLE payments_orders DISABLE TRIGGER payments_order_guard');
+            $this->connection->executeStatement('UPDATE payments_orders SET checkout_id = ? WHERE id = ?', [$checkout, $order]);
+            $this->connection->executeStatement('ALTER TABLE payments_orders ENABLE TRIGGER payments_order_guard');
+        } else {
+            $checkout = (string) $this->connection->fetchOne('SELECT checkout_id FROM payments_orders WHERE id = ?', [$order]);
+        }
+        $this->gateway()->verify = static fn (): ProviderNotification => new ProviderNotification('yoco', $mode, $reference.':'.$type, $type, $reference, $checkout, $order, $amount, 'ZAR', $date);
+        $this->call('POST', '/api/payments/webhooks/yoco', null, ['event' => $reference]);
 
         return $this->code();
     }
@@ -151,10 +158,10 @@ abstract class PaymentApiTestCase extends IdentityApiTestCase
         return (string) $this->connection->fetchOne('SELECT id FROM payments_charges WHERE order_id = ? ORDER BY created_at, id LIMIT 1', [$order]);
     }
 
-    /** A staff payment (Java `order(provider, recurring)`) for a new donor and fund. */
-    protected function order(string $provider = 'payfast', bool $recurring = false, ?string $donor = null, ?string $fund = null): string
+    /** A staff payment (Java `order(provider)`) for a new donor and fund. */
+    protected function order(string $provider = 'yoco', ?string $donor = null, ?string $fund = null): string
     {
         return $this->created('/api/payments', ['requestId' => Uuid::v4()->toRfc4122(), 'donorId' => $donor ?? $this->person('Donor'),
-            'fundId' => $fund ?? $this->fund('General '.Uuid::v4()->toRfc4122()), 'amountMinor' => 10000, 'provider' => $provider, 'recurring' => $recurring]);
+            'fundId' => $fund ?? $this->fund('General '.Uuid::v4()->toRfc4122()), 'amountMinor' => 10000, 'provider' => $provider]);
     }
 }

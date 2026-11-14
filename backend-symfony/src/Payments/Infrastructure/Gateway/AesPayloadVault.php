@@ -4,16 +4,16 @@ declare(strict_types=1);
 
 namespace App\Payments\Infrastructure\Gateway;
 
-use App\Payments\Application\Contract\SubscriptionVault;
+use App\Payments\Application\Contract\PayloadVault;
 use App\Payments\Domain\JavaBase64;
 use App\Payments\Domain\PaymentException;
 use SensitiveParameter;
 
 /**
  * AES-256-GCM with a random 12-byte nonce, no associated data, stored as `base64(nonce):base64(ciphertext‖tag16)`,
- * exactly as Java's `AesSubscriptionVault` (keep the Java-captured vectors in AesSubscriptionVaultTest green).
+ * exactly as Java's `AesPayloadVault` (keep the Java-captured vectors in AesPayloadVaultTest green).
  */
-final readonly class AesSubscriptionVault implements SubscriptionVault
+final readonly class AesPayloadVault implements PayloadVault
 {
     private const string CIPHER = 'aes-256-gcm';
 

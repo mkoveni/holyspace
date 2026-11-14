@@ -14,7 +14,6 @@ use App\Payments\Domain\ProviderSettings;
 use App\Payments\Domain\Repository\ProviderConfigurationRepository;
 use App\Shared\Application\IdGenerator;
 use App\Shared\Application\UnitOfWork;
-use App\Shared\Domain\JavaString;
 use Exception;
 use Psr\Clock\ClockInterface;
 
@@ -48,11 +47,9 @@ final readonly class CheckProviderConnectionHandler
             return $this->repository->latest($c->provider, $c->mode) ?? throw PaymentException::conflict('Save the connection details first.');
         });
         $credentials = $this->vault->decrypt($configuration->encryptedCredentials);
-        $issue = $credentials->validationIssue($c->provider, $c->mode);
+        $issue = $credentials->validationIssue($c->mode);
         if (null !== $issue) {
             $result = new ProbeResult(false, $issue);
-        } elseif ('payfast' === $c->provider && JavaString::isBlank($configuration->ipRanges)) {
-            $result = new ProbeResult(false, 'Enter the trusted Payfast notification networks in Advanced callback protection, then save and retry.');
         } else {
             try {
                 $result = $this->probe->check($configuration, $credentials);

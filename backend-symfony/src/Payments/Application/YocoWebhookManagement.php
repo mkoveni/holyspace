@@ -95,7 +95,7 @@ final readonly class YocoWebhookManagement
         if ($created) {
             try {
                 $registered = $this->writer->register($this->key($original), 'onechurch-'.$mode.'-'.$request, $original->backendUrl.self::CALLBACK, $mode);
-                $secret = $this->vault->encrypt(new ProviderCredentials(null, null, null, null, $registered->secret));
+                $secret = $this->vault->encrypt(new ProviderCredentials(null, $registered->secret));
                 $this->transactions->execute(fn () => $this->operations->finish($request, 'READY', $registered->id, $secret));
             } catch (Exception) {
                 $this->transactions->execute(fn () => $this->operations->finish($request, 'UNKNOWN', null, null));
@@ -125,8 +125,7 @@ final readonly class YocoWebhookManagement
                     false,
                     false,
                     $current->publicUrl,
-                    $current->ipRanges,
-                    new ProviderCredentials(null, null, null, null, $secret),
+                    new ProviderCredentials(null, $secret),
                     $note,
                     $current->backendUrl
                 ));

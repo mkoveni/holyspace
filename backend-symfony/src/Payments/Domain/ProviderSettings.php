@@ -16,15 +16,15 @@ final readonly class ProviderSettings
         public int $version,
     ) {
         self::validate($provider, $mode);
-        if ($monthly && 'payfast' !== $provider) {
-            throw PaymentException::invalid('Monthly giving is available through Payfast only.');
+        if ($monthly) {
+            throw PaymentException::invalid('Monthly giving is no longer offered.');
         }
     }
 
     public static function validate(?string $provider, ?string $mode): void
     {
         if (!\in_array($provider, PaymentOrder::PROVIDERS, true) || !\in_array($mode, PaymentOrder::MODES, true)) {
-            throw PaymentException::invalid('Choose Payfast or Yoco and a test or live environment.');
+            throw PaymentException::invalid('Choose Yoco and a test or live environment.');
         }
     }
 

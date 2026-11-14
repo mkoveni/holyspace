@@ -63,11 +63,7 @@
           @click="selectProvider(provider.settings.provider)"
         >
           <v-icon
-            :icon="
-              provider.settings.provider === 'payfast'
-                ? 'mdi-credit-card-outline'
-                : 'mdi-contactless-payment-circle-outline'
-            "
+            icon="mdi-contactless-payment-circle-outline"
           />
 
           <span>
@@ -184,7 +180,7 @@
               v-model="backendUrl"
               autocomplete="off"
               :disabled="busy"
-              hint="Public HTTPS address of the backend API. Yoco and Payfast send payment notifications here."
+              hint="Public HTTPS address of the backend API. Yoco sends payment notifications here."
               label="Backend API URL"
               persistent-hint
               placeholder="https://api.church.example"
@@ -221,60 +217,7 @@
               </p>
 
               <div class="payment-settings-fields">
-                <template v-if="providerId === 'payfast'">
-                  <v-text-field
-                    v-model="merchantId"
-                    autocomplete="new-password"
-                    :disabled="busy"
-                    :hint="savedHint(environment?.merchantIdSet)"
-                    label="Merchant ID"
-                    maxlength="1000"
-                    persistent-hint
-                    :placeholder="savedHint(environment?.merchantIdSet)"
-                    type="password"
-                  />
-
-                  <v-text-field
-                    v-model="merchantKey"
-                    autocomplete="new-password"
-                    :disabled="busy"
-                    :hint="savedHint(environment?.merchantKeySet)"
-                    label="Merchant key"
-                    maxlength="1000"
-                    persistent-hint
-                    :placeholder="savedHint(environment?.merchantKeySet)"
-                    type="password"
-                  />
-
-                  <v-text-field
-                    v-model="passphrase"
-                    autocomplete="new-password"
-                    :disabled="busy"
-                    :hint="savedHint(environment?.passphraseSet)"
-                    label="Passphrase"
-                    maxlength="1000"
-                    persistent-hint
-                    :placeholder="savedHint(environment?.passphraseSet)"
-                    type="password"
-                  />
-
-                  <v-expansion-panels variant="accordion">
-                    <v-expansion-panel title="Advanced callback protection">
-                      <v-expansion-panel-text>
-                        <v-textarea
-                          v-model="ipRanges"
-                          :disabled="busy"
-                          hint="Comma-separated provider IP addresses or CIDR networks. Keep these aligned with Payfast's published networks."
-                          label="Trusted Payfast notification networks"
-                          maxlength="2000"
-                          persistent-hint
-                        />
-                      </v-expansion-panel-text>
-                    </v-expansion-panel>
-                  </v-expansion-panels>
-                </template>
-
-                <template v-else>
+                <template v-if="providerId === 'yoco'">
                   <v-text-field
                     v-model="yocoKey"
                     autocomplete="new-password"
@@ -376,16 +319,8 @@
                 label="Enable new checkouts"
               />
 
-              <v-checkbox
-                v-if="providerId === 'payfast'"
-                v-model="monthly"
-                :disabled="busy"
-                hide-details
-                label="Offer monthly giving"
-              />
-
               <p class="directory-muted mt-3">
-                Disabling new checkouts does not cancel existing subscriptions.
+                Disabling new checkouts does not affect payments already made.
                 Keep earlier provider keys and webhook registrations valid while
                 payments remain outstanding.
               </p>
@@ -493,7 +428,7 @@
   import '@/giving/giving.css'
   const auth = useAuthStore(),
         settings = ref<Settings | null>(null),
-        providerId = ref('payfast'),
+        providerId = ref('yoco'),
         mode = ref('test'),
         loading = ref(false),
         saving = ref(false),
@@ -502,13 +437,8 @@
         success = ref(''),
         conflict = ref(false)
   const enabled = ref(false),
-        monthly = ref(false),
         publicUrl = ref(''),
         backendUrl = ref(''),
-        ipRanges = ref(''),
-        merchantId = ref(''),
-        merchantKey = ref(''),
-        passphrase = ref(''),
         yocoKey = ref(''),
         webhookSecret = ref(''),
         reason = ref('')
@@ -549,19 +479,14 @@
     return JSON.stringify([
       mode.value,
       enabled.value,
-      monthly.value,
       publicUrl.value,
       backendUrl.value,
-      ipRanges.value,
-      merchantId.value,
-      merchantKey.value,
-      passphrase.value,
       yocoKey.value,
       webhookSecret.value,
     ])
   }
   function providerName (id: string) {
-    return id === 'payfast' ? 'Payfast' : 'Yoco'
+    return id === 'yoco' ? 'Yoco' : id
   }
   function modeLabel (value: string) {
     return value === 'live' ? 'Live' : 'Test'
@@ -591,9 +516,6 @@
     return Boolean(value.trim()) || 'Explain this change.'
   }
   function clearSecrets () {
-    merchantId.value = ''
-    merchantKey.value = ''
-    passphrase.value = ''
     yocoKey.value = ''
     webhookSecret.value = ''
   }
@@ -602,12 +524,8 @@
     const savedSettings = current.value?.settings
     enabled.value
       = savedSettings?.mode === mode.value ? Boolean(savedSettings.enabled) : false
-    monthly.value = current.value?.settings.monthly || false
     publicUrl.value = env?.publicUrl || ''
     backendUrl.value = env?.backendUrl ?? env?.publicUrl ?? ''
-    ipRanges.value
-      = env?.ipRanges
-        || (providerId.value === 'payfast' ? '197.97.145.144/28,41.74.179.192/27' : '')
     clearSecrets()
     reason.value = ''
     conflict.value = false
@@ -662,14 +580,9 @@
         expectedVersion: current.value.settings.version,
         mode: mode.value,
         enabled: enabled.value,
-        monthly: monthly.value,
         publicUrl: publicUrl.value,
         backendUrl: backendUrl.value,
-        ipRanges: ipRanges.value,
         credentials: {
-          merchantId: merchantId.value,
-          merchantKey: merchantKey.value,
-          passphrase: passphrase.value,
           yocoKey: yocoKey.value,
           webhookSecret: webhookSecret.value,
         },

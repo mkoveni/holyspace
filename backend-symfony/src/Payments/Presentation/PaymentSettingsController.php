@@ -52,7 +52,6 @@ final readonly class PaymentSettingsController
             $b->enabled,
             $b->monthly,
             $b->publicUrl,
-            $b->ipRanges,
             $b->credentials?->credentials(),
             (string) $b->reason,
             $b->backendUrl

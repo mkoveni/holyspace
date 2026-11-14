@@ -6,7 +6,6 @@ namespace App\Payments\Application\Command\SaveProviderSettings;
 
 use App\Payments\Application\Contract\LegacyPaymentConfiguration;
 use App\Payments\Application\Contract\PaymentCredentialVault;
-use App\Payments\Application\Contract\ProviderConnectionProbe;
 use App\Payments\Application\PaymentAccess;
 use App\Payments\Application\PaymentHash;
 use App\Payments\Domain\HttpsOrigin;
@@ -18,7 +17,6 @@ use App\Payments\Domain\ProviderSettings;
 use App\Payments\Domain\Repository\ProviderConfigurationRepository;
 use App\Shared\Application\CommandHandler;
 use App\Shared\Application\IdGenerator;
-use App\Shared\Domain\JavaString;
 use DateInterval;
 use Psr\Clock\ClockInterface;
 
@@ -34,7 +32,6 @@ final readonly class SaveProviderSettingsHandler implements CommandHandler
         private ProviderConfigurationRepository $repository,
         private PaymentCredentialVault $vault,
         private LegacyPaymentConfiguration $legacy,
-        private ProviderConnectionProbe $probe,
         private ClockInterface $clock,
         private IdGenerator $ids,
     ) {
@@ -52,33 +49,29 @@ final readonly class SaveProviderSettingsHandler implements CommandHandler
         $prior = $this->repository->latest($c->provider, $c->mode);
         $origin = HttpsOrigin::public($c->publicUrl);
         $backend = null === $c->backendUrl ? ($prior->backendUrl ?? $origin) : HttpsOrigin::public($c->backendUrl);
-        $networks = 'payfast' === $c->provider ? JavaString::trim($c->ipRanges ?? '') : '';
-        if ('' !== $networks) {
-            $this->probe->validateNetworks($networks);
-        }
         $before = null === $prior ? $this->legacy->credentials($c->provider, $c->mode) : $this->vault->decrypt($prior->encryptedCredentials);
-        $credentials = $before->replace($c->replacements ?? ProviderCredentials::none())->forProvider($c->provider);
+        $credentials = $before->replace($c->replacements ?? ProviderCredentials::none());
         foreach ([...$before->protectedValues(), ...$credentials->protectedValues()] as $secret) {
             if (str_contains($reason, $secret)) {
                 throw PaymentException::invalid('Keep credentials out of the change reason.');
             }
         }
-        $hash = PaymentHash::of($credentials->merchantId, $credentials->merchantKey, $credentials->passphrase, $credentials->yocoKey, $credentials->webhookSecret);
+        $hash = PaymentHash::of('', '', '', $credentials->yocoKey, $credentials->webhookSecret);
         $now = $this->clock->now();
         $revision = $prior;
-        if (null === $prior || $prior->publicUrl !== $origin || $prior->ipRanges !== $networks || $prior->backendUrl !== $backend || $prior->credentialHash !== $hash) {
+        if (null === $prior || $prior->publicUrl !== $origin || $prior->backendUrl !== $backend || $prior->credentialHash !== $hash) {
             $revision = new ProviderConfiguration(
                 $this->ids->uuid(),
                 $c->provider,
                 $c->mode,
                 null === $prior ? 1 : $prior->sequence + 1,
                 $origin,
-                $networks,
+                '',
                 $this->vault->encrypt($credentials),
                 $hash,
-                '' !== $credentials->merchantId,
-                '' !== $credentials->merchantKey,
-                '' !== $credentials->passphrase,
+                false,
+                false,
+                false,
                 '' !== $credentials->yocoKey,
                 '' !== $credentials->webhookSecret,
                 $c->actorId,
@@ -91,7 +84,7 @@ final readonly class SaveProviderSettingsHandler implements CommandHandler
             $this->repository->insert($revision);
         }
         if ($c->enabled) {
-            $this->activation($c, $revision, $credentials, $networks);
+            $this->activation($c, $revision, $credentials);
         }
         $this->repository->save($updated);
         $this->repository->audit(
@@ -100,7 +93,7 @@ final readonly class SaveProviderSettingsHandler implements CommandHandler
             $updated->version,
             'SETTINGS_SAVED',
             $reason,
-            implode(', ', self::changedFields($before, $credentials, $prior, $origin, $backend, $networks, $current, $c)),
+            implode(', ', self::changedFields($before, $credentials, $prior, $origin, $backend, $current, $c)),
             $c->actorId,
             $now
         );
@@ -108,12 +101,12 @@ final readonly class SaveProviderSettingsHandler implements CommandHandler
         return null;
     }
 
-    private function activation(SaveProviderSettingsCommand $c, ?ProviderConfiguration $revision, ProviderCredentials $credentials, string $networks): void
+    private function activation(SaveProviderSettingsCommand $c, ?ProviderConfiguration $revision, ProviderCredentials $credentials): void
     {
         if ('yoco' === $c->provider && $this->repository->activeWebhookRemoval($c->mode)) {
             throw PaymentException::conflict('Resolve the pending webhook removal before activation.');
         }
-        if (null === $revision || !$this->vault->ready() || !$credentials->complete($c->provider, $c->mode) || ('payfast' === $c->provider && JavaString::isBlank($networks))) {
+        if (null === $revision || !$this->vault->ready() || !$credentials->complete($c->mode)) {
             throw PaymentException::conflict('Complete the provider credentials and connection details before activation.');
         }
         $check = $this->repository->latestCheck($revision->id);
@@ -129,23 +122,17 @@ final readonly class SaveProviderSettingsHandler implements CommandHandler
         ?ProviderConfiguration $prior,
         string $origin,
         string $backend,
-        string $networks,
         ProviderSettings $current,
         SaveProviderSettingsCommand $c,
     ): array {
         $fields = [];
         $checks = [
-            'merchant ID' => $before->merchantId !== $after->merchantId,
-            'merchant key' => $before->merchantKey !== $after->merchantKey,
-            'passphrase' => $before->passphrase !== $after->passphrase,
             'API key' => $before->yocoKey !== $after->yocoKey,
             'webhook secret' => $before->webhookSecret !== $after->webhookSecret,
             'frontend URL' => null === $prior || $prior->publicUrl !== $origin,
             'backend URL' => null === $prior || $prior->backendUrl !== $backend,
-            'notification networks' => null === $prior || $prior->ipRanges !== $networks,
             'new checkouts' => $current->enabled !== $c->enabled,
             'environment' => $current->mode !== $c->mode,
-            'monthly giving' => $current->monthly !== $c->monthly,
         ];
         foreach ($checks as $label => $changed) {
             if ($changed) {

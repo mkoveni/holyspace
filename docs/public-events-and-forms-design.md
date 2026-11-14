@@ -1,6 +1,6 @@
 # Public paid events, invoicing, and public/internal forms and quizzes: design
 
-Status: **Draft for business and engineering review (2026-11-13).** Nothing is implemented. Diagrams use Mermaid
+Status: **Draft for business and engineering review (2026-11-13).** Implemented so far: Phase 1 (Forms), Phase 2 (Yoco only, purpose-aware Payments) and the backend of Phase 3 (public ticketing, migration V45). Not yet built: ticket email, public and staff screens, and all of Phase 4. Diagrams use Mermaid
 (rendered by GitHub and most Markdown viewers). Target code base: `backend-symfony` (the live API the frontend proxies
 to) and `frontend`. Read `backend-symfony/AGENTS.md` first; every rule there applies to the work below.
 

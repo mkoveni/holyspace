@@ -44,7 +44,6 @@ export default function GivingScreen() {
   const [fund, setFund] = useState(""),
     [amount, setAmount] = useState(""),
     [provider, setProvider] = useState(""),
-    [monthly, setMonthly] = useState(false),
     [reviewed, setReviewed] = useState(false),
     [pending, setPending] = useState<GiftIntent | null>(null),
     [busy, setBusy] = useState(false),
@@ -68,7 +67,6 @@ export default function GivingScreen() {
           setFund(saved.fundId);
           setAmount((saved.amountMinor / 100).toFixed(2));
           setProvider(saved.provider);
-          setMonthly(saved.recurring);
         }
       })
       .catch(() => {
@@ -90,7 +88,7 @@ export default function GivingScreen() {
       fundId: fund,
       amountMinor: zarMinor(amount)!,
       provider: effectiveProvider,
-      recurring: monthly,
+      recurring: false,
     };
     setPending(intent);
     try {
@@ -209,7 +207,7 @@ export default function GivingScreen() {
               { color: colors.onDarkMuted, textAlign: "center" },
             ]}
           >
-            {monthly ? "Every month, starting today" : "One-off gift"}
+            One-off gift
           </Text>
         </View>
       )}
@@ -305,34 +303,15 @@ export default function GivingScreen() {
                   value: p.id,
                   label: p.name,
                 }))}
-                onChange={(id) => {
-                  setProvider(id);
-                  if (!data.providers.find((p) => p.id === id)?.recurring)
-                    setMonthly(false);
-                }}
+                onChange={setProvider}
                 disabled={locked}
               />
-              {selected?.recurring && (
-                <Check
-                  label="Give this amount every month"
-                  checked={monthly}
-                  onChange={() => {
-                    setMonthly(!monthly);
-                    setReviewed(false);
-                  }}
-                  disabled={locked}
-                />
-              )}
               {selected?.mode === "test" && (
                 <Message text="Test mode · This is a simulation, not a real contribution." />
               )}
               <View style={ui.separator} />
               <Check
-                label={
-                  monthly
-                    ? "I agree to today’s payment and future monthly payments."
-                    : "I have checked the amount and selected fund."
-                }
+                label="I have checked the amount and selected fund."
                 checked={reviewed}
                 onChange={() => setReviewed(!reviewed)}
                 disabled={busy}
@@ -361,16 +340,16 @@ export default function GivingScreen() {
                 <Text
                   style={[ui.caption, { flexShrink: 1, textAlign: "center" }]}
                 >
-                  {monthly
-                    ? "Payfast will collect today’s gift and future monthly gifts. You can request cancellation in your payment history."
-                    : "Your card details are entered only with your payment provider."}
+                  {
+                    "Your card details are entered only with your payment provider."
+                  }
                 </Text>
               </View>
             </View>
 
             <SectionHeader title="Your online gifts" />
             <Text style={[ui.body, { fontSize: 14, marginTop: -8 }]}>
-              Follow payment progress and manage monthly giving.
+              Follow your payment progress.
             </Text>
             {!data.payments.items.length ? (
               <EmptyState
@@ -383,7 +362,7 @@ export default function GivingScreen() {
                   <Pressable
                     key={p.id}
                     accessibilityRole="button"
-                    accessibilityLabel={`View ${money(p.amountMinor)} ${p.recurring ? "monthly" : "one-off"} payment`}
+                    accessibilityLabel={`View ${money(p.amountMinor)} one-off payment`}
                     onPress={() =>
                       router.push({
                         pathname: "/payment/[id]",
@@ -405,14 +384,13 @@ export default function GivingScreen() {
                   >
                     <IconTile
                       size={40}
-                      icon={p.recurring ? "repeat" : "heart-outline"}
+                      icon="heart-outline"
                       tone={statusTone(p.status)}
                     />
                     <View style={{ flex: 1, gap: 4 }}>
                       <Text style={ui.h3}>{money(p.amountMinor)}</Text>
                       <Text style={ui.caption}>
-                        {p.recurring ? "Monthly" : "One-off"} ·{" "}
-                        {date(p.createdAt)}
+                        One-off · {date(p.createdAt)}
                       </Text>
                       <Badge
                         tone={statusTone(p.status)}

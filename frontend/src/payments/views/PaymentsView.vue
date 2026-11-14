@@ -62,11 +62,7 @@
             <strong>{{ provider.name }}</strong>
 
             <p class="directory-muted">
-              {{
-                provider.recurring
-                  ? 'One-off & monthly giving'
-                  : 'One-off giving'
-              }}
+              One-off giving
             </p>
           </div>
 
@@ -135,8 +131,7 @@
           <strong>{{ payment.donorName }}</strong>
 
           <p class="directory-muted">
-            {{ payment.provider === 'payfast' ? 'Payfast' : 'Yoco' }} ·
-            {{ payment.recurring ? 'Monthly' : 'One-off' }} ·
+            Yoco · One-off ·
             {{ new Date(payment.createdAt).toLocaleDateString() }}
           </p>
 
@@ -264,12 +259,6 @@
           />
         </div>
 
-        <v-checkbox
-          v-model="monthly"
-          :disabled="!selectedProvider?.recurring"
-          label="Give this amount every month until cancelled"
-        />
-
         <v-alert
           type="info"
           variant="tonal"
@@ -299,11 +288,7 @@
 
             <p>
               {{ money(detail.order.amountMinor, 'ZAR') }} ·
-              {{
-                detail.order.recurring
-                  ? 'Monthly arrangement'
-                  : 'One-off request'
-              }}
+              One-off request
               · {{ detail.order.mode === 'test' ? 'Test mode' : 'Live' }}
             </p>
           </div>
@@ -343,11 +328,9 @@
 
               <p class="directory-muted">
                 {{
-                  detail.order.recurring
-                    ? 'Subscription: ' + label(detail.order.subscriptionStatus)
-                    : detail.order.status === 'PAID'
-                      ? 'Payment confirmation and bank settlement are tracked separately.'
-                      : 'Awaiting checkout is not a received gift.'
+                  detail.order.status === 'PAID'
+                    ? 'Payment confirmation and bank settlement are tracked separately.'
+                    : 'Awaiting checkout is not a received gift.'
                 }}
               </p>
             </div>
@@ -362,12 +345,7 @@
           </div>
 
           <div
-            v-if="
-              ['PENDING', 'READY'].includes(detail.order.status) &&
-                !['CANCEL_REQUESTED', 'CANCELLED'].includes(
-                  detail.order.subscriptionStatus,
-                )
-            "
+            v-if="['PENDING', 'READY'].includes(detail.order.status)"
             class="payment-checkout"
           >
             <h3>Continue securely</h3>
@@ -381,31 +359,6 @@
               @click="continueCheckout"
             >
               Continue to secure checkout
-            </v-btn>
-          </div>
-
-          <div
-            v-if="
-              detail.order.recurring &&
-                detail.order.subscriptionStatus !== 'CANCELLED'
-            "
-            class="payment-actions my-4"
-          >
-            <v-btn
-              :loading="actionBusy"
-              variant="tonal"
-              @click="subscription(false)"
-            >
-              Check subscription
-            </v-btn>
-
-            <v-btn
-              color="error"
-              :loading="actionBusy"
-              variant="text"
-              @click="cancelOpen = true"
-            >
-              Cancel monthly giving
             </v-btn>
           </div>
 
@@ -697,17 +650,6 @@
       </div>
     </GivingDialog>
 
-    <GivingDialog
-      v-model="cancelOpen"
-      save-label="Request cancellation"
-      :submit="cancelSubscription"
-      subtitle="Future charges stop only after the provider confirms cancellation. A charge already in progress may still arrive."
-      title="Cancel monthly giving"
-      @reload="reloadDetail"
-      @saved="changed"
-    >
-      <p>Cancel the monthly arrangement for {{ detail?.order.donorName }}?</p>
-    </GivingDialog>
   </div>
 </template>
 <script setup lang="ts">
@@ -745,11 +687,9 @@
         donorId = ref<string | null>(null),
         fundId = ref<string | null>(null),
         providerId = ref(''),
-        amount = ref(''),
-        monthly = ref(false)
+        amount = ref('')
   const refundOpen = ref(false),
         reviewOpen = ref(false),
-        cancelOpen = ref(false),
         selected = ref<ChargeView | null>(null)
   const refundReference = ref(''),
         refundAmount = ref(''),
@@ -903,15 +843,6 @@
     offset.value = 0
     refresh()
   })
-  watch(
-    () => selectedProvider.value?.recurring,
-    available => {
-      if (!available) monthly.value = false
-    },
-  )
-  watch(providerId, value => {
-    if (value !== 'payfast') monthly.value = false
-  })
   watch(detailOpen, open => {
     if (!open) {
       detailGeneration++
@@ -925,7 +856,6 @@
     donorId.value = null
     fundId.value = null
     amount.value = ''
-    monthly.value = false
     providerId.value = availableProviders.value[0]?.id || ''
     createOpen.value = true
   }
@@ -936,7 +866,7 @@
       fundId: fundId.value,
       amountMinor: minor(amount.value),
       provider: providerId.value,
-      recurring: monthly.value,
+      recurring: false,
     })
     createdId = result.id
     return result
@@ -1024,30 +954,6 @@
   }
   async function changed () {
     await reloadDetail()
-  }
-  async function subscription (cancel: boolean) {
-    if (!detail.value || actionBusy.value) return
-    actionBusy.value = true
-    actionError.value = ''
-    try {
-      await paymentsApi.subscription(detail.value.order.id, {
-        expectedVersion: detail.value.order.version,
-        cancel,
-      })
-      await reloadDetail()
-    } catch (error_) {
-      actionError.value = extractErrorMessage(error_)
-      await reloadDetail()
-    } finally {
-      actionBusy.value = false
-    }
-  }
-  async function cancelSubscription () {
-    if (!detail.value) throw new Error('Refresh the payment first.')
-    return paymentsApi.subscription(detail.value.order.id, {
-      expectedVersion: detail.value.order.version,
-      cancel: true,
-    })
   }
   onMounted(async () => {
     await refresh()

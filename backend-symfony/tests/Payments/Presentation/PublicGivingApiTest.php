@@ -28,8 +28,8 @@ final class PublicGivingApiTest extends PaymentApiTestCase
         $this->transport()->capture = true;
         $this->fund = $this->fund('Building '.Uuid::v4()->toRfc4122());
         $this->scriptGateway('live');
-        $this->gateway()->providers = static fn (): array => [new PaymentProvider('payfast', 'Payfast', true, 'live', true), new PaymentProvider('yoco', 'Yoco', false, 'live', false)];
-        $this->gateway()->checkout = static fn ($order): HostedCheckout => new HostedCheckout('checkout_'.$order->id, 'https://sandbox.payfast.co.za/eng/process', ['merchant_id' => 'fixture']);
+        $this->gateway()->providers = static fn (): array => [new PaymentProvider('yoco', 'Yoco', true, 'live', false)];
+        $this->gateway()->checkout = static fn ($order): HostedCheckout => new HostedCheckout('checkout_'.$order->id, 'https://c.yoco.com/checkout/one', []);
         $this->call('PUT', "/api/giving/online-funds/{$this->fund}", $this->admin, ['enabled' => true, 'expectedVersion' => 0]);
         self::assertSame(204, $this->code(), $this->body());
     }
@@ -53,7 +53,7 @@ final class PublicGivingApiTest extends PaymentApiTestCase
     /** @return array<string, mixed> */
     private function give(?string $id = null, string $email = 'giver@example.org', int $amount = 25000): array
     {
-        return ['requestId' => $id ?? Uuid::v4()->toRfc4122(), 'fundId' => $this->fund, 'amountMinor' => $amount, 'provider' => 'payfast',
+        return ['requestId' => $id ?? Uuid::v4()->toRfc4122(), 'fundId' => $this->fund, 'amountMinor' => $amount, 'provider' => 'yoco',
             'email' => $email, 'name' => 'Thandi Mabasa'];
     }
 
@@ -74,7 +74,7 @@ final class PublicGivingApiTest extends PaymentApiTestCase
         self::assertSame(200, $this->code(), $this->body());
         self::assertStringContainsString('no-store', (string) $this->client->getResponse()->headers->get('Cache-Control'));
         self::assertSame([$this->fund], array_column($this->json()['funds'], 'id'));
-        self::assertSame(['payfast'], array_column($this->json()['providers'], 'id'));
+        self::assertSame(['yoco'], array_column($this->json()['providers'], 'id'));
     }
 
     public function testAVisitorStartsACheckoutWithNoPersonAndTheEmailIsEncrypted(): void
@@ -246,7 +246,7 @@ final class PublicGivingApiTest extends PaymentApiTestCase
         $this->expectException(Throwable::class);
         $this->connection->executeStatement(
             "INSERT INTO payments_orders (id, donor_id, fund_id, amount_minor, provider, mode, recurring, status, subscription_status, request_hash, created_by, created_at)
-             VALUES (?, NULL, ?, 1000, 'payfast', 'live', FALSE, 'PENDING', 'NONE', 'h', ?, now())",
+             VALUES (?, NULL, ?, 1000, 'yoco', 'live', FALSE, 'PENDING', 'NONE', 'h', ?, now())",
             [Uuid::v4()->toRfc4122(), $this->fund, $this->adminId],
         );
     }

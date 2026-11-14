@@ -18,7 +18,6 @@ final readonly class SaveProviderSettingsCommand implements Command
         public bool $enabled,
         public bool $monthly,
         public ?string $publicUrl,
-        public ?string $ipRanges,
         public ?ProviderCredentials $replacements,
         public string $reason,
         public ?string $backendUrl,

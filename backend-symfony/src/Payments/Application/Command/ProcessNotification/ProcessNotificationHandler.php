@@ -6,7 +6,6 @@ namespace App\Payments\Application\Command\ProcessNotification;
 
 use App\Payments\Application\Contract\PaymentGateway;
 use App\Payments\Application\Contract\ProviderNotification;
-use App\Payments\Application\Contract\SubscriptionVault;
 use App\Payments\Application\PaymentHash;
 use App\Payments\Application\PaymentPosting;
 use App\Payments\Domain\Charge;
@@ -21,7 +20,7 @@ use Psr\Clock\ClockInterface;
 
 /**
  * Public provider entry point. Only a successfully authenticated gateway notification enters a write transaction
- * (verification may call Payfast's validate endpoint, so it runs outside any transaction), and durable verification
+ * (verification is outside any transaction), and durable verification
  * commits before posting to Giving starts in its own transaction. Provider boundary: not on the command bus.
  */
 final readonly class ProcessNotificationHandler
@@ -33,7 +32,6 @@ final readonly class ProcessNotificationHandler
         private ChurchCalendar $calendar,
         private IdGenerator $ids,
         private PaymentGateway $gateway,
-        private SubscriptionVault $vault,
         private PaymentPosting $posting,
     ) {
     }
@@ -63,7 +61,6 @@ final readonly class ProcessNotificationHandler
         if ('yoco' === $event->provider && (null === $order->checkoutId || $order->checkoutId !== $event->checkoutId)) {
             throw PaymentException::unavailable('Checkout confirmation is pending; retry this notification.');
         }
-        $tokenHash = null === $event->token ? null : PaymentHash::of($event->token);
         $hash = PaymentHash::of(
             $event->provider,
             $event->mode,
@@ -73,7 +70,6 @@ final readonly class ProcessNotificationHandler
             $event->orderId,
             $event->amountMinor,
             $event->currency,
-            $tokenHash,
             $event->date
         );
         $now = $this->clock->now();
@@ -88,19 +84,6 @@ final readonly class ProcessNotificationHandler
             $this->repository->review($id, 'Verified amount or currency does not match the checkout; no gift posted.');
 
             return;
-        }
-        if (null !== $tokenHash) {
-            $owner = $this->repository->lookup($event->provider, $event->mode, null, $tokenHash) ?? $id;
-            if ($owner !== $id) {
-                $this->repository->review($id, 'Subscription identity belongs to another payment arrangement.');
-
-                return;
-            }
-            if (null !== $order->tokenHash && $tokenHash !== $order->tokenHash) {
-                $this->repository->review($id, 'Subscription token conflicts with the original arrangement.');
-
-                return;
-            }
         }
         match ($event->type) {
             'PAID' => $this->paid($order, $event),
@@ -122,20 +105,14 @@ final readonly class ProcessNotificationHandler
 
             return $found;
         }
-        if (null !== $e->orderId && null !== $this->repository->find($e->orderId)) {
-            return $e->orderId;
-        }
 
-        return null === $e->token ? null : $this->repository->lookup($e->provider, $e->mode, null, PaymentHash::of($e->token));
+        return null;
     }
 
     private function failed(PaymentOrder $order): void
     {
         if ([] === $this->repository->charges($order->id)) {
             $this->repository->status($order->id, 'FAILED');
-        }
-        if ($order->recurring) {
-            $this->repository->review($order->id, 'A monthly charge failed; review the provider subscription.');
         }
     }
 
@@ -147,7 +124,7 @@ final readonly class ProcessNotificationHandler
 
             return;
         }
-        if (!$order->recurring && [] !== $this->repository->charges($order->id)) {
+        if ([] !== $this->repository->charges($order->id)) {
             $this->repository->review($order->id, 'More than one charge was collected for a one-off checkout. Review possible duplicate collection.');
         }
         $charge = new Charge(
@@ -169,16 +146,6 @@ final readonly class ProcessNotificationHandler
         }
         $this->repository->status($order->id, 'PAID');
         $this->repository->review($order->id, $order->isLive() ? 'Awaiting settlement review.' : null);
-        if (!$order->recurring) {
-            return;
-        }
-        if (null === $e->token) {
-            $this->repository->review($order->id, 'Monthly charge arrived without a subscription token. Review the provider.');
-
-            return;
-        }
-        $status = \in_array($order->subscriptionStatus, PaymentOrder::CANCELLING, true) ? $order->subscriptionStatus : 'ACTIVE';
-        $this->repository->subscription($order->id, $status, $this->vault->encrypt($e->token), PaymentHash::of($e->token));
     }
 
     private function conflicting(PaymentOrder $order, Charge $charge, int $amount): void

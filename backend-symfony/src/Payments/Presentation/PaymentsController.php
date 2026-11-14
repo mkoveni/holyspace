@@ -5,8 +5,6 @@ declare(strict_types=1);
 namespace App\Payments\Presentation;
 
 use App\IdentityAccess\Application\Contract\AuthenticatedAccount;
-use App\Payments\Application\Command\ManageSubscription\ManageSubscriptionCommand;
-use App\Payments\Application\Command\ManageSubscription\ManageSubscriptionHandler;
 use App\Payments\Application\Command\ReconcilePayment\ReconcilePaymentCommand;
 use App\Payments\Application\Command\ReconcilePayment\ReconcilePaymentHandler;
 use App\Payments\Application\Command\RecordRefund\RecordRefundCommand;
@@ -23,7 +21,6 @@ use App\Payments\Application\Query\ListPayments\ListPaymentsQuery;
 use App\Payments\Presentation\Request\RefundRequest;
 use App\Payments\Presentation\Request\ReviewRequest;
 use App\Payments\Presentation\Request\StartPaymentRequest;
-use App\Payments\Presentation\Request\SubscriptionRequest;
 use App\Shared\Application\CommandBus;
 use App\Shared\Domain\CalendarDate;
 use App\Shared\Presentation\PathUuid;
@@ -48,7 +45,6 @@ final readonly class PaymentsController
         private ResumeCheckoutHandler $resume,
         private RecordRefundHandler $refunds,
         private ReconcilePaymentHandler $reviews,
-        private ManageSubscriptionHandler $subscriptions,
         private ListPaymentsHandler $list,
         private GetPaymentHandler $get,
         private ListPaymentProvidersHandler $providers,
@@ -139,14 +135,5 @@ final readonly class PaymentsController
         ));
 
         return new JsonResponse(['id' => $id], 201);
-    }
-
-    #[IsGranted('payments.manage')]
-    #[Route('/{orderId}/subscription', methods: ['POST'])]
-    public function subscription(#[PathUuid] string $orderId, #[MapRequestPayload] SubscriptionRequest $b): Response
-    {
-        $this->subscriptions->handle(new ManageSubscriptionCommand($this->account->requireAccount(), $orderId, $b->expectedVersion, $b->cancel));
-
-        return new Response(null, 204);
     }
 }

@@ -44,12 +44,10 @@ final readonly class ProviderConfiguration
         }
     }
 
-    /** Whether the saved credential flags and networks are enough for this provider to take payments. */
+    /** Whether the saved credential flags are enough for Yoco to take payments. */
     public function complete(): bool
     {
-        return 'payfast' === $this->provider
-            ? $this->merchantIdSet && $this->merchantKeySet && $this->passphraseSet && !JavaString::isBlank($this->ipRanges)
-            : $this->yocoKeySet && $this->webhookSecretSet;
+        return $this->yocoKeySet && $this->webhookSecretSet;
     }
 
     /** @return array{id: string, provider: string, mode: string} */

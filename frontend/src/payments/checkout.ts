@@ -4,20 +4,14 @@ export function hostedCheckout (checkout: Checkout): {
   post: boolean
 } {
   const url = new URL(checkout.url)
-  const payfast = ['www.payfast.co.za', 'sandbox.payfast.co.za'].includes(
-    url.hostname,
-  )
   if (
     url.protocol !== 'https:'
     || url.username
     || url.password
     || (url.port && url.port !== '443')
-    || (!payfast && url.hostname !== 'c.yoco.com')
+    || url.hostname !== 'c.yoco.com'
   ) {
     throw new Error('The provider checkout address could not be verified.')
   }
-  if (payfast && url.pathname !== '/eng/process') {
-    throw new Error('The provider checkout address could not be verified.')
-  }
-  return { url: url.href, post: payfast }
+  return { url: url.href, post: false }
 }

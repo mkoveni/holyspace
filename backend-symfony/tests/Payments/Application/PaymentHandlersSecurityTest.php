@@ -12,8 +12,6 @@ use App\Payments\Application\Command\CheckProviderConnection\CheckProviderConnec
 use App\Payments\Application\Command\CheckProviderConnection\CheckProviderConnectionHandler;
 use App\Payments\Application\Command\CloseWebhookOperation\CloseWebhookOperationCommand;
 use App\Payments\Application\Command\CloseWebhookOperation\CloseWebhookOperationHandler;
-use App\Payments\Application\Command\ManageSubscription\ManageSubscriptionCommand;
-use App\Payments\Application\Command\ManageSubscription\ManageSubscriptionHandler;
 use App\Payments\Application\Command\ReconcilePayment\ReconcilePaymentCommand;
 use App\Payments\Application\Command\ReconcilePayment\ReconcilePaymentHandler;
 use App\Payments\Application\Command\RecordRefund\RecordRefundCommand;
@@ -67,14 +65,13 @@ final class PaymentHandlersSecurityTest extends TestCase
     {
         $s = self::SPOOF;
         $id = self::ID;
-        yield 'start' => [StartPaymentHandler::class, new StartPaymentCommand($s, $id, $id, $id, 10000, 'payfast', false)];
+        yield 'start' => [StartPaymentHandler::class, new StartPaymentCommand($s, $id, $id, $id, 10000, 'yoco', false)];
         yield 'resume' => [ResumeCheckoutHandler::class, new ResumeCheckoutCommand($s, $id)];
         yield 'refund' => [RecordRefundHandler::class, new RecordRefundCommand($s, $id, $id, 'r', 100, CalendarDate::of(2026, 1, 1), 'reason')];
         yield 'reconcile' => [ReconcilePaymentHandler::class, new ReconcilePaymentCommand($s, $id, $id, $id, 0, 'BANK', 0, 100, 'note')];
-        yield 'subscription' => [ManageSubscriptionHandler::class, new ManageSubscriptionCommand($s, $id, 0, true)];
         yield 'posting' => [RetryPaymentPostingHandler::class, new RetryPaymentPostingCommand($s, $id, 0)];
-        yield 'settings' => [SaveProviderSettingsHandler::class, new SaveProviderSettingsCommand($s, 'payfast', 'test', 0, false, false, null, null, null, 'r', null)];
-        yield 'check' => [CheckProviderConnectionHandler::class, new CheckProviderConnectionCommand($s, 'payfast', 'test', 0)];
+        yield 'settings' => [SaveProviderSettingsHandler::class, new SaveProviderSettingsCommand($s, 'yoco', 'test', 0, false, false, null, null, 'r', null)];
+        yield 'check' => [CheckProviderConnectionHandler::class, new CheckProviderConnectionCommand($s, 'yoco', 'test', 0)];
         yield 'approve' => [ApprovePaymentReceiptHandler::class, new ApprovePaymentReceiptCommand($s, $id, $id, $id, $id, 'h', 'evidence')];
         yield 'retry receipt' => [RetryPaymentReceiptHandler::class, new RetryPaymentReceiptCommand($s, $id, $id, 0, 'reason')];
         yield 'register' => [RegisterYocoWebhookHandler::class, new RegisterYocoWebhookCommand($s, $id, 'test', 0, 'reason')];
@@ -110,6 +107,7 @@ final class PaymentHandlersSecurityTest extends TestCase
             $arguments[] = match (true) {
                 PermissionChecker::class === $name => new RecordingPermissions(self::CALLER, []),
                 'string' === $name => 'UTC',
+                'iterable' === $name => [],
                 interface_exists($name) => $this->untouched($name),
                 default => $this->build($name),
             };

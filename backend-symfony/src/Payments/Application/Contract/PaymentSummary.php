@@ -13,7 +13,7 @@ final readonly class PaymentSummary
         public string $id,
         public ?string $donorId,
         public string $donorName,
-        public string $fundId,
+        public ?string $fundId,
         public int $amountMinor,
         public string $provider,
         public string $mode,

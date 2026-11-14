@@ -12,10 +12,6 @@ export interface Environment {
   revisionId: string | null
   publicUrl: string
   backendUrl: string
-  ipRanges: string
-  merchantIdSet: boolean
-  merchantKeySet: boolean
-  passphraseSet: boolean
   yocoKeySet: boolean
   webhookSecretSet: boolean
   complete: boolean

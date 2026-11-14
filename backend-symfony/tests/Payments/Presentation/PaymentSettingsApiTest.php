@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Tests\Payments\Presentation;
 
 use App\Payments\Application\Contract\ProbeResult;
-use App\Payments\Infrastructure\Gateway\ProviderForms;
 use App\Tests\Payments\Support\PaymentApiTestCase;
 use RuntimeException;
 use Symfony\Component\Uid\Uuid;
@@ -22,12 +21,6 @@ final class PaymentSettingsApiTest extends PaymentApiTestCase
             return new ProbeResult(true, 'API authentication confirmed. Callback pilot still required.');
         };
         $this->http()->handler = static function (string $method, string $url): string {
-            if (str_contains($url, '/query/validate')) {
-                return 'VALID';
-            }
-            if (str_contains($url, '/cancel')) {
-                return '{"status":"success","code":200,"data":{"response":true}}';
-            }
             throw new RuntimeException('Unexpected provider endpoint '.$url);
         };
     }
@@ -39,25 +32,25 @@ final class PaymentSettingsApiTest extends PaymentApiTestCase
      */
     private function settings(string $mode, int $version, bool $enabled, array $credentials): array
     {
-        return ['expectedVersion' => $version, 'mode' => $mode, 'enabled' => $enabled, 'monthly' => true, 'publicUrl' => 'https://church.example',
-            'backendUrl' => 'https://api.church.example', 'ipRanges' => '127.0.0.1/32', 'credentials' => $credentials, 'reason' => 'Reviewed provider configuration'];
+        return ['expectedVersion' => $version, 'mode' => $mode, 'enabled' => $enabled, 'monthly' => false, 'publicUrl' => 'https://church.example',
+            'backendUrl' => 'https://api.church.example', 'credentials' => $credentials, 'reason' => 'Reviewed provider configuration'];
     }
 
     /** @return array<string, string> */
-    private static function credentials(string $suffix): array
+    private static function credentials(string $suffix, string $mode = 'test'): array
     {
-        return ['merchantId' => 'old' === $suffix ? '10000100' : '10000101', 'merchantKey' => 'private-merchant-key-'.$suffix, 'passphrase' => 'private-passphrase-'.$suffix];
+        return ['yocoKey' => 'sk_'.$mode.'_private-key-'.$suffix, 'webhookSecret' => 'whsec_'.base64_encode('private-webhook-secret-'.$suffix)];
     }
 
     /** @param array<string, string> $credentials */
     private function save(string $mode, int $version, bool $enabled, array $credentials): void
     {
-        $this->call('PUT', '/api/payments/settings/payfast', $this->admin, $this->settings($mode, $version, $enabled, $credentials));
+        $this->call('PUT', '/api/payments/settings/yoco', $this->admin, $this->settings($mode, $version, $enabled, $credentials));
         self::assertSame(204, $this->code(), $this->body());
     }
 
     /** @param array<string, mixed> $body */
-    private function put(array $body, string $provider = 'payfast'): int
+    private function put(array $body, string $provider = 'yoco'): int
     {
         $this->call('PUT', "/api/payments/settings/$provider", $this->admin, $body);
 
@@ -66,7 +59,7 @@ final class PaymentSettingsApiTest extends PaymentApiTestCase
 
     private function check(string $mode, int $version): void
     {
-        $this->call('POST', '/api/payments/settings/payfast/connection-check', $this->admin, ['expectedVersion' => $version, 'mode' => $mode]);
+        $this->call('POST', '/api/payments/settings/yoco/connection-check', $this->admin, ['expectedVersion' => $version, 'mode' => $mode]);
         self::assertSame(200, $this->code(), $this->body());
         self::assertTrue($this->json()['successful']);
     }
@@ -119,7 +112,7 @@ final class PaymentSettingsApiTest extends PaymentApiTestCase
     {
         $key = 'sk_test_private-fixture';
         $secret = 'whsec_invalid-signing-fixture';
-        self::assertSame(204, $this->put(['monthly' => false] + $this->settings('test', 0, false, ['yocoKey' => $key, 'webhookSecret' => $secret]), 'yoco'));
+        self::assertSame(204, $this->put($this->settings('test', 0, false, ['yocoKey' => $key, 'webhookSecret' => $secret])));
         $this->call('POST', '/api/payments/settings/yoco/connection-check', $this->admin, ['expectedVersion' => 1, 'mode' => 'test']);
         self::assertSame(200, $this->code());
         self::assertFalse($this->json()['successful']);
@@ -136,21 +129,21 @@ final class PaymentSettingsApiTest extends PaymentApiTestCase
     {
         $this->save('test', 0, false, self::credentials('old'));
         $cipher = (string) $this->connection->fetchOne('SELECT encrypted_credentials FROM payments_configuration_revisions');
-        foreach (['private-merchant-key-old', 'private-passphrase-old', '10000100'] as $secret) {
+        foreach (['private-key-old', 'private-webhook-secret-old'] as $secret) {
             self::assertStringNotContainsString($secret, $cipher);
         }
         $body = $this->overview();
-        self::assertStringContainsString('"merchantKeySet":true', $body);
-        self::assertStringContainsString('"passphraseSet":true', $body);
+        self::assertStringContainsString('"yocoKeySet":true', $body);
+        self::assertStringContainsString('"webhookSecretSet":true', $body);
         self::assertStringContainsString('"actorName":"Admin"', $body);
-        foreach (['private-merchant-key-old', 'private-passphrase-old', 'encryptedCredentials', $cipher] as $secret) {
+        foreach (['private-key-old', 'private-webhook-secret-old', 'encryptedCredentials', $cipher] as $secret) {
             self::assertStringNotContainsString($secret, $body);
         }
         self::assertStringContainsString('no-store', (string) $this->client->getResponse()->headers->get('Cache-Control'));
         $history = $this->rows('payments_configuration_history');
         $this->overview();
         self::assertSame([$history, 0, 0], [$this->rows('payments_configuration_history'), $this->rows('payments_configuration_checks'), $this->rows('giving_gifts')]);
-        $this->call('PUT', '/api/payments/settings/payfast', $this->admin, ['reason' => 'Rotated private-passphrase-old'] + $this->settings('test', 1, false, []));
+        $this->call('PUT', '/api/payments/settings/yoco', $this->admin, ['reason' => 'Rotated sk_test_private-key-old'] + $this->settings('test', 1, false, []));
         self::assertSame([400, 'Keep credentials out of the change reason.'], [$this->code(), $this->message()]);
     }
 
@@ -176,7 +169,7 @@ final class PaymentSettingsApiTest extends PaymentApiTestCase
     public function testBlankCredentialsPreserveEnvironmentValuesAndVersionsPreventLostUpdates(): void
     {
         $this->configured();
-        $this->save('live', 2, false, self::credentials('new'));
+        $this->save('live', 2, false, self::credentials('new', 'live'));
         $this->check('live', 3);
         $this->save('live', 3, true, []);
         self::assertSame(2, $this->rows('payments_configuration_revisions'));
@@ -193,7 +186,7 @@ final class PaymentSettingsApiTest extends PaymentApiTestCase
         $this->call('GET', '/api/payments/settings', $this->admin);
         self::assertSame(403, $this->code());
         self::assertSame(403, $this->put($this->settings('test', 0, false, self::credentials('old'))));
-        $this->call('POST', '/api/payments/settings/payfast/connection-check', $this->admin, ['expectedVersion' => 0, 'mode' => 'test']);
+        $this->call('POST', '/api/payments/settings/yoco/connection-check', $this->admin, ['expectedVersion' => 0, 'mode' => 'test']);
         self::assertSame(403, $this->code());
         $this->call('GET', '/api/payments/settings', null);
         self::assertSame(401, $this->code());
@@ -212,47 +205,36 @@ final class PaymentSettingsApiTest extends PaymentApiTestCase
     public function testConnectionFailuresAreSafeAuditedAndDoNotActivateOrCharge(): void
     {
         $this->save('test', 0, false, self::credentials('old'));
-        $this->probe()->check = static fn () => throw new RuntimeException('Provider echoed private-passphrase-old');
-        $this->call('POST', '/api/payments/settings/payfast/connection-check', $this->admin, ['expectedVersion' => 1, 'mode' => 'test']);
+        $this->probe()->check = static fn () => throw new RuntimeException('Provider echoed private-key-old');
+        $this->call('POST', '/api/payments/settings/yoco/connection-check', $this->admin, ['expectedVersion' => 1, 'mode' => 'test']);
         self::assertSame(200, $this->code());
         self::assertFalse($this->json()['successful']);
-        self::assertStringNotContainsString('private-passphrase-old', $this->body());
-        self::assertStringNotContainsString('private-passphrase-old', $this->overview());
+        self::assertStringNotContainsString('private-key-old', $this->body());
+        self::assertStringNotContainsString('private-key-old', $this->overview());
         self::assertSame([1, 0], [$this->rows('payments_configuration_checks'), $this->rows('giving_gifts')]);
         self::assertSame(409, $this->put($this->settings('test', 1, true, [])));
     }
 
-    public function testHistoricalCheckoutsCallbacksAndSubscriptionsKeepOriginalCredentialsAfterModeSwitch(): void
+    public function testHistoricalCheckoutsKeepOriginalCredentialsAfterAConfigurationChange(): void
     {
         $this->configured();
         $donor = $this->person('Donor');
         $fund = $this->fund('General');
-        $id = $this->created('/api/payments', ['requestId' => Uuid::v4()->toRfc4122(), 'donorId' => $donor, 'fundId' => $fund, 'amountMinor' => 10000, 'provider' => 'payfast', 'recurring' => true]);
+        $id = $this->created('/api/payments', ['requestId' => Uuid::v4()->toRfc4122(), 'donorId' => $donor, 'fundId' => $fund, 'amountMinor' => 10000, 'provider' => 'yoco']);
         self::assertNotFalse($this->connection->fetchOne('SELECT configuration_id FROM payments_orders WHERE id = ? AND configuration_id IS NOT NULL', [$id]));
-        self::assertSame(204, $this->put(['publicUrl' => 'https://new.church.example', 'backendUrl' => 'https://new-api.church.example'] + $this->settings('live', 2, false, self::credentials('new'))));
+        self::assertSame(204, $this->put(['publicUrl' => 'https://new.church.example', 'backendUrl' => 'https://new-api.church.example'] + $this->settings('live', 2, false, self::credentials('new', 'live'))));
+        $this->http()->handler = static function (string $method, string $url, array $headers, string $body) use ($id): string {
+            self::assertSame(['POST', 'https://payments.yoco.com/api/checkouts'], [$method, $url]);
+            self::assertSame('Bearer sk_test_private-key-old', $headers['Authorization']);
+            self::assertStringContainsString('https://church.example/payments?order='.$id, $body);
+
+            return '{"id":"co_old","amount":10000,"currency":"ZAR","processingMode":"test","redirectUrl":"https://c.yoco.com/checkout/old"}';
+        };
         $this->call('POST', "/api/payments/$id/checkout", $this->admin);
         self::assertSame(200, $this->code(), $this->body());
-        $checkout = $this->body();
-        foreach (['sandbox.payfast.co.za', '10000100', 'https:\/\/church.example\/payments?order=', 'https:\/\/api.church.example\/api\/payments\/webhooks\/payfast'] as $expected) {
-            self::assertStringContainsString($expected, $checkout);
-        }
-        self::assertStringNotContainsString('10000101', $checkout);
-        $encoded = ProviderForms::form(['merchant_id' => '10000100', 'm_payment_id' => $id, 'pf_payment_id' => 'old_charge', 'payment_status' => 'COMPLETE',
-            'amount_gross' => '100.00', 'token' => '12345678-1234-1234-1234-123456789012']);
-        $this->client->request(
-            'POST',
-            '/api/payments/webhooks/payfast',
-            server: ['CONTENT_TYPE' => 'application/x-www-form-urlencoded'],
-            content: $encoded.'&signature='.md5($encoded.'&passphrase=private-passphrase-old')
-        );
-        self::assertSame(204, $this->code(), $this->body());
-        self::assertSame([1, 0], [$this->rows('payments_charges'), $this->rows('giving_gifts')]);
-        self::assertFalse($this->http()->inTransaction, 'Payfast validation runs outside transactions');
-        $this->call('POST', "/api/payments/$id/subscription", $this->admin, ['expectedVersion' => $this->version($id), 'cancel' => true]);
-        self::assertSame(204, $this->code(), $this->body());
-        $this->call('GET', "/api/payments/$id", $this->admin);
-        self::assertStringContainsString('CANCELLED', $this->body());
-        $this->call('POST', '/api/payments', $this->admin, ['requestId' => Uuid::v4()->toRfc4122(), 'donorId' => $donor, 'fundId' => $fund, 'amountMinor' => 10000, 'provider' => 'payfast', 'recurring' => false]);
+        self::assertStringContainsString('https:\/\/c.yoco.com\/checkout\/old', $this->body());
+        self::assertFalse($this->http()->inTransaction, 'the provider call runs outside transactions');
+        $this->call('POST', '/api/payments', $this->admin, ['requestId' => Uuid::v4()->toRfc4122(), 'donorId' => $donor, 'fundId' => $fund, 'amountMinor' => 10000, 'provider' => 'yoco']);
         self::assertSame(503, $this->code(), $this->body());
     }
 
@@ -260,22 +242,22 @@ final class PaymentSettingsApiTest extends PaymentApiTestCase
     {
         $this->save('test', 0, false, self::credentials('old'));
         $this->probe()->check = function (): ProbeResult {
-            $this->connection->executeStatement("UPDATE payments_provider_settings SET version = 2 WHERE provider = 'payfast'");
+            $this->connection->executeStatement("UPDATE payments_provider_settings SET version = 2 WHERE provider = 'yoco'");
 
             return new ProbeResult(true, 'API authentication confirmed.');
         };
-        $this->call('POST', '/api/payments/settings/payfast/connection-check', $this->admin, ['expectedVersion' => 1, 'mode' => 'test']);
+        $this->call('POST', '/api/payments/settings/yoco/connection-check', $this->admin, ['expectedVersion' => 1, 'mode' => 'test']);
         self::assertSame(409, $this->code());
         self::assertSame(0, $this->rows('payments_configuration_checks'));
     }
 
-    public function testPublicUrlsAndUnsupportedMonthlyOptionsAreValidated(): void
+    public function testPublicUrlsProvidersAndMonthlyOptionsAreValidated(): void
     {
         $bad = $this->settings('test', 0, false, self::credentials('old'));
         self::assertSame(400, $this->put(['publicUrl' => 'http://church.example'] + $bad));
         self::assertSame(400, $this->put(['publicUrl' => 'https://church.example/settings'] + $bad));
-        self::assertSame(400, $this->put($bad, 'yoco'));
+        self::assertSame(400, $this->put($bad, 'payfast'));
         self::assertSame(400, $this->put($bad, 'stripe'));
-        self::assertSame(400, $this->put(['ipRanges' => '0.0.0.0/0'] + $bad));
+        self::assertSame(400, $this->put(['monthly' => true] + $bad));
     }
 }

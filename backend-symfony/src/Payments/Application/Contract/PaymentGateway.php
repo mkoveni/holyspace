@@ -29,7 +29,4 @@ interface PaymentGateway
      * @return ProviderNotification|null null for an authenticated event Payments does not act on
      */
     public function verify(string $provider, string $rawBody, array $headers, string $ip): ?ProviderNotification;
-
-    /** Fetches (or, when $cancel, cancels) a Payfast subscription; returns ACTIVE, PAUSED, LOCKED or CANCELLED. */
-    public function subscription(PaymentOrder $order, string $token, bool $cancel): string;
 }

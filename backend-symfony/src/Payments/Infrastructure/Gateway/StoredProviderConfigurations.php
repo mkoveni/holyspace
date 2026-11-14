@@ -8,7 +8,6 @@ use App\Payments\Application\Contract\LegacyPaymentConfiguration;
 use App\Payments\Application\Contract\PaymentConfigurationBinding;
 use App\Payments\Application\Contract\PaymentCredentialVault;
 use App\Payments\Application\Contract\ProviderConfigurationReader;
-use App\Payments\Application\PaymentHash;
 use App\Payments\Domain\PaymentException;
 use App\Payments\Domain\PaymentOrder;
 use App\Payments\Domain\ProviderConfiguration;
@@ -37,16 +36,16 @@ final readonly class StoredProviderConfigurations implements ProviderSettingsSou
     {
         $head = $this->reader->head($provider) ?? throw PaymentException::invalid('Choose a supported provider.');
         if (!$head->managed) {
-            return new ResolvedSettings($this->bootstrap, $this->bootstrap->available($provider), 'payfast' === $provider);
+            return new ResolvedSettings($this->bootstrap, $this->bootstrap->available($provider), false);
         }
         $latest = $this->reader->latest($provider, $head->mode);
         if (null === $latest || !$this->vault->ready()) {
-            return new ResolvedSettings(new GatewaySettings('', $head->mode, '', '', '', '', $head->mode, '', '', $this->bootstrap->vaultKey, ''), false, $head->monthly);
+            return new ResolvedSettings(new GatewaySettings('', $head->mode, '', '', $this->bootstrap->vaultKey, ''), false, false);
         }
         $settings = $this->materialize($latest);
 
         return new ResolvedSettings($settings, $head->enabled && $settings->available($provider)
-            && ('yoco' !== $provider || !$this->repository->activeWebhookRemoval($head->mode)), $head->monthly);
+            && ('yoco' !== $provider || !$this->repository->activeWebhookRemoval($head->mode)), false);
     }
 
     public function bind(string $provider, string $mode, bool $recurring): ?string
@@ -58,7 +57,7 @@ final readonly class StoredProviderConfigurations implements ProviderSettingsSou
         if ('yoco' === $provider && $this->repository->activeWebhookRemoval($mode)) {
             throw PaymentException::conflict('A webhook removal needs review before new checkouts can start.');
         }
-        if (!$head->enabled || $head->mode !== $mode || ($recurring && !$head->monthly)) {
+        if (!$head->enabled || $head->mode !== $mode || $recurring) {
             throw PaymentException::conflict('Payment settings changed or this checkout option is disabled. Refresh the provider list.');
         }
 
@@ -85,7 +84,7 @@ final readonly class StoredProviderConfigurations implements ProviderSettingsSou
     public function forNotification(string $provider, string $body): GatewaySettings
     {
         try {
-            $order = 'yoco' === $provider ? $this->yocoOrder($body) : ('payfast' === $provider ? $this->payfastOrder($body) : null);
+            $order = 'yoco' === $provider ? $this->yocoOrder($body) : null;
         } catch (PaymentException $error) {
             throw $error;
         } catch (Exception) {
@@ -97,17 +96,17 @@ final readonly class StoredProviderConfigurations implements ProviderSettingsSou
 
     public function credentials(string $provider, string $mode): ProviderCredentials
     {
-        if ('payfast' === $provider && $this->bootstrap->payfastMode === $mode) {
-            return new ProviderCredentials($this->bootstrap->merchantId, $this->bootstrap->merchantKey, $this->bootstrap->passphrase);
-        }
         if ('yoco' === $provider && $this->bootstrap->yocoMode === $mode) {
-            return new ProviderCredentials(null, null, null, $this->bootstrap->yocoKey, $this->bootstrap->yocoWebhookSecret);
+            return new ProviderCredentials($this->bootstrap->yocoKey, $this->bootstrap->yocoWebhookSecret);
         }
 
         return ProviderCredentials::none();
     }
 
-    /** @throws JsonException */
+    /**
+     * @throws JsonException
+     * @throws PaymentException
+     */
     private function yocoOrder(string $body): ?PaymentOrder
     {
         $payload = ProviderJson::path(json_decode($body, true, 32, \JSON_THROW_ON_ERROR | \JSON_BIGINT_AS_STRING), 'payload');
@@ -116,24 +115,6 @@ final readonly class StoredProviderConfigurations implements ProviderSettingsSou
             ?? self::uuid(ProviderJson::text(ProviderJson::path($payload, 'metadata', 'orderId')));
 
         return $this->order('yoco', $id);
-    }
-
-    private function payfastOrder(string $body): ?PaymentOrder
-    {
-        $fields = [];
-        foreach (explode('&', $body) as $pair) {
-            $parts = explode('=', $pair, 2);
-            if (2 === \count($parts)) {
-                $fields[urldecode($parts[0])] = urldecode($parts[1]);
-            }
-        }
-        $order = $this->order('payfast', self::uuid($fields['m_payment_id'] ?? null));
-        if (null === $order && isset($fields['token'])) {
-            $hash = PaymentHash::of($fields['token']);
-            $order = $this->order('payfast', $this->payments->lookup('payfast', 'live', null, $hash) ?? $this->payments->lookup('payfast', 'test', null, $hash));
-        }
-
-        return $order;
     }
 
     private function order(string $provider, ?string $id): ?PaymentOrder
@@ -149,11 +130,6 @@ final readonly class StoredProviderConfigurations implements ProviderSettingsSou
 
         return new GatewaySettings(
             $revision->publicUrl,
-            $revision->mode,
-            $c->merchantId,
-            $c->merchantKey,
-            $c->passphrase,
-            $revision->ipRanges,
             $revision->mode,
             $c->yocoKey,
             $c->webhookSecret,

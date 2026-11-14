@@ -56,6 +56,6 @@ final class MigrationFilesTest extends TestCase
     {
         $versions = array_map(static fn ($m): int => $m->version, new MigrationFiles(dirname(__DIR__, 4).'/migrations')->all());
 
-        self::assertSame(range(1, 43), $versions);
+        self::assertSame(range(1, 45), $versions);
     }
 }

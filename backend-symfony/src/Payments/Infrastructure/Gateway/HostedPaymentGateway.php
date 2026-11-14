@@ -8,7 +8,6 @@ use App\Payments\Application\Contract\HostedCheckout;
 use App\Payments\Application\Contract\PaymentGateway;
 use App\Payments\Application\Contract\PaymentProvider;
 use App\Payments\Application\Contract\ProviderNotification;
-use App\Payments\Application\PaymentReceiptPreview;
 use App\Payments\Domain\JavaBase64;
 use App\Payments\Domain\PaymentException;
 use App\Payments\Domain\PaymentOrder;
@@ -19,13 +18,11 @@ use DateTimeZone;
 use Exception;
 use JsonException;
 use Psr\Clock\ClockInterface;
-use SensitiveParameter;
 
 /**
- * Payfast and Yoco hosted checkout (Java `HostedPaymentGateway`). Each call uses the connection values of the order's
- * own configuration revision. Notifications are authenticated from the unchanged raw body before anything is parsed
- * for meaning: Yoco by HMAC-SHA256 over id.timestamp.body with a three-minute window, Payfast by trusted source
- * network, MD5 signature with the passphrase, merchant id and Payfast's server-side validate round trip.
+ * Yoco hosted checkout (Java `HostedPaymentGateway`). Each call uses the connection values of the order's own
+ * configuration revision. Notifications are authenticated from the unchanged raw body before anything is parsed for
+ * meaning: HMAC-SHA256 over id.timestamp.body with a three-minute window.
  */
 final readonly class HostedPaymentGateway implements PaymentGateway
 {
@@ -46,7 +43,7 @@ final readonly class HostedPaymentGateway implements PaymentGateway
 
             return new PaymentProvider(
                 $id,
-                'payfast' === $id ? 'Payfast' : 'Yoco',
+                'Yoco',
                 $resolved->available,
                 $resolved->settings->mode($id),
                 $resolved->monthly
@@ -79,9 +76,7 @@ final readonly class HostedPaymentGateway implements PaymentGateway
         }
         $returned = $settings->base().($order->isGuest() ? '/give/thanks?order=' : ($order->selfService ? '/my-giving?order=' : '/payments?order=')).$order->id;
 
-        return 'payfast' === $order->provider
-            ? $this->payfastCheckout($settings, $order, $returned, $donorName, $email)
-            : $this->yocoCheckout($settings, $order, $returned);
+        return $this->yocoCheckout($settings, $order, $returned);
     }
 
     public function verify(string $provider, string $rawBody, array $headers, string $ip): ?ProviderNotification
@@ -92,34 +87,12 @@ final readonly class HostedPaymentGateway implements PaymentGateway
         $settings = $this->source->forNotification($provider, $rawBody);
         $mode = $this->boundMode($settings, $provider);
         try {
-            return 'payfast' === $provider ? $this->payfast($settings, $rawBody, $ip, $mode) : $this->yoco($settings, $rawBody, $headers, $mode);
+            return $this->yoco($settings, $rawBody, $headers, $mode);
         } catch (PaymentException $error) {
             throw $error;
         } catch (Exception) {
             throw PaymentException::invalid('Invalid payment notification.');
         }
-    }
-
-    public function subscription(PaymentOrder $order, #[SensitiveParameter] string $token, bool $cancel): string
-    {
-        $settings = $this->source->forOrder($order);
-        if ('payfast' !== $order->provider || $this->boundMode($settings, 'payfast') !== $order->mode || 1 !== preg_match('/\A[a-fA-F0-9-]{36}\z/', $token)) {
-            throw PaymentException::conflict('Subscription configuration does not match the original payment.');
-        }
-        if ($cancel) {
-            $result = $this->api($settings, $order, $token, 'cancel', 'PUT');
-            if (true !== ProviderJson::path($result, 'data', 'response')) {
-                throw PaymentException::unavailable('Subscription cancellation is unconfirmed; check the provider before retrying.');
-            }
-
-            return 'CANCELLED';
-        }
-        $status = strtoupper(ProviderJson::text(ProviderJson::path($this->api($settings, $order, $token, 'fetch', 'GET'), 'data', 'response', 'status_text')));
-        if (!\in_array($status, ['ACTIVE', 'PAUSED', 'LOCKED', 'CANCELLED'], true)) {
-            throw PaymentException::unavailable('Provider subscription status is not recognised.');
-        }
-
-        return $status;
     }
 
     public static function validYocoUrl(string $value): bool
@@ -141,34 +114,6 @@ final readonly class HostedPaymentGateway implements PaymentGateway
         }
 
         return $settings->mode($provider);
-    }
-
-    private function payfastCheckout(GatewaySettings $settings, PaymentOrder $order, string $returned, string $name, string $email): HostedCheckout
-    {
-        $fields = [
-            'merchant_id' => $settings->merchantId,
-            'merchant_key' => $settings->merchantKey,
-            'return_url' => $returned,
-            'cancel_url' => $returned.'&returned=cancelled',
-            'notify_url' => $settings->backendBase().'/api/payments/webhooks/payfast',
-            'name_first' => mb_substr($name, 0, 100),
-        ];
-        if ('' !== trim($email)) {
-            $fields['email_address'] = $email;
-        }
-        $fields['m_payment_id'] = $order->id;
-        $fields['amount'] = PaymentReceiptPreview::decimal($order->amountMinor);
-        $fields['item_name'] = 'Church giving';
-        if ($order->recurring) {
-            $fields['subscription_type'] = '1';
-            $fields['billing_date'] = $this->calendar->today()->plusMonths(1)->iso();
-            $fields['recurring_amount'] = PaymentReceiptPreview::decimal($order->amountMinor);
-            $fields['frequency'] = '3';
-            $fields['cycles'] = '0';
-        }
-        $fields['signature'] = ProviderForms::signature($fields, $settings->passphrase);
-
-        return new HostedCheckout($order->id, 'test' === $order->mode ? 'https://sandbox.payfast.co.za/eng/process' : 'https://www.payfast.co.za/eng/process', $fields);
     }
 
     private function yocoCheckout(GatewaySettings $settings, PaymentOrder $order, string $returned): HostedCheckout
@@ -203,6 +148,7 @@ final readonly class HostedPaymentGateway implements PaymentGateway
      * @param array<string, string> $headers
      *
      * @throws JsonException
+     * @throws PaymentException
      */
     private function yoco(GatewaySettings $settings, string $body, array $headers, string $mode): ?ProviderNotification
     {
@@ -266,97 +212,8 @@ final readonly class HostedPaymentGateway implements PaymentGateway
             self::uuid(ProviderJson::text(ProviderJson::path($payload, 'metadata', 'orderId'))),
             $amount,
             ProviderJson::text(ProviderJson::path($payload, 'currency')),
-            null,
             $received
         );
-    }
-
-    private function payfast(GatewaySettings $settings, string $body, string $ip, string $mode): ?ProviderNotification
-    {
-        $trusted = false;
-        foreach (explode(',', $settings->ipRanges) as $range) {
-            $range = trim($range);
-            if ('' !== $range && (IpRange::parse($range)?->matches($ip) ?? throw PaymentException::invalid('Invalid payment notification.'))) {
-                $trusted = true;
-            }
-        }
-        if (!$trusted) {
-            throw PaymentException::invalid('Payment notification origin is not allowed.');
-        }
-        $data = [];
-        foreach (explode('&', $body) as $pair) {
-            $part = explode('=', $pair, 2);
-            $key = urldecode($part[0]);
-            if (2 !== \count($part) || 1 !== preg_match('/\A[A-Za-z0-9_]+\z/', $key) || \array_key_exists($key, $data)) {
-                throw PaymentException::invalid('Invalid payment notification fields.');
-            }
-            $data[$key] = urldecode($part[1]);
-        }
-        $signature = $data['signature'] ?? null;
-        unset($data['signature']);
-        $encoded = ProviderForms::form($data);
-        if (null === $signature || !hash_equals(md5($encoded.'&passphrase='.urlencode($settings->passphrase)), $signature)
-            || $settings->merchantId !== ($data['merchant_id'] ?? null)) {
-            throw PaymentException::invalid('Invalid payment signature or merchant.');
-        }
-        $valid = $this->http->send(
-            'POST',
-            'test' === $mode ? 'https://sandbox.payfast.co.za/eng/query/validate' : 'https://www.payfast.co.za/eng/query/validate',
-            ['Content-Type' => 'application/x-www-form-urlencoded'],
-            $encoded
-        );
-        if ('VALID' !== trim($valid)) {
-            throw PaymentException::invalid('Payfast could not verify the notification.');
-        }
-        $type = match ($data['payment_status'] ?? '') {
-            'COMPLETE' => 'PAID',
-            'FAILED', 'CANCELLED' => 'FAILED',
-            default => null,
-        };
-        if (null === $type) {
-            return null;
-        }
-        $amount = $data['amount_gross'] ?? '';
-        if (1 !== preg_match('/\A([0-9]{1,9})\.([0-9]{2})\z/', $amount, $digits)) {
-            throw PaymentException::invalid('Invalid payment amount.');
-        }
-        $minor = (int) $digits[1] * 100 + (int) $digits[2];
-        if ($minor < 1 || $minor > 100_000_000) {
-            throw PaymentException::invalid('Invalid payment amount.');
-        }
-        $token = $data['token'] ?? null;
-        if (null !== $token && 1 !== preg_match('/\A[a-fA-F0-9-]{36}\z/', $token)) {
-            throw PaymentException::invalid('Invalid subscription token.');
-        }
-        $reference = self::reference($data['pf_payment_id'] ?? null);
-
-        return new ProviderNotification(
-            'payfast',
-            $mode,
-            $reference.':'.$type,
-            $type,
-            $reference,
-            null,
-            self::uuid($data['m_payment_id'] ?? null),
-            $minor,
-            'ZAR',
-            $token,
-            null
-        );
-    }
-
-    private function api(GatewaySettings $settings, PaymentOrder $order, #[SensitiveParameter] string $token, string $action, string $method): mixed
-    {
-        $headers = ProviderForms::apiHeaders($settings->merchantId, $settings->passphrase, JavaTimestamp::utc($this->clock->now()));
-        $failure = 'Provider subscription request is unconfirmed.';
-        $result = ProviderJson::parse($this->http->send($method, 'https://api.payfast.co.za/subscriptions/'.$token.'/'.$action
-            .('test' === $order->mode ? '?testing=true' : ''), $headers, ''), $failure);
-        $code = ProviderJson::path($result, 'code');
-        if ('success' !== ProviderJson::text(ProviderJson::path($result, 'status')) || !(200 === $code || '200' === $code)) {
-            throw PaymentException::unavailable($failure);
-        }
-
-        return $result;
     }
 
     /** `OffsetDateTime.parse` (ISO_OFFSET_DATE_TIME). */

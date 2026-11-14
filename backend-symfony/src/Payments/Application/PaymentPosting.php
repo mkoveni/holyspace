@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Payments\Application;
 
-use App\Giving\Application\Contract\OnlineGivingLedger;
 use App\Payments\Domain\Charge;
 use App\Payments\Domain\PaymentException;
 use App\Payments\Domain\PaymentOrder;
@@ -25,7 +24,7 @@ final readonly class PaymentPosting
 
     public function __construct(
         private PaymentRepository $repository,
-        private OnlineGivingLedger $giving,
+        private PurposeSettlements $settlements,
         private UnitOfWork $transactions,
         private ClockInterface $clock,
         private GuestConfirmations $guestConfirmations,
@@ -83,19 +82,14 @@ final readonly class PaymentPosting
     private function postCharges(PaymentOrder $order): void
     {
         if (!$order->isLive()) {
+            $this->settlements->for($order)->release($order);
+
             return;
         }
+        $settlement = $this->settlements->for($order);
         foreach ($this->repository->pendingCharges($order->id) as $charge) {
             if (null === $charge->giftId) {
-                $gift = $this->giving->post(
-                    $charge->id,
-                    $order->donorId,
-                    $order->fundId,
-                    $charge->amountMinor,
-                    self::reference($order, $charge->reference),
-                    $charge->receivedOn,
-                    $order->createdBy
-                );
+                $gift = $settlement->settle($order, $charge);
                 $this->repository->posted($charge->id, $gift);
             }
         }
@@ -119,17 +113,7 @@ final readonly class PaymentPosting
                 continue;
             }
             if ($order->isLive()) {
-                if (null === $charge->giftId) {
-                    throw PaymentException::conflict('Verified payment still needs ledger posting.');
-                }
-                $this->giving->refund(
-                    $refund->id,
-                    $charge->giftId,
-                    $refund->amountMinor,
-                    self::reference($order, $refund->reference),
-                    $refund->refundedOn,
-                    $refund->createdBy ?? $order->createdBy
-                );
+                $this->settlements->for($order)->refund($order, $charge, $refund);
             }
             $this->repository->applied($refund->id, $charge->id);
             if ($order->isLive()) {

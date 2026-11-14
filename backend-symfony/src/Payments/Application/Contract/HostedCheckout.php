@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Payments\Application\Contract;
 
-/** Where the donor's browser goes next: a Yoco redirect, or a signed Payfast form (Java `PaymentGateway.Checkout`). */
+/** Where the donor's browser goes next: the Yoco hosted checkout (Java `PaymentGateway.Checkout`). */
 final readonly class HostedCheckout
 {
     /** @param array<string, string> $fields in provider signing order */

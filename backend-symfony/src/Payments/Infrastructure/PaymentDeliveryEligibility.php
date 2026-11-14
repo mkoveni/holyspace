@@ -8,9 +8,9 @@ use App\Communications\Application\Contract\DeliveryEligibility;
 use App\Communications\Application\Contract\DeliverySnapshot;
 use App\IdentityAccess\Application\Contract\PermissionChecker;
 use App\IdentityAccess\Application\Contract\ResponsibleAccountDirectory;
+use App\Payments\Application\Contract\PayloadVault;
 use App\Payments\Application\Contract\PaymentReader;
 use App\Payments\Application\Contract\PaymentReceiptReader;
-use App\Payments\Application\Contract\SubscriptionVault;
 use App\Payments\Application\GuestConfirmations;
 use App\Payments\Application\PaymentReceiptPreview;
 use App\Payments\Domain\PaymentException;
@@ -36,7 +36,7 @@ final readonly class PaymentDeliveryEligibility implements DeliveryEligibility
         private PersonDirectory $people,
         private PersonEmailDirectory $emails,
         private GuestConfirmationRepository $guestConfirmations,
-        private SubscriptionVault $vault,
+        private PayloadVault $vault,
         private PaymentRepository $orders,
     ) {
     }

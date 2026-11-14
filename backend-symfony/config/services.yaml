@@ -15,6 +15,9 @@ services:
             tags:
                 - { name: messenger.message_handler, bus: command.bus, method: handle }
         # Implementations are collected into VerifyMemberLinkHandler without Symfony attributes in Application code.
+        # Each payment purpose (GIVING, TICKET) registers the settlement that applies its verified money.
+        App\Payments\Application\Contract\PurposeSettlement:
+            tags: ['payments.purpose_settlement']
         App\IdentityAccess\Application\Contract\PersonBindingPolicy:
             tags: ['identity.person_binding_policy']
         # Contexts whose activities can be staffed publish an ActivitySource; the registry collects them.
@@ -79,6 +82,10 @@ services:
         arguments:
             $timeZone: '%env(PEOPLE_TIME_ZONE)%'
 
+    App\Payments\Application\PurposeSettlements:
+        arguments:
+            $settlements: !tagged_iterator payments.purpose_settlement
+
     App\IdentityAccess\Application\Command\VerifyMemberLink\VerifyMemberLinkHandler:
         arguments:
             $policies: !tagged_iterator identity.person_binding_policy
@@ -128,22 +135,17 @@ services:
             $accessToken: '%env(PUSH_ACCESS_TOKEN)%'
 
     # Payments: deployment bootstrap credentials (used until a provider is managed in the database) and the
-    # deployment-owned AES-256-GCM key for subscription tokens and stored provider credentials.
+    # deployment-owned AES-256-GCM key for guest emails and stored provider credentials.
     App\Payments\Infrastructure\Gateway\GatewaySettings:
         arguments:
             $publicUrl: '%env(PAYMENTS_PUBLIC_URL)%'
-            $payfastMode: '%env(PAYFAST_MODE)%'
-            $merchantId: '%env(PAYFAST_MERCHANT_ID)%'
-            $merchantKey: '%env(PAYFAST_MERCHANT_KEY)%'
-            $passphrase: '%env(PAYFAST_PASSPHRASE)%'
-            $ipRanges: '%env(PAYFAST_ITN_IP_RANGES)%'
             $yocoMode: '%env(YOCO_MODE)%'
             $yocoKey: '%env(YOCO_SECRET_KEY)%'
             $yocoWebhookSecret: '%env(YOCO_WEBHOOK_SECRET)%'
             $vaultKey: '%env(PAYMENTS_TOKEN_KEY)%'
             $backendUrl: '%env(PAYMENTS_BACKEND_URL)%'
 
-    App\Payments\Infrastructure\Gateway\AesSubscriptionVault:
+    App\Payments\Infrastructure\Gateway\AesPayloadVault:
         arguments:
             $key: '%env(PAYMENTS_TOKEN_KEY)%'
 

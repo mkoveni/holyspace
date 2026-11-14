@@ -26,9 +26,9 @@ final class MobileCheckoutApiTest extends PaymentApiTestCase
         $fund = $this->fund('General');
         $this->call('PUT', "/api/giving/online-funds/$fund", $this->admin, ['enabled' => true, 'expectedVersion' => 0]);
         self::assertSame(204, $this->code(), $this->body());
-        $this->scriptGateway('test');
-        $this->gateway()->checkout = static fn (): HostedCheckout => new HostedCheckout('checkout', 'https://sandbox.payfast.co.za/eng/process', ['name_first' => "O'Reilly <safe>", 'merchant_id' => '10000100']);
-        $this->order = $this->created('/api/my-giving/payments', ['requestId' => Uuid::v4()->toRfc4122(), 'fundId' => $fund, 'amountMinor' => 10000, 'provider' => 'payfast', 'recurring' => false], $this->token);
+        $this->scriptGateway('live');
+        $this->gateway()->checkout = static fn (): HostedCheckout => new HostedCheckout('checkout', 'https://c.yoco.com/checkout/test', []);
+        $this->order = $this->created('/api/my-giving/payments', ['requestId' => Uuid::v4()->toRfc4122(), 'fundId' => $fund, 'amountMinor' => 10000, 'provider' => 'yoco', 'recurring' => false], $this->token);
     }
 
     private function link(string $account, string $person, bool $active, int $version): void
@@ -41,7 +41,7 @@ final class MobileCheckoutApiTest extends PaymentApiTestCase
     {
         $this->call('POST', "/api/my-giving/payments/{$this->order}/mobile-checkout", $this->token);
         self::assertSame(200, $this->code(), $this->body());
-        foreach ([$this->token, 'merchant_id', 'encryptedCheckout'] as $secret) {
+        foreach ([$this->token, 'encryptedCheckout'] as $secret) {
             self::assertStringNotContainsString($secret, $this->body());
         }
         $url = (string) $this->json()['url'];
@@ -63,18 +63,15 @@ final class MobileCheckoutApiTest extends PaymentApiTestCase
         self::assertSame(200, $this->open($path, 'GET'));
         self::assertStringContainsString("form-action 'self' https://c.yoco.com", (string) $this->client->getResponse()->headers->get('Content-Security-Policy'), 'the landing form may follow the Yoco redirect');
         self::assertSame(200, $this->open($path, 'GET'));
-        self::assertSame(200, $this->open($path, 'POST'));
+        self::assertSame(303, $this->open($path, 'POST'));
         $response = $this->client->getResponse();
         self::assertStringContainsString('no-store', (string) $response->headers->get('Cache-Control'));
-        self::assertStringContainsString('form-action https://sandbox.payfast.co.za', (string) $response->headers->get('Content-Security-Policy'));
-        self::assertStringContainsString('O&#39;Reilly &lt;safe&gt;', $this->body());
-        self::assertStringContainsString('https://sandbox.payfast.co.za/eng/process', $this->body());
+        self::assertSame('https://c.yoco.com/checkout/test', $response->headers->get('Location'));
         self::assertStringNotContainsString($this->token, $this->body());
         self::assertSame(410, $this->open($path, 'POST'));
         self::assertSame(0, $this->rows('giving_gifts'));
         $sealed = (string) $this->connection->fetchOne('SELECT encrypted_checkout FROM payments_mobile_checkouts');
-        self::assertStringNotContainsString('merchant_id', $sealed);
-        self::assertStringNotContainsString("O'Reilly", $sealed);
+        self::assertStringNotContainsString('c.yoco.com', $sealed);
         self::assertSame(1, $this->rows('payments_history', "action = 'MOBILE_CHECKOUT_OPENED'"));
     }
 

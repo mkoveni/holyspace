@@ -11,7 +11,7 @@ use SensitiveParameter;
 
 /**
  * Provider connection values (Java `PaymentSettings`): either the deployment bootstrap read from the environment
- * (PAYMENTS_PUBLIC_URL, PAYFAST_*, YOCO_*, PAYMENTS_TOKEN_KEY, PAYMENTS_BACKEND_URL) or one stored revision,
+ * (PAYMENTS_PUBLIC_URL, YOCO_*, PAYMENTS_TOKEN_KEY, PAYMENTS_BACKEND_URL) or one stored revision,
  * decrypted for a single provider call. Never logged (`__debugInfo` redacts).
  */
 final readonly class GatewaySettings
@@ -20,11 +20,6 @@ final readonly class GatewaySettings
 
     public function __construct(
         public string $publicUrl,
-        public string $payfastMode,
-        #[SensitiveParameter] public string $merchantId,
-        #[SensitiveParameter] public string $merchantKey,
-        #[SensitiveParameter] public string $passphrase,
-        public string $ipRanges,
         public string $yocoMode,
         #[SensitiveParameter] public string $yocoKey,
         #[SensitiveParameter] public string $yocoWebhookSecret,
@@ -39,10 +34,6 @@ final readonly class GatewaySettings
         if (!self::validBase($this->publicUrl) || !self::validBase($this->backendUrl)) {
             return false;
         }
-        if ('payfast' === $provider) {
-            return \in_array($this->payfastMode, ['test', 'live'], true) && '' !== trim($this->merchantId)
-                && '' !== trim($this->merchantKey) && '' !== trim($this->passphrase) && '' !== trim($this->ipRanges) && $this->validVault();
-        }
 
         return 'yoco' === $provider && \in_array($this->yocoMode, ['test', 'live'], true)
             && str_starts_with($this->yocoKey, 'sk_'.$this->yocoMode.'_') && str_starts_with($this->yocoWebhookSecret, 'whsec_');
@@ -50,7 +41,7 @@ final readonly class GatewaySettings
 
     public function mode(string $provider): string
     {
-        return 'payfast' === $provider ? $this->payfastMode : $this->yocoMode;
+        return $this->yocoMode;
     }
 
     public function validVault(): bool

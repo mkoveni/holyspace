@@ -10,7 +10,7 @@ use App\IdentityAccess\Application\Contract\SessionReader;
 use App\IdentityAccess\Application\Contract\TokenCodec;
 use App\Payments\Application\Contract\CheckoutCodec;
 use App\Payments\Application\Contract\HostedCheckout;
-use App\Payments\Application\Contract\SubscriptionVault;
+use App\Payments\Application\Contract\PayloadVault;
 use App\Payments\Domain\PaymentException;
 use App\Payments\Domain\Repository\MobileCheckoutRepository;
 use App\Payments\Domain\Repository\PaymentRepository;
@@ -31,7 +31,7 @@ final readonly class CompleteMobileCheckoutHandler implements CommandHandler
         private AccountDirectory $accounts,
         private DonorCheckoutGuard $donors,
         private TokenCodec $tokens,
-        private SubscriptionVault $vault,
+        private PayloadVault $vault,
         private CheckoutCodec $codec,
         private ClockInterface $clock,
         private LoggerInterface $logger,

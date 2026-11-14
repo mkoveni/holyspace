@@ -119,6 +119,4 @@ export const paymentsApi = {
     useApi().post(`/api/payments/${id}/refunds`, body),
   review: async (id: string, body: object) =>
     useApi().post(`/api/payments/${id}/reviews`, body),
-  subscription: async (id: string, body: object) =>
-    useApi().post(`/api/payments/${id}/subscription`, body),
 }

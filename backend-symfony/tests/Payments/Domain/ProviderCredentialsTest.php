@@ -19,9 +19,9 @@ final class ProviderCredentialsTest extends TestCase
 
     public function testAcceptsSigningSecretsAndKeepsEnvironmentsSeparate(): void
     {
-        $credentials = new ProviderCredentials(null, null, null, 'sk_test_fixture', self::SIGNING_SECRET);
-        self::assertTrue($credentials->complete('yoco', 'test'));
-        $issue = (string) $credentials->validationIssue('yoco', 'live');
+        $credentials = new ProviderCredentials('sk_test_fixture', self::SIGNING_SECRET);
+        self::assertTrue($credentials->complete('test'));
+        $issue = (string) $credentials->validationIssue('live');
         self::assertStringContainsString('sk_live_', $issue);
         self::assertStringContainsString('live mode', $issue);
         self::assertStringNotContainsString('sk_test_fixture', $issue);
@@ -29,32 +29,25 @@ final class ProviderCredentialsTest extends TestCase
 
     public function testExplainsPublicKeysAndMissingOrMalformedSecretsWithoutEchoingCredentials(): void
     {
-        $public = (string) new ProviderCredentials(null, null, null, 'pk_test_private-fixture', self::SIGNING_SECRET)->validationIssue('yoco', 'test');
+        $public = (string) new ProviderCredentials('pk_test_private-fixture', self::SIGNING_SECRET)->validationIssue('test');
         self::assertStringContainsString('Public keys', $public);
         self::assertStringNotContainsString('pk_test_private-fixture', $public);
-        self::assertStringContainsString('separate from the API key', (string) new ProviderCredentials(null, null, null, 'sk_test_fixture', '')->validationIssue('yoco', 'test'));
+        self::assertStringContainsString('separate from the API key', (string) new ProviderCredentials('sk_test_fixture', '')->validationIssue('test'));
         foreach (['whsec_invalid-encoding', 'whsec_YQ==', 'whsec_'] as $secret) {
-            $credentials = new ProviderCredentials(null, null, null, 'sk_test_fixture', $secret);
-            self::assertFalse($credentials->complete('yoco', 'test'));
-            self::assertStringContainsString('malformed', (string) $credentials->validationIssue('yoco', 'test'));
+            $credentials = new ProviderCredentials('sk_test_fixture', $secret);
+            self::assertFalse($credentials->complete('test'));
+            self::assertStringContainsString('malformed', (string) $credentials->validationIssue('test'));
         }
     }
 
-    public function testPayfastNeedsAnEightDigitMerchantKeyAndPassphrase(): void
+    public function testRejectsControlCharactersAndKeepsSavedValuesOnBlankReplacement(): void
     {
-        self::assertTrue(new ProviderCredentials('10000100', 'key', 'pass')->complete('payfast', 'test'));
-        self::assertSame('Enter the eight-digit Payfast merchant ID.', new ProviderCredentials('1000010', 'key', 'pass')->validationIssue('payfast', 'test'));
-        self::assertSame('Enter the Payfast merchant key and passphrase.', new ProviderCredentials('10000100', 'key', ' ')->validationIssue('payfast', 'test'));
+        $saved = new ProviderCredentials('sk_test_x', 'whsec_x');
+        $merged = $saved->replace(new ProviderCredentials(null, 'whsec_new'));
+        self::assertSame(['sk_test_x', 'whsec_new'], [$merged->yocoKey, $merged->webhookSecret]);
+        self::assertStringNotContainsString('whsec_new', print_r($merged, true));
         $this->expectException(PaymentException::class);
         new ProviderCredentials("bad\nvalue");
-    }
-
-    public function testBlankReplacementsKeepSavedValuesAndRevisionsKeepOnlyTheProvidersSecrets(): void
-    {
-        $saved = new ProviderCredentials('10000100', 'key', 'pass', 'sk_test_x', 'whsec_x');
-        $merged = $saved->replace(new ProviderCredentials(null, 'new-key'))->forProvider('payfast');
-        self::assertSame(['10000100', 'new-key', 'pass', '', ''], [$merged->merchantId, $merged->merchantKey, $merged->passphrase, $merged->yocoKey, $merged->webhookSecret]);
-        self::assertStringNotContainsString('new-key', print_r($merged, true));
     }
 
     public function testJavaBase64RulesAndOrigins(): void
@@ -79,10 +72,10 @@ final class ProviderCredentialsTest extends TestCase
     public function testOrdersKeepTheirInvariants(): void
     {
         $start = static fn (int $amount, string $provider, bool $recurring): PaymentOrder => PaymentOrder::start('id', 'donor', 'fund', $amount, $provider, 'test', $recurring, str_repeat('h', 64), 'actor', new DateTimeImmutable(), null, false);
-        self::assertSame(['PENDING', 'PENDING', 0], [($o = $start(500, 'payfast', true))->status, $o->subscriptionStatus, $o->version]);
+        self::assertSame(['PENDING', 'NONE', 0], [($o = $start(500, 'yoco', false))->status, $o->subscriptionStatus, $o->version]);
         self::assertSame('NONE', $start(100_000_000, 'yoco', false)->subscriptionStatus);
         self::assertStringNotContainsString('encryptedToken', print_r($o, true));
-        foreach ([[499, 'payfast', false], [100_000_001, 'payfast', false], [500, 'other', false], [500, 'yoco', true]] as [$amount, $provider, $recurring]) {
+        foreach ([[499, 'yoco', false], [100_000_001, 'yoco', false], [500, 'payfast', false], [500, 'yoco', true]] as [$amount, $provider, $recurring]) {
             try {
                 $start($amount, $provider, $recurring);
                 self::fail('Accepted an invalid order');

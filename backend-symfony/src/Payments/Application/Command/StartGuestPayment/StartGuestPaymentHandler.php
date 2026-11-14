@@ -7,9 +7,9 @@ namespace App\Payments\Application\Command\StartGuestPayment;
 use App\Giving\Application\Contract\OnlineFundDirectory;
 use App\Giving\Application\Contract\OnlineGivingLedger;
 use App\Payments\Application\Contract\GuestAccess;
+use App\Payments\Application\Contract\PayloadVault;
 use App\Payments\Application\Contract\PaymentConfigurationBinding;
 use App\Payments\Application\Contract\PaymentGateway;
-use App\Payments\Application\Contract\SubscriptionVault;
 use App\Payments\Application\PaymentHash;
 use App\Payments\Domain\PaymentException;
 use App\Payments\Domain\PaymentOrder;
@@ -30,7 +30,7 @@ final readonly class StartGuestPaymentHandler implements CommandHandler
         private OnlineGivingLedger $giving,
         private OnlineFundDirectory $funds,
         private PaymentConfigurationBinding $configurations,
-        private SubscriptionVault $vault,
+        private PayloadVault $vault,
         private GuestAccess $access,
     ) {
     }
