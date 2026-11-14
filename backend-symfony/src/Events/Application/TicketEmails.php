@@ -45,19 +45,22 @@ final readonly class TicketEmails
     ) {
     }
 
-    /** Queues the email unless it exists already. Never throws: the payment it follows is already final. */
-    public function queueFor(string $orderId): void
+    /**
+     * Queues the email unless it exists already; `$again` queues a fresh one (a resend). Never throws: the payment it
+     * follows is already final. Returns whether an email was queued.
+     */
+    public function queueFor(string $orderId, bool $again = false): bool
     {
         try {
-            $this->transactions->execute(function () use ($orderId): void {
+            return $this->transactions->execute(function () use ($orderId, $again): bool {
                 $found = $this->tickets->find($orderId);
                 if (null === $found) {
-                    return;
+                    return false;
                 }
                 $this->tickets->lockOccurrence($found->occurrenceId);
                 $order = $this->tickets->lock($orderId);
-                if (null === $order || !self::deliverable($order) || null !== $this->tickets->email($orderId)) {
-                    return;
+                if (null === $order || !self::deliverable($order) || (!$again && null !== $this->tickets->email($orderId))) {
+                    return false;
                 }
                 $recipient = $this->vault->decrypt($order->buyerEmailEncrypted);
                 $rendered = $this->templates->render(self::TEMPLATE, $this->values($order));
@@ -91,10 +94,13 @@ final readonly class TicketEmails
                     self::TEMPLATE,
                     $rendered->version,
                 ));
-                $this->tickets->audit($order->id, 'TICKET_EMAIL_QUEUED', 'Tickets email queued for the buyer.', $now);
+                $this->tickets->audit($order->id, 'TICKET_EMAIL_QUEUED', $again ? 'Tickets email queued again (resend).' : 'Tickets email queued for the buyer.', $now);
+
+                return true;
             });
         } catch (Throwable) {
             // Retried by the next posting attempt or a resend; the verified payment is never undone by an email problem.
+            return false;
         }
     }
 

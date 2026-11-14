@@ -33,7 +33,7 @@ abstract class DatabaseTestCase extends WebTestCase
         $this->connection = $connection;
 
         if (!self::$schemaReady) {
-            self::rebuildSchema($this->connection);
+            self::prepareSchema($this->connection);
             self::$schemaReady = true;
         }
         self::restoreSeedData($this->connection);
@@ -45,6 +45,44 @@ abstract class DatabaseTestCase extends WebTestCase
             $this->connection->rollBack();
         }
         parent::tearDown();
+    }
+
+    /**
+     * A plain run rebuilds the schema from scratch. A parallel worker (paratest starts a new PHP process per test file, so
+     * this would otherwise run hundreds of times, and the simultaneous drops exhaust the server's lock table) rebuilds its
+     * own database only when the migration files changed since it was last built; CI always starts from an empty server.
+     */
+    private static function prepareSchema(Connection $connection): void
+    {
+        if ('' === (string) getenv('TEST_TOKEN')) {
+            self::rebuildSchema($connection);
+
+            return;
+        }
+        $stamp = 'onechurch-test-schema:'.self::migrationsFingerprint();
+        $current = $connection->fetchOne("SELECT obj_description('public'::regnamespace, 'pg_namespace')");
+        $seeded = false !== $connection->fetchOne("SELECT 1 FROM pg_namespace WHERE nspname = 'seed'");
+        if ($current === $stamp && $seeded) {
+            return;
+        }
+        $lock = fopen(sys_get_temp_dir().'/onechurch-test-schema.lock', 'c');
+        if (false !== $lock) {
+            flock($lock, \LOCK_EX); // one rebuild at a time across workers keeps the lock table small
+        }
+        self::rebuildSchema($connection);
+        $connection->executeStatement('COMMENT ON SCHEMA public IS '.$connection->quote($stamp));
+        if (false !== $lock) {
+            flock($lock, \LOCK_UN);
+            fclose($lock);
+        }
+    }
+
+    private static function migrationsFingerprint(): string
+    {
+        $files = glob(dirname(__DIR__, 2).'/migrations/*.sql') ?: [];
+        sort($files);
+
+        return sha1(implode("\n", array_map(static fn (string $f): string => basename($f).':'.sha1_file($f), $files)));
     }
 
     /** Drops everything and re-applies every migration, proving V1-V30 build from scratch. */
@@ -73,6 +111,8 @@ abstract class DatabaseTestCase extends WebTestCase
         if (false === $admin->fetchOne('SELECT 1 FROM pg_database WHERE datname = ?', [$name])) {
             $admin->executeStatement('CREATE DATABASE '.$admin->quoteSingleIdentifier($name));
         }
+        // Throwaway data: a commit need not wait for the disk. Only this database is affected, never the server's others.
+        $admin->executeStatement('ALTER DATABASE '.$admin->quoteSingleIdentifier($name).' SET synchronous_commit = off');
         $admin->close();
     }
 

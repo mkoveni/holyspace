@@ -11,6 +11,7 @@
         <v-icon color="primary" icon="mdi-ticket-outline" size="40" />
         <h1>We couldn't open these tickets</h1>
         <p role="alert">{{ error || 'Open the link from your tickets email again.' }}</p>
+        <TicketResendForm class="text-left mt-4" />
       </section>
 
       <template v-else>
@@ -50,6 +51,8 @@
           <v-chip v-else-if="t.status === 'VOID'" color="error">Cancelled</v-chip>
         </section>
 
+        <TicketDocuments v-if="wallet.documents" :docs="wallet.documents" />
+
         <p class="tk-muted text-center">Keep this page private: anyone with the link can see your tickets.</p>
       </template>
     </div>
@@ -63,6 +66,8 @@
   import PublicBrand from '@/components/PublicBrand.vue'
   import { extractErrorMessage } from '@/composables/apiErrors'
   import { usePageTitle } from '@/composables/usePageTitle'
+  import TicketDocuments from '@/tickets/components/TicketDocuments.vue'
+  import TicketResendForm from '@/tickets/components/TicketResendForm.vue'
   import { formatRand, formatWhen, publicTickets } from '@/tickets/public-tickets'
   import '@/tickets/tickets.css'
 

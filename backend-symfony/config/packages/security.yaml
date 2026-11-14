@@ -52,7 +52,7 @@ security:
         - { path: ^/api/public/events$, methods: [GET], roles: PUBLIC_ACCESS }
         - { path: '^/api/public/events/[0-9a-fA-F-]{36}$', methods: [GET], roles: PUBLIC_ACCESS }
         - { path: '^/api/public/events/[0-9a-fA-F-]{36}/orders$', methods: [POST], roles: PUBLIC_ACCESS }
-        - { path: ^/api/public/ticket-orders/(status|wallet)$, methods: [POST], roles: PUBLIC_ACCESS }
+        - { path: ^/api/public/ticket-orders/(status|wallet|resend)$, methods: [POST], roles: PUBLIC_ACCESS }
         # Public forms and quizzes: the link token is the credential; submits are guarded by a captcha and throttles.
         - { path: ^/api/public/forms/[A-Za-z0-9_-]+(/leaderboard)?$, methods: [GET], roles: PUBLIC_ACCESS }
         - { path: ^/api/public/forms/[A-Za-z0-9_-]+$, methods: [POST], roles: PUBLIC_ACCESS }

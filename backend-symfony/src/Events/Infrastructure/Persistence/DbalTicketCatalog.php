@@ -138,4 +138,42 @@ final readonly class DbalTicketCatalog implements TicketCatalog
     {
         return null === $capacity || $this->tickets->seatsTaken($occurrenceId, $now) < $capacity;
     }
+
+    public function report(string $occurrenceId): array
+    {
+        $types = $this->connection->fetchAllAssociative(
+            "SELECT l.type_name_snapshot AS name,
+                    count(t.id) FILTER (WHERE t.status <> 'VOID') AS sold,
+                    count(t.id) FILTER (WHERE t.status = 'CHECKED_IN') AS checked_in,
+                    count(t.id) FILTER (WHERE t.status = 'VOID') AS void,
+                    COALESCE(sum(l.unit_price_minor) FILTER (WHERE t.status <> 'VOID'), 0) AS gross
+             FROM event_tickets t JOIN event_ticket_order_lines l ON l.id = t.line_id JOIN event_ticket_orders o ON o.id = t.order_id
+             WHERE o.occurrence_id = ? GROUP BY l.type_name_snapshot ORDER BY l.type_name_snapshot",
+            [$occurrenceId],
+        );
+        $o = $this->connection->fetchAssociative(
+            "SELECT count(*) AS orders,
+                    count(*) FILTER (WHERE status IN ('PAID', 'PARTIALLY_REFUNDED', 'REFUNDED', 'REFUND_REVIEW')) AS paid_orders,
+                    COALESCE(sum(subtotal_minor) FILTER (WHERE status IN ('PAID', 'PARTIALLY_REFUNDED', 'REFUND_REVIEW')), 0) AS tickets,
+                    COALESCE(sum(fee_minor) FILTER (WHERE status IN ('PAID', 'PARTIALLY_REFUNDED', 'REFUND_REVIEW')), 0) AS fees,
+                    count(*) FILTER (WHERE status IN ('LATE_PAID_REVIEW', 'REFUND_REVIEW') OR unmatched_refund_minor > 0) AS review
+             FROM event_ticket_orders WHERE occurrence_id = ?",
+            [$occurrenceId],
+        ) ?: [];
+        $refunded = (int) $this->connection->fetchOne(
+            'SELECT COALESCE(sum(c.total_minor), 0) FROM event_credit_notes c JOIN event_invoices i ON i.id = c.invoice_id JOIN event_ticket_orders o ON o.id = i.ticket_order_id WHERE o.occurrence_id = ?',
+            [$occurrenceId],
+        );
+
+        return [
+            'types' => array_map(static fn (array $t): array => ['name' => (string) $t['name'], 'sold' => (int) $t['sold'], 'checkedIn' => (int) $t['checked_in'], 'void' => (int) $t['void'], 'grossMinor' => (int) $t['gross']], $types),
+            'orders' => (int) ($o['orders'] ?? 0),
+            'paidOrders' => (int) ($o['paid_orders'] ?? 0),
+            'ticketsMinor' => (int) ($o['tickets'] ?? 0),
+            'feesMinor' => (int) ($o['fees'] ?? 0),
+            'refundedMinor' => $refunded,
+            'checkedIn' => array_sum(array_column($types, 'checked_in')),
+            'awaitingRefundReview' => (int) ($o['review'] ?? 0),
+        ];
+    }
 }

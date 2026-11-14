@@ -38,7 +38,7 @@ final readonly class TicketSettlement implements PurposeSettlement
     public function refund(PaymentOrder $order, Charge $charge, Refund $refund): void
     {
         $full = $refund->amountMinor + $this->payments->refunded($charge->id) >= $charge->amountMinor;
-        if (TicketOrderSettlement::REVIEW === $this->tickets->refunded((string) $order->purposeRef, $full)) {
+        if (TicketOrderSettlement::REVIEW === $this->tickets->refunded((string) $order->purposeRef, $full, $refund->amountMinor)) {
             $this->payments->audit($order->id, 'TICKET_REFUND_NEEDS_SELECTION', 'A partial ticket refund needs staff to choose which tickets it covers; the tickets stay valid until then.', null, $this->clock->now());
         }
     }

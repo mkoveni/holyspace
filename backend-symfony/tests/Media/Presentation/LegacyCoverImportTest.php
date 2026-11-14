@@ -27,7 +27,7 @@ final class LegacyCoverImportTest extends IdentityApiTestCase
 
     protected function tearDown(): void
     {
-        exec('rm -rf '.escapeshellarg('/tmp/onechurch-media-test'));
+        exec('rm -rf '.escapeshellarg((string) ($_SERVER['MEDIA_STORAGE_PATH'] ?? '/tmp/onechurch-media-test')));
         parent::tearDown();
     }
 

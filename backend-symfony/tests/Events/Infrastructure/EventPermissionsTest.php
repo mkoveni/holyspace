@@ -44,6 +44,7 @@ final class EventPermissionsTest extends DatabaseTestCase
             'event_member_offers', 'event_admission_passes', 'event_cover_images', 'event_visit_links', 'event_visitor_check_ins',
             'event_visitor_children', 'event_visit_messaging', 'event_visitor_messages',
             'event_ticket_emails', 'event_public_sales', 'event_ticket_settings', 'event_ticket_types', 'event_ticket_orders', 'event_ticket_order_lines', 'event_tickets',
+            'event_invoice_settings', 'event_invoice_counters', 'event_invoices', 'event_invoice_lines', 'event_credit_notes', 'event_credit_note_lines',
         ];
 
         $found = $this->connection->fetchFirstColumn("SELECT tablename FROM pg_tables WHERE schemaname = 'public' AND tablename LIKE 'event\\_%'");

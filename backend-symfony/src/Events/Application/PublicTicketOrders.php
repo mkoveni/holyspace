@@ -15,7 +15,7 @@ use DateTimeImmutable;
 /** What a buyer sees of their own order. A wrong token and an unknown order are the same "not found". */
 final readonly class PublicTicketOrders
 {
-    public function __construct(private TicketRepository $tickets, private TicketIssuer $issuer, private GuestAccess $access, private TicketCatalog $catalog)
+    public function __construct(private TicketRepository $tickets, private TicketIssuer $issuer, private GuestAccess $access, private TicketCatalog $catalog, private TicketInvoices $invoices)
     {
     }
 
@@ -40,7 +40,7 @@ final readonly class PublicTicketOrders
     }
 
     /**
-     * @return array{orderId: string, state: string, title: string, startsAt: DateTimeImmutable, endsAt: DateTimeImmutable, timeZone: string, venueName: string, venueAddress: string, subtotalMinor: int, feeMinor: int, totalMinor: int, tickets: list<array{id: string, type: string, holder: string, status: string, code: ?string}>}
+     * @return array{orderId: string, state: string, title: string, startsAt: DateTimeImmutable, endsAt: DateTimeImmutable, timeZone: string, venueName: string, venueAddress: string, subtotalMinor: int, feeMinor: int, totalMinor: int, tickets: list<array{id: string, type: string, holder: string, status: string, code: ?string}>, documents: array<string, mixed>|null}
      */
     public function wallet(string $walletHash): array
     {
@@ -64,6 +64,7 @@ final readonly class PublicTicketOrders
             'feeMinor' => $order->feeMinor,
             'totalMinor' => $order->totalMinor,
             'tickets' => $tickets,
+            'documents' => $this->invoices->documentsOf($order->id),
         ];
     }
 

@@ -1,6 +1,6 @@
 # Public paid events, invoicing, and public/internal forms and quizzes: design
 
-Status: **Draft for business and engineering review (2026-11-13).** Implemented so far: Phase 1 (Forms), Phase 2 (Yoco only, purpose-aware Payments) and the backend of Phase 3 (public ticketing, migration V45). Not yet built: ticket email, public and staff screens, and all of Phase 4. Diagrams use Mermaid
+Status: **Draft for business and engineering review (2026-11-13), implementation updated 2026-11-14.** Implemented: Phase 1 (Forms), Phase 2 (Yoco only, purpose-aware Payments), Phase 3 (public ticketing, ticket email, resend, public and staff screens; migrations V45, V46) and most of Phase 4 (invoices, credit notes, refund selection, door scanning, ticket report; migration V47). Still open: invoice delivery as a PDF attachment, optional buyer billing details, the roster and closeout union, the Java-style reports export, and all of Phase 5 (see 9.6). Diagrams use Mermaid
 (rendered by GitHub and most Markdown viewers). Target code base: `backend-symfony` (the live API the frontend proxies
 to) and `frontend`. Read `backend-symfony/AGENTS.md` first; every rule there applies to the work below.
 
@@ -1096,8 +1096,20 @@ flowchart LR
 | 1 | Shared public kit. `Forms` context: definitions, versions, audiences, identity modes, public and internal submit, quiz scoring, leaderboard, results, export, purge, frontend and mobile screens. | V43 forms |
 | 2 | Remove Payfast. `purpose` and `purpose_ref`, nullable `fund_id`, settlement port, Giving adapter, Yoco-only constraint. Giving tests stay green. | V44 payments purpose |
 | 3 | Public sales, ticket types, capacity, reservation, fee, Yoco checkout, settlement, ticket email, wallet page, sweeper, public pages. | V45 ticketing |
-| 4 | Invoicing and credit notes, refund voids, door scanning, roster and closeout union, reports. Must land before real sales. | V46 invoicing |
+| 4 | Invoicing and credit notes, refund voids, door scanning, roster and closeout union, reports. Must land before real sales. | V47 invoicing and scanning (V46 became the ticket email) |
 | 5 | Security review of the new public surfaces and Payments diff, load check of the invoice counter, Yoco sandbox end-to-end, backup retention, privacy notices. | none |
+
+### 9.1.1 What was built, and where it differs from the design
+
+| Area | Built | Difference from this document |
+|---|---|---|
+| Ticket email | One email per order, frozen and re-judged before every send (`TicketEmails`, `TicketEmailEvidence`). | Migration V46. The order may have several emails (V47 drops the unique key) so a resend can queue a new one. |
+| Resend | Staff: `POST .../ticket-orders/{orderId}/resend`. Buyer: `POST /api/public/ticket-orders/resend` by email, always answered `202` with the same text, throttled per client and per address, one resend per order every ten minutes. Wallet page offers the form when a link fails. | None. |
+| Door scanning | `POST .../tickets/scan` answers `ADMITTED`, `ALREADY_USED` or `REJECTED` (`TicketDoor`). Scanner dialog in the staff Ticket sales panel with camera, hardware-scanner input and a live count. | The check-in lives on `event_tickets` itself (no separate table). |
+| Refund selection | `TicketOrderSettler::refunded` now receives the amount. A full refund voids and credits every ticket. A partial refund is credited only when the voided, uncredited tickets add up to it; otherwise the amount waits in `unmatched_refund_minor` until staff void tickets (`POST .../voids`). Staff can also void first; the refund is matched when it arrives. | The design's "staff select tickets" is stored as voided tickets with no credit note, not as a separate selection record. |
+| Invoices | `event_invoice_*` and `event_credit_note*` tables, insert-only by trigger, gapless `INV`/`CN` counters, VAT-inclusive maths, issuer settings versioned by effective date (`TicketInvoices`, `GET/PUT /api/invoice-settings`). Free orders are not invoiced. | Tables are named `event_*`, not `payment_*`: Events owns them and Payments never reads them. Credit notes link to the ticket order's invoice, not to a Payments refund id. |
+| Delivery | Option 2 of 6.5: the wallet page shows the invoice and credit notes and prints to PDF. | The email does not attach a PDF. |
+| Reports | `GET .../ticket-report`: orders, ticket value, fees, refunds, sold and checked-in per type, refunds awaiting review. Shown in the Ticket sales panel. | The attendance roster and the closeout still count registrations only (see 9.6). |
 
 ### 9.2 Risks
 
@@ -1120,6 +1132,14 @@ flowchart LR
 4. Mandatory buyer details on invoices above any statutory value threshold.
 5. Final retention period for ticket-order contact data.
 6. Assumptions A1 to A6.
+
+### 9.6 Still open after this implementation
+
+1. **Roster and closeout union (5.9).** The closeout review hash and the attendance roster are keyed by registration and version. Adding ticket holders needs a design for the review fingerprint first. Until then the ticket report is the source of truth for ticket attendance.
+2. **Buyer billing details (6.4).** The order request has no `billing` object; invoices carry the buyer's name only. Needs the accountant's answer to open item 4.
+3. **PDF attachment (6.5 option 1).** Needs an attachment concept in `EmailDeliveries`.
+4. **Occurrence cancelled (5.11).** A cancelled occurrence already stops scanning; moving every paid order to `REFUND_REVIEW` automatically is not built.
+5. **Phase 5.** Security review, Yoco sandbox end to end, load check of the invoice counter, backup retention and privacy notices.
 
 ### 9.4 Documentation to update when building
 

@@ -8,10 +8,18 @@ use App\Events\Application\Command\ConfigurePublicSale\ConfigurePublicSaleComman
 use App\Events\Application\Command\ConfigureTicketFees\ConfigureTicketFeesCommand;
 use App\Events\Application\Command\SaveTicketType\SaveTicketTypeCommand;
 use App\Events\Application\Contract\TicketCatalog;
+use App\Events\Application\TicketDoor;
+use App\Events\Application\TicketInvoices;
+use App\Events\Application\TicketResends;
+use App\Events\Application\TicketVoids;
+use App\Events\Domain\EventException;
 use App\Events\Domain\Repository\TicketRepository;
 use App\Events\Presentation\Request\ConfigurePublicSaleRequest;
 use App\Events\Presentation\Request\ConfigureTicketFeesRequest;
+use App\Events\Presentation\Request\InvoiceSettingsRequest;
 use App\Events\Presentation\Request\SaveTicketTypeRequest;
+use App\Events\Presentation\Request\TicketScanRequest;
+use App\Events\Presentation\Request\TicketVoidRequest;
 use App\IdentityAccess\Application\Contract\AuthenticatedAccount;
 use App\IdentityAccess\Application\Contract\PermissionChecker;
 use App\Payments\Application\Contract\PayloadVault;
@@ -35,6 +43,10 @@ final readonly class TicketAdminController
         private TicketCatalog $catalog,
         private PermissionChecker $permissions,
         private PayloadVault $vault,
+        private TicketDoor $door,
+        private TicketVoids $voids,
+        private TicketResends $resends,
+        private TicketInvoices $invoices,
     ) {
     }
 
@@ -103,6 +115,90 @@ final readonly class TicketAdminController
             'buyerName' => $contacts ? $o['buyerName'] : null,
             'buyerEmail' => $contacts ? $this->vault->decrypt($o['buyerEmailEncrypted']) : null,
         ], $this->catalog->orders($id, $limit))]);
+    }
+
+    #[IsGranted('events.tickets.read')]
+    #[Route('/api/events/occurrences/{id}/ticket-orders/{orderId}', methods: ['GET'])]
+    public function order(#[PathUuid] string $id, #[PathUuid] string $orderId): JsonResponse
+    {
+        $order = $this->tickets->find($orderId);
+        if (null === $order || $order->occurrenceId !== $id) {
+            throw EventException::missing('Ticket order');
+        }
+        $contacts = $this->permissions->hasPermission('events.tickets.contacts');
+        $documents = $this->invoices->documentsOf($orderId);
+
+        return self::noStore([
+            'id' => $order->id,
+            'status' => $order->status,
+            'seats' => $order->seats(),
+            'subtotalMinor' => $order->subtotalMinor,
+            'feeMinor' => $order->feeMinor,
+            'totalMinor' => $order->totalMinor,
+            'refundWaitingMinor' => $this->tickets->unmatchedRefund($orderId),
+            'buyerName' => $contacts ? $order->buyerName : null,
+            'buyerEmail' => $contacts ? $this->vault->decrypt($order->buyerEmailEncrypted) : null,
+            'invoiceNumber' => $documents['number'] ?? null,
+            'creditNotes' => array_map(static fn (array $n): array => ['number' => $n['number'], 'totalMinor' => $n['totalMinor']], $documents['creditNotes'] ?? []),
+            'tickets' => array_map(static fn (array $t): array => [
+                'id' => $t['id'], 'type' => $t['typeName'], 'priceMinor' => $t['unitPriceMinor'], 'holder' => $t['holder'], 'status' => $t['status'], 'credited' => null !== $t['creditNoteId'],
+            ], $this->tickets->ticketPrices($orderId)),
+        ]);
+    }
+
+    #[IsGranted('events.tickets.manage')]
+    #[Route('/api/events/occurrences/{id}/ticket-orders/{orderId}/voids', methods: ['POST'])]
+    public function voidTickets(#[PathUuid] string $id, #[PathUuid] string $orderId, #[MapRequestPayload] TicketVoidRequest $r): JsonResponse
+    {
+        return self::noStore($this->voids->void($this->account->requireAccount(), $id, $orderId, $r->ticketIds ?? []));
+    }
+
+    #[IsGranted('events.tickets.manage')]
+    #[Route('/api/events/occurrences/{id}/ticket-orders/{orderId}/resend', methods: ['POST'])]
+    public function resend(#[PathUuid] string $id, #[PathUuid] string $orderId): Response
+    {
+        $this->resends->byStaff($this->account->requireAccount(), $id, $orderId);
+
+        return new Response(status: 204);
+    }
+
+    #[IsGranted('events.tickets.scan')]
+    #[Route('/api/events/occurrences/{id}/tickets/scan', methods: ['POST'])]
+    public function scan(#[PathUuid] string $id, #[MapRequestPayload] TicketScanRequest $r): JsonResponse
+    {
+        $s = $this->door->scan($this->account->requireAccount(), $id, (string) $r->code);
+
+        return self::noStore([
+            'result' => $s['result'],
+            'reason' => $s['reason'],
+            'ticketType' => $s['ticketType'],
+            'holder' => $s['holder'],
+            'checkedInAt' => null === $s['checkedInAt'] ? null : Json::instant($s['checkedInAt']),
+            'counts' => $s['counts'],
+        ]);
+    }
+
+    #[IsGranted('events.tickets.read')]
+    #[Route('/api/events/occurrences/{id}/ticket-report', methods: ['GET'])]
+    public function report(#[PathUuid] string $id): JsonResponse
+    {
+        return self::noStore($this->catalog->report($id) + ['scan' => $this->tickets->scanCounts($id)]);
+    }
+
+    #[IsGranted('events.tickets.manage')]
+    #[Route('/api/invoice-settings', methods: ['GET'])]
+    public function invoiceSettings(): JsonResponse
+    {
+        return self::noStore(['settings' => $this->invoices->settings($this->account->requireAccount())]);
+    }
+
+    #[IsGranted('events.tickets.manage')]
+    #[Route('/api/invoice-settings', methods: ['PUT'])]
+    public function changeInvoiceSettings(#[MapRequestPayload] InvoiceSettingsRequest $r): Response
+    {
+        $this->invoices->changeSettings($this->account->requireAccount(), $r->effectiveFrom, $r->legalName, $r->address, $r->registrationNumber, $r->npoNumber, $r->vatNumber, $r->vatRegistered, $r->vatRateBp);
+
+        return new Response(status: 204);
     }
 
     #[IsGranted('events.tickets.manage')]

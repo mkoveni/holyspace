@@ -40,8 +40,11 @@ the SMTP host to local capture hosts (for example Mailpit).
 
 ## Tests
 
-PHPUnit rebuilds the schema of one database per run. Do not run two runs against the same database; for a parallel
-run copy `phpunit.dist.xml`, change the database name, and pass it with `-c`.
+`make test` runs the suite in parallel with paratest (`TEST_PROCESSES`, default 4). Every worker rebuilds the schema of
+its own database (`onechurch_symfony_test_1`, `_2`, ...) and writes pictures to its own directory, which
+`tests/bootstrap.php` sets up from the worker number. Test databases run with `synchronous_commit = off`. Use
+`make test-serial ARGS='--filter name'` (plain PHPUnit, database `onechurch_symfony_test`) to debug one test. Do not run
+two suites against the same databases at once; for a second run copy `phpunit.dist.xml` and change the database name.
 
 ## Production
 

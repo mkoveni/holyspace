@@ -7,8 +7,10 @@ namespace App\Events\Presentation;
 use App\Events\Application\Contract\TicketCatalog;
 use App\Events\Application\PublicTicketOrders;
 use App\Events\Application\TicketOrderStarter;
+use App\Events\Application\TicketResends;
 use App\Events\Domain\EventException;
 use App\Events\Presentation\Request\TicketOrderRequest;
+use App\Events\Presentation\Request\TicketResendRequest;
 use App\Events\Presentation\Request\TicketTokenRequest;
 use App\Payments\Application\Contract\GuestAccess;
 use App\Shared\Application\HumanCheck;
@@ -34,6 +36,7 @@ final readonly class PublicTicketsController
         private TicketCatalog $catalog,
         private TicketOrderStarter $starter,
         private PublicTicketOrders $orders,
+        private TicketResends $resends,
         private GuestAccess $access,
         private HumanCheck $human,
         private ClockInterface $clock,
@@ -155,7 +158,27 @@ final readonly class PublicTicketsController
             'feeMinor' => $w['feeMinor'],
             'totalMinor' => $w['totalMinor'],
             'tickets' => $w['tickets'],
+            'documents' => $w['documents'],
         ]);
+    }
+
+    /**
+     * "Send my tickets again" by email address. The answer is always the same, whether or not the address has tickets, so
+     * this cannot be used to find out who bought one. Throttled per client and per address.
+     */
+    #[Route('/api/public/ticket-orders/resend', methods: ['POST'])]
+    public function resend(Request $request, #[MapRequestPayload] TicketResendRequest $b): JsonResponse
+    {
+        $client = $request->getClientIp() ?? 'unknown';
+        $email = strtolower(trim((string) $b->email));
+        if (!$this->perClient->create($client)->consume()->isAccepted() || !$this->perEmail->create($this->access->emailHash($email))->consume()->isAccepted()) {
+            throw EventException::throttled('Too many attempts. Please wait a while and try again, or contact the church office.');
+        }
+        if ('' === trim((string) $b->website) && $this->human->passes($b->humanToken, $client)) {
+            $this->resends->byBuyer($email);
+        }
+
+        return self::noStore(['message' => 'If that address has tickets for an upcoming event, we have emailed them again.'], 202);
     }
 
     private function read(Request $request): void

@@ -24,8 +24,13 @@ console:
 shell:
 	$(DC) run --rm app bash
 
+# Parallel: every worker has its own database (onechurch_symfony_test_1, _2, ...). TEST_PROCESSES sets the worker count.
 test:
-	$(DC) run --rm app vendor/bin/phpunit
+	$(DC) run --rm -e TEST_PROCESSES app composer test
+
+# One process, one database: for debugging a single test or an order-dependent failure.
+test-serial:
+	$(DC) run --rm app vendor/bin/phpunit $(ARGS)
 
 stan:
 	$(RUN) vendor/bin/phpstan analyse --memory-limit=1G

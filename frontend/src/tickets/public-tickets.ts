@@ -54,6 +54,20 @@ export interface WalletTicket {
   status: 'ISSUED' | 'CHECKED_IN' | 'VOID'
   code: string | null
 }
+export interface TicketDocuments {
+  number: string
+  title: string
+  issuedOn: string
+  issuer: { legalName: string, address: string, registrationNumber: string, npoNumber: string, vatNumber: string }
+  buyer: { name: string, address: string, vatNumber: string }
+  lines: { description: string, quantity: number, unitMinor: number, lineMinor: number }[]
+  subtotalMinor: number
+  feeMinor: number
+  vatMinor: number
+  vatRateBp: number
+  totalMinor: number
+  creditNotes: { id: string, number: string, issuedOn: string, totalMinor: number, vatMinor: number, lines: { description: string, lineMinor: number }[] }[]
+}
 export interface Wallet {
   orderId: string
   state: OrderState
@@ -62,6 +76,7 @@ export interface Wallet {
   feeMinor: number
   totalMinor: number
   tickets: WalletTicket[]
+  documents: TicketDocuments | null
 }
 
 export const tokenKey = (orderId: string) => `public-tickets:${orderId}`
@@ -96,6 +111,7 @@ export const publicTickets = {
     website: string
   }) => send<StartedOrder>(`/api/public/events/${id}/orders`, json(body), 'We could not start your order. Please try again.'),
   status: (token: string) => send<OrderStatus>('/api/public/ticket-orders/status', json({ token }), 'We could not check your order.'),
+  resend: (email: string, humanToken: string | null) => send<{ message: string }>('/api/public/ticket-orders/resend', json({ email, humanToken, website: '' }), 'We could not send your tickets. Please try again.'),
   wallet: (token: string) => send<Wallet>('/api/public/ticket-orders/wallet', json({ token }), 'We could not find these tickets.'),
 }
 

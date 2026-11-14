@@ -6,6 +6,9 @@
         <h2 class="mt-2 mb-0">Ticket sales</h2>
       </div>
 
+      <TicketScanner v-if="canScan" :occurrence-id="occurrenceId" @scanned="load" />
+      <InvoiceSettingsDialog v-if="manage" />
+
       <v-btn
         :loading="loading"
         prepend-icon="mdi-refresh"
@@ -43,12 +46,22 @@
         <span class="text-medium-emphasis">Up to {{ sales.maxPerOrder }} tickets per order. Buyers pay on Yoco and need no account.</span>
       </div>
 
+      <div v-if="report" class="d-flex ga-3 flex-wrap mb-4">
+        <v-chip>{{ report.paidOrders }} paid order(s)</v-chip>
+        <v-chip>Tickets {{ formatRand(report.ticketsMinor) }}</v-chip>
+        <v-chip>Fees {{ formatRand(report.feesMinor) }}</v-chip>
+        <v-chip v-if="report.refundedMinor > 0">Refunded {{ formatRand(report.refundedMinor) }}</v-chip>
+        <v-chip>{{ report.scan.checkedIn }} checked in · {{ report.scan.issued }} still to come</v-chip>
+        <v-chip v-if="report.awaitingRefundReview > 0" color="warning">{{ report.awaitingRefundReview }} need refund review</v-chip>
+      </div>
+
       <v-table density="compact">
         <thead>
           <tr>
             <th scope="col">Ticket type</th>
             <th scope="col">Price</th>
             <th scope="col">Cap</th>
+            <th scope="col">Sold</th>
             <th scope="col">Status</th>
             <th v-if="manage" scope="col"><span class="sr-only">Actions</span></th>
           </tr>
@@ -59,6 +72,7 @@
             <td>{{ t.name }}<div v-if="t.description" class="text-medium-emphasis">{{ t.description }}</div></td>
             <td>{{ t.priceMinor === 0 ? 'Free' : formatRand(t.priceMinor) }}</td>
             <td>{{ t.quantityCap ?? 'No cap' }}</td>
+            <td>{{ sold(t.name) }}</td>
             <td>{{ t.active ? 'Active' : 'Hidden' }}</td>
 
             <td v-if="manage">
@@ -73,7 +87,7 @@
           </tr>
 
           <tr v-if="sales.ticketTypes.length === 0">
-            <td colspan="5">No ticket types yet. Add one (for example General or VIP) before opening sales.</td>
+            <td colspan="6">No ticket types yet. Add one (for example General or VIP) before opening sales.</td>
           </tr>
         </tbody>
       </v-table>
@@ -147,6 +161,7 @@
             <th scope="col">Seats</th>
             <th scope="col">Total</th>
             <th scope="col">Status</th>
+            <th scope="col"><span class="sr-only">Actions</span></th>
           </tr>
         </thead>
 
@@ -157,19 +172,40 @@
             <td>{{ o.seats }}</td>
             <td>{{ o.totalMinor === 0 ? 'Free' : formatRand(o.totalMinor) }}</td>
             <td>{{ statusLabel(o.status) }}</td>
+
+            <td>
+              <v-btn
+                size="small"
+                variant="text"
+                @click="opened = o.id"
+              >
+                Tickets
+              </v-btn>
+            </td>
           </tr>
         </tbody>
       </v-table>
 
       <p v-else class="text-medium-emphasis">No orders yet.</p>
     </template>
+
+    <TicketOrderDialog
+      v-if="opened"
+      :occurrence-id="occurrenceId"
+      :order-id="opened"
+      @changed="load"
+      @close="opened = ''"
+    />
   </section>
 </template>
 
 <script setup lang="ts">
-  import type { PublicSales, StaffTicketOrder, StaffTicketType } from '@/tickets/staff-api'
+  import type { PublicSales, StaffTicketOrder, StaffTicketType, TicketReport } from '@/tickets/staff-api'
   import { computed, onMounted, reactive, ref } from 'vue'
   import { extractErrorMessage } from '@/composables/apiErrors'
+  import InvoiceSettingsDialog from '@/events/components/InvoiceSettingsDialog.vue'
+  import TicketOrderDialog from '@/events/components/TicketOrderDialog.vue'
+  import TicketScanner from '@/events/components/TicketScanner.vue'
   import { formatRand } from '@/payments/giving-amount'
   import { useAuthStore } from '@/stores/auth'
   import { priceToMinor, ticketStaffApi } from '@/tickets/staff-api'
@@ -178,7 +214,11 @@
   const auth = useAuthStore()
   const manage = computed(() => auth.hasPermission('events.tickets.manage'))
   const sales = ref<PublicSales>()
+  const canScan = computed(() => auth.hasPermission('events.tickets.scan'))
   const orders = ref<StaffTicketOrder[]>([])
+  const report = ref<TicketReport>()
+  const opened = ref('')
+  const sold = (name: string) => report.value?.types.find(t => t.name === name)?.sold ?? 0
   const loading = ref(false)
   const busy = ref(false)
   const error = ref('')
@@ -223,7 +263,9 @@
     error.value = ''
     try {
       sales.value = await ticketStaffApi.sales(props.occurrenceId)
-      orders.value = auth.hasPermission('events.tickets.read') ? await ticketStaffApi.orders(props.occurrenceId) : []
+      const reader = auth.hasPermission('events.tickets.read')
+      orders.value = reader ? await ticketStaffApi.orders(props.occurrenceId) : []
+      report.value = reader ? await ticketStaffApi.report(props.occurrenceId) : undefined
     } catch (error_) {
       error.value = extractErrorMessage(error_, 'Unable to load ticket sales.')
     } finally {

@@ -221,9 +221,9 @@ final readonly class DbalTicketStore implements TicketRepository
 
     public function email(string $orderId): ?array
     {
-        $r = $this->connection->fetchAssociative('SELECT id, delivery_id, review_hash FROM event_ticket_emails WHERE order_id = ?', [$orderId]);
+        $r = $this->connection->fetchAssociative('SELECT id, delivery_id, review_hash, created_at FROM event_ticket_emails WHERE order_id = ? ORDER BY created_at DESC, id LIMIT 1', [$orderId]);
 
-        return false === $r ? null : ['id' => (string) $r['id'], 'deliveryId' => (string) $r['delivery_id'], 'reviewHash' => trim((string) $r['review_hash'])];
+        return false === $r ? null : ['id' => (string) $r['id'], 'deliveryId' => (string) $r['delivery_id'], 'reviewHash' => trim((string) $r['review_hash']), 'createdAt' => Timestamps::fromDatabase((string) $r['created_at'])];
     }
 
     public function emailById(string $id): ?array
@@ -239,6 +239,90 @@ final readonly class DbalTicketStore implements TicketRepository
             'INSERT INTO event_ticket_emails (id, order_id, delivery_id, review_hash, created_at) VALUES (?, ?, ?, ?, ?)',
             [$id, $orderId, $deliveryId, $reviewHash, Timestamps::toDatabase($at)],
         );
+    }
+
+    public function ticketPrices(string $orderId): array
+    {
+        $rows = $this->connection->fetchAllAssociative(
+            'SELECT t.id, t.line_id, l.type_name_snapshot, l.unit_price_minor, t.holder_name, t.status, t.credit_note_id FROM event_tickets t
+             JOIN event_ticket_order_lines l ON l.id = t.line_id WHERE t.order_id = ? ORDER BY l.id, t.id',
+            [$orderId],
+        );
+
+        return array_map(static fn (array $r): array => [
+            'id' => (string) $r['id'], 'lineId' => (string) $r['line_id'], 'typeName' => (string) $r['type_name_snapshot'], 'unitPriceMinor' => (int) $r['unit_price_minor'],
+            'holder' => (string) $r['holder_name'], 'status' => (string) $r['status'], 'creditNoteId' => null === $r['credit_note_id'] ? null : (string) $r['credit_note_id'],
+        ], $rows);
+    }
+
+    public function voidTickets(string $orderId, array $ticketIds): int
+    {
+        if ([] === $ticketIds) {
+            return 0;
+        }
+
+        return (int) $this->connection->executeStatement(
+            "UPDATE event_tickets SET status = 'VOID', version = version + 1 WHERE order_id = ? AND status <> 'VOID' AND id IN (?)",
+            [$orderId, $ticketIds],
+            [1 => \Doctrine\DBAL\ArrayParameterType::STRING],
+        );
+    }
+
+    public function creditTickets(array $ticketIds, string $creditNoteId): void
+    {
+        if ([] !== $ticketIds) {
+            $this->connection->executeStatement('UPDATE event_tickets SET credit_note_id = ? WHERE id IN (?)', [$creditNoteId, $ticketIds], [1 => \Doctrine\DBAL\ArrayParameterType::STRING]);
+        }
+    }
+
+    public function lockTicketByCode(string $occurrenceId, string $codeHash): ?array
+    {
+        $r = $this->connection->fetchAssociative(
+            'SELECT t.id, t.order_id, l.type_name_snapshot, t.holder_name, t.status, t.checked_in_at, o.status AS order_status
+             FROM event_tickets t JOIN event_ticket_orders o ON o.id = t.order_id JOIN event_ticket_order_lines l ON l.id = t.line_id
+             WHERE t.code_hash = ? AND o.occurrence_id = ? FOR UPDATE OF t',
+            [$codeHash, $occurrenceId],
+        );
+
+        return false === $r ? null : [
+            'id' => (string) $r['id'], 'orderId' => (string) $r['order_id'], 'typeName' => (string) $r['type_name_snapshot'], 'holder' => (string) $r['holder_name'],
+            'status' => (string) $r['status'], 'checkedInAt' => null === $r['checked_in_at'] ? null : Timestamps::fromDatabase((string) $r['checked_in_at']), 'orderStatus' => (string) $r['order_status'],
+        ];
+    }
+
+    public function unmatchedRefund(string $orderId): int
+    {
+        return (int) $this->connection->fetchOne('SELECT unmatched_refund_minor FROM event_ticket_orders WHERE id = ?', [$orderId]);
+    }
+
+    public function setUnmatchedRefund(string $orderId, int $amountMinor): void
+    {
+        $this->connection->executeStatement('UPDATE event_ticket_orders SET unmatched_refund_minor = ?, version = version + 1 WHERE id = ?', [$amountMinor, $orderId]);
+    }
+
+    public function checkIn(string $ticketId, DateTimeImmutable $at): void
+    {
+        $this->connection->executeStatement("UPDATE event_tickets SET status = 'CHECKED_IN', checked_in_at = ?, version = version + 1 WHERE id = ? AND status = 'ISSUED'", [Timestamps::toDatabase($at), $ticketId]);
+    }
+
+    public function scanCounts(string $occurrenceId): array
+    {
+        $r = $this->connection->fetchAssociative(
+            "SELECT count(*) FILTER (WHERE t.status = 'ISSUED') AS issued, count(*) FILTER (WHERE t.status = 'CHECKED_IN') AS checked_in, count(*) FILTER (WHERE t.status = 'VOID') AS void
+             FROM event_tickets t JOIN event_ticket_orders o ON o.id = t.order_id WHERE o.occurrence_id = ?",
+            [$occurrenceId],
+        );
+
+        return ['issued' => (int) ($r['issued'] ?? 0), 'checkedIn' => (int) ($r['checked_in'] ?? 0), 'void' => (int) ($r['void'] ?? 0)];
+    }
+
+    public function currentOrdersOf(string $emailHash, DateTimeImmutable $now, int $limit): array
+    {
+        return array_map('strval', $this->connection->fetchFirstColumn(
+            "SELECT o.id FROM event_ticket_orders o JOIN event_occurrences e ON e.id = o.occurrence_id
+             WHERE o.buyer_email_hash = ? AND o.status IN ('PAID', 'PARTIALLY_REFUNDED') AND e.ends_at > ? ORDER BY o.created_at DESC LIMIT ".max(1, min(10, $limit)),
+            [$emailHash, Timestamps::toDatabase($now)],
+        ));
     }
 
     public function audit(string $orderId, string $action, string $reason, DateTimeImmutable $at): void

@@ -22,4 +22,11 @@ interface TicketCatalog
 
     /** @return list<array{id: string, status: string, buyerName: string, buyerEmailEncrypted: string, seats: int, totalMinor: int, createdAt: DateTimeImmutable}> newest first */
     public function orders(string $occurrenceId, int $limit): array;
+
+    /**
+     * Sales and door totals of one occurrence, for staff (design section 6.6 reports).
+     *
+     * @return array{types: list<array{name: string, sold: int, checkedIn: int, void: int, grossMinor: int}>, orders: int, paidOrders: int, ticketsMinor: int, feesMinor: int, refundedMinor: int, checkedIn: int, awaitingRefundReview: int}
+     */
+    public function report(string $occurrenceId): array;
 }
