@@ -18,6 +18,15 @@ final readonly class EventTemplatePolicy implements TemplatePublicationPolicy
 
     public function violation(string $key, string $subject, string $html, array $variables): ?string
     {
+        if ('events.tickets' === $key) {
+            foreach (['name', 'event', 'startsAt', 'timeZone', 'venue', 'link'] as $variable) {
+                if (!\in_array($variable, $variables, true) || !str_contains($subject.$html, '{{'.$variable.'}}')) {
+                    return 'The tickets template must retain name, event, startsAt, timeZone, venue and link variables.';
+                }
+            }
+
+            return null;
+        }
         if ('events.visitor_app_invite' === $key) {
             foreach (self::INVITE_REQUIRED as $variable) {
                 if (!\in_array($variable, $variables, true) || !str_contains($subject.$html, '{{'.$variable.'}}')) {

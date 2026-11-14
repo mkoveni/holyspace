@@ -62,5 +62,9 @@ export const supportedRoutes = new Set([
   'giving-online',
   'public-give',
   'public-give-thanks',
+  'public-tickets-wallet',
+  'public-tickets-events',
+  'public-tickets-event',
+  'public-tickets-thanks',
   'not-found',
 ])

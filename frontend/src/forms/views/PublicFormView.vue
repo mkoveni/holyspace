@@ -1,7 +1,7 @@
 <template>
   <main class="public-form-page">
     <div class="public-form-shell public-form-shell--general">
-      <div class="public-brand"><v-icon icon="mdi-church-outline" size="24" /><span>Church community</span></div>
+      <PublicBrand />
       <div v-if="loading" aria-label="Loading form" role="status"><v-skeleton-loader type="article, actions" /></div>
 
       <section v-else-if="!page" class="public-unavailable">
@@ -11,7 +11,7 @@
         <v-btn color="primary" variant="flat" @click="load">Try again</v-btn>
       </section>
 
-      <v-card v-else class="pa-5">
+      <v-card v-else class="pa-6 pa-md-8" elevation="2" rounded="xl">
         <FormTaker :human="true" :load-board="board" :page="page" :send="send" />
       </v-card>
     </div>
@@ -47,8 +47,13 @@
 </script>
 
 <style scoped>
-.public-form-page { min-height: 100vh; padding: 24px 16px; }
-.public-form-shell { max-width: 640px; margin: 0 auto; }
-.public-brand { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; font-weight: 600; }
+.public-form-page {
+  min-height: 100vh;
+  padding: 8px 16px 64px;
+  background:
+    radial-gradient(1200px 400px at 50% -120px, rgba(200, 176, 122, 0.22), transparent 70%),
+    rgb(var(--v-theme-background));
+}
+.public-form-shell { max-width: 720px; margin: 0 auto; }
 .public-unavailable { text-align: center; padding: 48px 0; }
 </style>

@@ -27,6 +27,30 @@ const router = createRouter({
       meta: { public: true },
     },
     {
+      path: '/tickets',
+      name: 'public-tickets-wallet',
+      component: () => import('@/tickets/views/TicketWalletView.vue'),
+      meta: { public: true },
+    },
+    {
+      path: '/tickets/events',
+      name: 'public-tickets-events',
+      component: () => import('@/tickets/views/PublicEventsView.vue'),
+      meta: { public: true },
+    },
+    {
+      path: '/tickets/events/:id',
+      name: 'public-tickets-event',
+      component: () => import('@/tickets/views/PublicEventView.vue'),
+      meta: { public: true },
+    },
+    {
+      path: '/tickets/thanks',
+      name: 'public-tickets-thanks',
+      component: () => import('@/tickets/views/PublicTicketsThanksView.vue'),
+      meta: { public: true },
+    },
+    {
       path: '/give',
       name: 'public-give',
       component: () => import('@/payments/views/PublicGiveView.vue'),

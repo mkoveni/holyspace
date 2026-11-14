@@ -16,7 +16,7 @@ use Psr\Clock\ClockInterface;
  */
 final readonly class TicketOrderSettler implements TicketOrderSettlement
 {
-    public function __construct(private TicketRepository $tickets, private TicketIssuer $issuer, private ClockInterface $clock)
+    public function __construct(private TicketRepository $tickets, private TicketIssuer $issuer, private ClockInterface $clock, private TicketEmails $emails)
     {
     }
 
@@ -55,6 +55,11 @@ final readonly class TicketOrderSettler implements TicketOrderSettlement
         }
 
         return self::DONE;
+    }
+
+    public function deliver(string $ticketOrderId): void
+    {
+        $this->emails->queueFor($ticketOrderId);
     }
 
     public function released(string $ticketOrderId): void

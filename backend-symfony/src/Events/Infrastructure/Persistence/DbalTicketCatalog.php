@@ -23,6 +23,7 @@ final readonly class DbalTicketCatalog implements TicketCatalog
     {
         $rows = $this->connection->fetchAllAssociative(
             'SELECT o.id, d.title, o.starts_at, o.ends_at, o.time_zone, o.venue_name, p.capacity,
+                    (SELECT m.file_id FROM media_slots m WHERE m.owner_type = \'event\' AND m.owner_id = d.id AND m.kind = \'event\') AS cover_id, (SELECT m.file_id FROM media_slots m WHERE m.owner_type = \'event\' AND m.owner_id = d.id AND m.kind = \'event_banner\') AS banner_id,
                     (SELECT min(t.price_minor) FROM event_ticket_types t WHERE t.occurrence_id = o.id AND t.active) AS from_price
              FROM event_public_sales s
              JOIN event_occurrences o ON o.id = s.occurrence_id
@@ -41,6 +42,8 @@ final readonly class DbalTicketCatalog implements TicketCatalog
                 'endsAt' => Timestamps::fromDatabase((string) $r['ends_at']),
                 'timeZone' => (string) $r['time_zone'],
                 'venueName' => (string) $r['venue_name'],
+                'coverImageId' => null === $r['cover_id'] ? null : (string) $r['cover_id'],
+                'bannerImageId' => null === $r['banner_id'] ? null : (string) $r['banner_id'],
                 'fromPriceMinor' => null === $r['from_price'] ? null : (int) $r['from_price'],
                 'available' => $this->hasRoom((string) $r['id'], null === $r['capacity'] ? null : (int) $r['capacity'], $now),
             ];
@@ -52,7 +55,8 @@ final readonly class DbalTicketCatalog implements TicketCatalog
     public function detail(string $occurrenceId, DateTimeImmutable $now): ?array
     {
         $r = $this->connection->fetchAssociative(
-            'SELECT o.id, d.title, d.description, o.starts_at, o.ends_at, o.time_zone, o.venue_name, o.venue_address, p.capacity, s.max_per_order
+            'SELECT o.id, d.title, d.description, o.starts_at, o.ends_at, o.time_zone, o.venue_name, o.venue_address, p.capacity, s.max_per_order,
+                    (SELECT m.file_id FROM media_slots m WHERE m.owner_type = \'event\' AND m.owner_id = d.id AND m.kind = \'event\') AS cover_id, (SELECT m.file_id FROM media_slots m WHERE m.owner_type = \'event\' AND m.owner_id = d.id AND m.kind = \'event_banner\') AS banner_id
              FROM event_public_sales s
              JOIN event_occurrences o ON o.id = s.occurrence_id
              JOIN event_definitions d ON d.id = o.event_id
@@ -85,6 +89,8 @@ final readonly class DbalTicketCatalog implements TicketCatalog
             'timeZone' => (string) $r['time_zone'],
             'venueName' => (string) $r['venue_name'],
             'venueAddress' => (string) $r['venue_address'],
+            'coverImageId' => null === $r['cover_id'] ? null : (string) $r['cover_id'],
+            'bannerImageId' => null === $r['banner_id'] ? null : (string) $r['banner_id'],
             'maxPerOrder' => (int) $r['max_per_order'],
             'available' => $this->hasRoom($occurrenceId, null === $r['capacity'] ? null : (int) $r['capacity'], $now),
             'types' => $types,

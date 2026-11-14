@@ -61,5 +61,13 @@ interface TicketRepository
     /** @return list<string> ids of RESERVED orders whose hold has lapsed, oldest first */
     public function lapsed(DateTimeImmutable $now, int $limit): array;
 
+    /** @return array{id: string, deliveryId: string, reviewHash: string}|null */
+    public function email(string $orderId): ?array;
+
+    /** @return array{id: string, orderId: string, deliveryId: string, reviewHash: string}|null by communication id */
+    public function emailById(string $id): ?array;
+
+    public function recordEmail(string $id, string $orderId, string $deliveryId, string $reviewHash, DateTimeImmutable $at): void;
+
     public function audit(string $orderId, string $action, string $reason, DateTimeImmutable $at): void;
 }

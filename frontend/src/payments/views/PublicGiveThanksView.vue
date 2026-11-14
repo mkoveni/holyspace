@@ -1,10 +1,7 @@
 <template>
   <main class="give-page">
     <div class="give-shell">
-      <div class="give-brand">
-        <v-icon icon="mdi-church-outline" size="24" />
-        <span>Church community</span>
-      </div>
+      <PublicBrand />
 
       <section ref="card" class="give-card text-center" role="status" tabindex="-1">
         <template v-if="view === 'paid'">
@@ -64,7 +61,11 @@
   import type { GuestStatus } from '@/payments/public-giving'
   import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
   import { useRoute } from 'vue-router'
+  import PublicBrand from '@/components/PublicBrand.vue'
+  import { usePageTitle } from '@/composables/usePageTitle'
   import { formatRand, publicGiving, tokenKey } from '@/payments/public-giving'
+
+  usePageTitle('Thank you')
 
   const POLL_MS = 3000
   const MAX_POLLS = 20
@@ -128,25 +129,21 @@
 <style scoped>
 .give-page {
   min-height: 100vh;
-  padding: 16px;
-  background: rgb(var(--v-theme-background));
+  padding: 8px 16px 64px;
+  background:
+    radial-gradient(1200px 400px at 50% -120px, rgba(200, 176, 122, 0.22), transparent 70%),
+    rgb(var(--v-theme-background));
 }
 .give-shell {
-  max-width: 520px;
+  max-width: 560px;
   margin: 0 auto;
 }
-.give-brand {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  padding: 8px 0 16px;
-  font-weight: 600;
-}
 .give-card {
-  padding: 24px 20px;
-  border-radius: 12px;
+  padding: 28px 24px;
+  border: 1px solid rgba(var(--v-border-color), 0.12);
+  border-radius: 16px;
   background: rgb(var(--v-theme-surface));
-  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 2px 14px rgba(20, 34, 58, 0.08);
 }
 .give-card h1 {
   margin: 4px 0 8px;

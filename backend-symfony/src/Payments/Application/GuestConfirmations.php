@@ -7,6 +7,7 @@ namespace App\Payments\Application;
 use App\Communications\Application\Contract\DeliverySnapshot;
 use App\Communications\Application\Contract\EmailDeliveries;
 use App\Communications\Application\Contract\EmailTemplates;
+use App\Events\Application\Contract\TicketOrderSettlement;
 use App\Payments\Application\Contract\PayloadVault;
 use App\Payments\Application\Contract\PaymentReader;
 use App\Payments\Domain\GuestConfirmation;
@@ -35,11 +36,19 @@ final readonly class GuestConfirmations
         private UnitOfWork $transactions,
         private ClockInterface $clock,
         private IdGenerator $ids,
+        private TicketOrderSettlement $tickets,
     ) {
     }
 
     public function queueFor(string $orderId): void
     {
+        $ticket = $this->payments->find($orderId);
+        if (null !== $ticket && PaymentOrder::TICKET === $ticket->purpose) {
+            // A ticket buyer's email carries their tickets; Events judges, renders and queues it after the payment committed.
+            $this->tickets->deliver((string) $ticket->purposeRef);
+
+            return;
+        }
         $this->transactions->execute(function () use ($orderId): void {
             $order = $this->payments->lock($orderId);
             if (null === $order || PaymentOrder::GIVING !== $order->purpose || !$order->isGuest() || !$order->isLive() || null === $order->guestEmailEncrypted) {

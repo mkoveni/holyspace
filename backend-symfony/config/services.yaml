@@ -82,6 +82,10 @@ services:
         arguments:
             $timeZone: '%env(PEOPLE_TIME_ZONE)%'
 
+    App\Events\Application\TicketEmails:
+        arguments:
+            $publicUrl: '%env(PAYMENTS_PUBLIC_URL)%'
+
     App\Payments\Application\PurposeSettlements:
         arguments:
             $settlements: !tagged_iterator payments.purpose_settlement

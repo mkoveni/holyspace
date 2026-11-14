@@ -28,6 +28,7 @@ final readonly class TicketOrderStarter
         private TicketRepository $tickets,
         private TicketPayments $payments,
         private TicketIssuer $issuer,
+        private TicketEmails $emails,
         private PayloadVault $vault,
         private GuestAccess $access,
         private UnitOfWork $transactions,
@@ -47,6 +48,9 @@ final readonly class TicketOrderStarter
 
         $order = $this->transactions->execute(fn (): TicketOrder => $this->reserve($requestId, $occurrenceId, $quantities, $name, $email, $emailHash, $requestHash));
         $token = $this->access->token($order->id);
+        if ('PAID' === $order->status) {
+            $this->emails->queueFor($order->id);
+        }
         if ('RESERVED' !== $order->status || $order->isFree()) {
             return new StartedTicketOrder($order->id, $token, null, $order->status, $order->totalMinor);
         }

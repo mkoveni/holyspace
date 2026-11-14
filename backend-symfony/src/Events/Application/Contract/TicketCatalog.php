@@ -9,11 +9,11 @@ use DateTimeImmutable;
 /** Read side of public ticketing: what the public site may show. Never exact seat counts, only whether tickets remain. */
 interface TicketCatalog
 {
-    /** @return list<array{occurrenceId: string, title: string, startsAt: DateTimeImmutable, endsAt: DateTimeImmutable, timeZone: string, venueName: string, fromPriceMinor: ?int, available: bool}> */
+    /** @return list<array{occurrenceId: string, title: string, startsAt: DateTimeImmutable, endsAt: DateTimeImmutable, timeZone: string, venueName: string, coverImageId: ?string, bannerImageId: ?string, fromPriceMinor: ?int, available: bool}> */
     public function onSale(DateTimeImmutable $now): array;
 
     /**
-     * @return array{occurrenceId: string, title: string, description: string, startsAt: DateTimeImmutable, endsAt: DateTimeImmutable, timeZone: string, venueName: string, venueAddress: string, maxPerOrder: int, available: bool, types: list<array{id: string, name: string, description: string, priceMinor: int, available: bool}>}|null
+     * @return array{occurrenceId: string, title: string, description: string, startsAt: DateTimeImmutable, endsAt: DateTimeImmutable, timeZone: string, venueName: string, venueAddress: string, coverImageId: ?string, bannerImageId: ?string, maxPerOrder: int, available: bool, types: list<array{id: string, name: string, description: string, priceMinor: int, available: bool}>}|null
      */
     public function detail(string $occurrenceId, DateTimeImmutable $now): ?array;
 

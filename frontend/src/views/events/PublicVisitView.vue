@@ -1,10 +1,7 @@
 <template>
   <main class="visit-page">
     <div class="visit-shell">
-      <div class="visit-brand">
-        <v-icon icon="mdi-church-outline" size="24" />
-        <span>Church community</span>
-      </div>
+      <PublicBrand />
 
       <div v-if="loading" aria-label="Loading" role="status">
         <v-skeleton-loader type="article, actions" />
@@ -193,7 +190,11 @@
 
 <script setup lang="ts">
   import { computed, nextTick, onMounted, reactive, ref } from 'vue'
+  import PublicBrand from '@/components/PublicBrand.vue'
   import { apiUrl } from '@/composables/useApi'
+  import { usePageTitle } from '@/composables/usePageTitle'
+
+  usePageTitle('Plan your visit')
 
   /**
    * Placeholder wording. The church must supply the final text and privacy notice link; change CONSENT_VERSION
@@ -325,25 +326,21 @@
 <style scoped>
 .visit-page {
   min-height: 100vh;
-  padding: 16px;
-  background: rgb(var(--v-theme-background));
+  padding: 8px 16px 64px;
+  background:
+    radial-gradient(1200px 400px at 50% -120px, rgba(200, 176, 122, 0.22), transparent 70%),
+    rgb(var(--v-theme-background));
 }
 .visit-shell {
-  max-width: 520px;
+  max-width: 640px;
   margin: 0 auto;
 }
-.visit-brand {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  padding: 8px 0 16px;
-  font-weight: 600;
-}
 .visit-card {
-  padding: 24px 20px;
-  border-radius: 12px;
+  padding: 28px 24px;
+  border: 1px solid rgba(var(--v-border-color), 0.12);
+  border-radius: 16px;
   background: rgb(var(--v-theme-surface));
-  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 2px 14px rgba(20, 34, 58, 0.08);
 }
 .visit-card h1 {
   margin: 4px 0 8px;

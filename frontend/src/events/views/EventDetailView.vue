@@ -58,6 +58,21 @@
       </v-alert>
 
       <section class="directory-surface event-section">
+        <h2>Cover image</h2>
+
+        <p class="directory-muted">
+          Shown on the public tickets pages and in the member app. Use a wide (16:9) picture; JPEG, PNG or WebP up to 5 MB.
+        </p>
+
+        <PortalImage
+          :editable="manage"
+          label="Event cover image"
+          :owner-id="id"
+          target="event"
+        />
+      </section>
+
+      <section class="directory-surface event-section">
         <h2>Series at a glance</h2>
 
         <div
@@ -175,6 +190,7 @@
 <script setup lang="ts">
   import { computed, onMounted, ref } from 'vue'
   import { useRoute } from 'vue-router'
+  import PortalImage from '@/components/common/PortalImage.vue'
   import DirectoryHeading from '@/directory/components/DirectoryHeading.vue'
   import { useAuthStore } from '@/stores/auth'
   import {

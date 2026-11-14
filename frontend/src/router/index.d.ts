@@ -1,2 +1,3 @@
-declare const router: import("vue-router")._RouterClassic;
-export default router;
+import type { Router } from 'vue-router'
+declare const router: Router
+export default router

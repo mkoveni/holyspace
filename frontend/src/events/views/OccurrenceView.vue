@@ -115,6 +115,11 @@
         @changed="load"
       />
 
+      <TicketSalesPanel
+        v-if="auth.hasPermission('events.tickets.read') || auth.hasPermission('events.tickets.manage')"
+        :occurrence-id="id"
+      />
+
       <AttendancePanel
         v-if="auth.hasPermission('events.attendance.read')"
         :occurrence-id="id"
@@ -741,6 +746,7 @@
   import EventDialog from '../components/EventDialog.vue'
   import EventNoticeDialog from '../components/EventNoticeDialog.vue'
   import EventReadinessPanel from '../components/EventReadinessPanel.vue'
+  import TicketSalesPanel from '../components/TicketSalesPanel.vue'
   import VenuePicker from '../components/VenuePicker.vue'
   import VisitorCheckInPanel from '../components/VisitorCheckInPanel.vue'
   import '@/directory/directory.scss'

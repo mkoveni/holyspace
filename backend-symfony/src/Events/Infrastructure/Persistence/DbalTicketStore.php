@@ -219,6 +219,28 @@ final readonly class DbalTicketStore implements TicketRepository
         ));
     }
 
+    public function email(string $orderId): ?array
+    {
+        $r = $this->connection->fetchAssociative('SELECT id, delivery_id, review_hash FROM event_ticket_emails WHERE order_id = ?', [$orderId]);
+
+        return false === $r ? null : ['id' => (string) $r['id'], 'deliveryId' => (string) $r['delivery_id'], 'reviewHash' => trim((string) $r['review_hash'])];
+    }
+
+    public function emailById(string $id): ?array
+    {
+        $r = $this->connection->fetchAssociative('SELECT id, order_id, delivery_id, review_hash FROM event_ticket_emails WHERE id = ?', [$id]);
+
+        return false === $r ? null : ['id' => (string) $r['id'], 'orderId' => (string) $r['order_id'], 'deliveryId' => (string) $r['delivery_id'], 'reviewHash' => trim((string) $r['review_hash'])];
+    }
+
+    public function recordEmail(string $id, string $orderId, string $deliveryId, string $reviewHash, DateTimeImmutable $at): void
+    {
+        $this->connection->executeStatement(
+            'INSERT INTO event_ticket_emails (id, order_id, delivery_id, review_hash, created_at) VALUES (?, ?, ?, ?, ?)',
+            [$id, $orderId, $deliveryId, $reviewHash, Timestamps::toDatabase($at)],
+        );
+    }
+
     public function audit(string $orderId, string $action, string $reason, DateTimeImmutable $at): void
     {
         $this->connection->executeStatement(

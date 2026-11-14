@@ -74,7 +74,7 @@ final readonly class HostedPaymentGateway implements PaymentGateway
         if ($this->boundMode($settings, $order->provider) !== $order->mode) {
             throw PaymentException::conflict('Provider environment changed; review this checkout before creating another.');
         }
-        $returned = $settings->base().($order->isGuest() ? '/give/thanks?order=' : ($order->selfService ? '/my-giving?order=' : '/payments?order=')).$order->id;
+        $returned = $settings->base().(PaymentOrder::TICKET === $order->purpose ? '/tickets/thanks?order=' : ($order->isGuest() ? '/give/thanks?order=' : ($order->selfService ? '/my-giving?order=' : '/payments?order='))).$order->id;
 
         return $this->yocoCheckout($settings, $order, $returned);
     }

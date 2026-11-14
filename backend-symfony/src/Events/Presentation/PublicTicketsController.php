@@ -12,6 +12,7 @@ use App\Events\Presentation\Request\TicketOrderRequest;
 use App\Events\Presentation\Request\TicketTokenRequest;
 use App\Payments\Application\Contract\GuestAccess;
 use App\Shared\Application\HumanCheck;
+use App\Shared\Presentation\ImageUrl;
 use App\Shared\Presentation\Json;
 use App\Shared\Presentation\PathUuid;
 use Psr\Clock\ClockInterface;
@@ -59,6 +60,8 @@ final readonly class PublicTicketsController
             'endsAt' => Json::instant($e['endsAt']),
             'timeZone' => $e['timeZone'],
             'venueName' => $e['venueName'],
+            'coverImageUrl' => ImageUrl::public($e['coverImageId']),
+            'bannerImageUrl' => ImageUrl::public($e['bannerImageId']),
             'fromPriceMinor' => $e['fromPriceMinor'],
             'available' => $e['available'],
         ], $this->catalog->onSale($this->clock->now()))]);
@@ -80,6 +83,8 @@ final readonly class PublicTicketsController
             'timeZone' => $e['timeZone'],
             'venueName' => $e['venueName'],
             'venueAddress' => $e['venueAddress'],
+            'coverImageUrl' => ImageUrl::public($e['coverImageId']),
+            'bannerImageUrl' => ImageUrl::public($e['bannerImageId']),
             'maxPerOrder' => $e['maxPerOrder'],
             'available' => $e['available'],
             'ticketTypes' => $e['types'],

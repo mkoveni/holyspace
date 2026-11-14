@@ -11,6 +11,8 @@ use App\Events\Application\Contract\EventReader;
 use App\Events\Application\Contract\OccurrenceReader;
 use App\Events\Application\Contract\RegistrationReader;
 use App\Events\Application\NoticeRules;
+use App\Events\Application\TicketEmailEvidence;
+use App\Events\Application\TicketEmails;
 use App\Events\Application\VisitorMessageRules;
 use App\IdentityAccess\Application\Contract\PermissionChecker;
 use App\IdentityAccess\Application\Contract\ResponsibleAccountDirectory;
@@ -34,6 +36,7 @@ final readonly class EventNotificationEligibility implements DeliveryEligibility
         private PersonDirectory $people,
         private PersonEmailDirectory $emails,
         private VisitorMessageEligibility $visitorMessages,
+        private TicketEmailEvidence $ticketEmails,
     ) {
     }
 
@@ -44,6 +47,10 @@ final readonly class EventNotificationEligibility implements DeliveryEligibility
 
     public function authorize(DeliverySnapshot $delivery, string $actor, string $operation): void
     {
+        if ('queue' === $operation && TicketEmails::TEMPLATE === $delivery->templateKey) {
+            // Queued by the system after a verified ticket payment; eligible() judges the frozen evidence before every send.
+            return;
+        }
         if ('queue' === $operation && VisitorMessageRules::isVisitorTemplate($delivery->templateKey)) {
             // A visitor's check-in queues it with no signed-in staff member: the approver's permission was required when
             // staff turned messages on, and eligible() demands it again before every send.
@@ -54,6 +61,10 @@ final readonly class EventNotificationEligibility implements DeliveryEligibility
 
     public function eligible(DeliverySnapshot $delivery, DateTimeImmutable $at): bool
     {
+        if (TicketEmails::TEMPLATE === $delivery->templateKey) {
+            return null !== $delivery->templateVersion && TicketEmails::SYSTEM_ACTOR === $delivery->approvedBy
+                && $this->ticketEmails->stillValid($delivery->communicationId, $delivery->id, $delivery->reviewHash, $delivery->recipient, $delivery->subject, $delivery->body, $delivery->templateVersion);
+        }
         if (VisitorMessageRules::isVisitorTemplate($delivery->templateKey)) {
             return $this->visitorMessages->eligible($delivery);
         }

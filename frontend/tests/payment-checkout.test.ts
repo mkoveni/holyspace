@@ -1,14 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { hostedCheckout } from '../src/payments/checkout'
 describe('Hosted payment destinations', () => {
-  it('uses provider-controlled POST for signed Payfast forms', () => {
-    expect(
-      hostedCheckout({
-        id: 'one',
-        url: 'https://sandbox.payfast.co.za/eng/process',
-        fields: { amount: '100.00' },
-      }),
-    ).toEqual({ url: 'https://sandbox.payfast.co.za/eng/process', post: true })
+  it('refuses a Payfast address now that Yoco is the only provider', () => {
+    expect(() => hostedCheckout({ id: 'one', url: 'https://sandbox.payfast.co.za/eng/process', fields: { amount: '100.00' } })).toThrow()
   })
   it('uses a verified Yoco redirect without a payment form', () => {
     expect(

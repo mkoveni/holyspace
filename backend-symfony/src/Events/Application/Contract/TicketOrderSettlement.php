@@ -20,6 +20,12 @@ interface TicketOrderSettlement
     /** A verified refund was applied. `$full` is true when the order's whole payment is now refunded. DONE, or REVIEW when staff must choose tickets. */
     public function refunded(string $ticketOrderId, bool $full): string;
 
+    /**
+     * Queues the tickets email of a paid order once, in its own transaction, after the payment has committed. A failure to
+     * queue never undoes the verified payment: the next posting attempt retries it. Safe to call repeatedly.
+     */
+    public function deliver(string $ticketOrderId): void;
+
     /** A sandbox (test mode) payment never settles money: the hold is released and nothing is issued. */
     public function released(string $ticketOrderId): void;
 }

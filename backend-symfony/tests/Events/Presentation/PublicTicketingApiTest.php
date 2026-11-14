@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace App\Tests\Events\Presentation;
 
+use App\Communications\Application\DeliveryProcessor;
 use App\Events\Application\TicketHoldSweeper;
 use App\Payments\Application\Contract\HostedCheckout;
 use App\Payments\Application\Contract\PaymentProvider;
 use App\Tests\Payments\Support\PaymentApiTestCase;
+use App\Tests\Support\RecordingEmailTransport;
 use DateTimeImmutable;
 use Symfony\Component\Uid\Uuid;
 
@@ -24,6 +26,9 @@ final class PublicTicketingApiTest extends PaymentApiTestCase
     protected function setUp(): void
     {
         parent::setUp();
+        $this->transport()->reset();
+        $this->transport()->enabled = true;
+        $this->transport()->capture = true;
         $this->scriptGateway('live');
         $this->gateway()->providers = static fn (): array => [new PaymentProvider('yoco', 'Yoco', true, 'live', false)];
         $this->gateway()->checkout = static fn ($order): HostedCheckout => new HostedCheckout('checkout_'.$order->id, 'https://c.yoco.com/checkout/one', []);
@@ -103,6 +108,31 @@ final class PublicTicketingApiTest extends PaymentApiTestCase
         self::assertSame(['General', 'VIP'], array_column($this->json()['ticketTypes'], 'name'));
         self::assertSame(33925, $this->json()['fees']['effectiveRatePpm']);
         self::assertArrayNotHasKey('capacity', $this->json());
+    }
+
+    public function testTheCatalogLinksTheEventsCoverPictureAndNothingElseWhenThereIsNone(): void
+    {
+        $this->call('GET', '/api/public/events');
+        self::assertNull($this->json()['events'][0]['coverImageUrl']);
+        self::assertNull($this->json()['events'][0]['bannerImageUrl']);
+
+        $eventId = (string) $this->connection->fetchOne('SELECT event_id FROM event_occurrences WHERE id = ?', [$this->occurrence]);
+        $fileId = Uuid::v4()->toRfc4122();
+        $this->connection->executeStatement(
+            "INSERT INTO media_files (id, owner_type, owner_id, kind, path, mime, width, height, byte_size, sha256, created_at)
+             VALUES (?, 'event', ?, 'event', 'events/cover.webp', 'image/webp', 1280, 720, 1000, ?, now())",
+            [$fileId, $eventId, str_repeat('a', 64)],
+        );
+        $this->connection->executeStatement(
+            "INSERT INTO media_slots (owner_type, owner_id, kind, file_id, version, updated_at) VALUES ('event', ?, 'event', ?, 1, now())",
+            [$eventId, $fileId],
+        );
+
+        $this->call('GET', '/api/public/events');
+        self::assertSame('/api/public/media/'.$fileId, $this->json()['events'][0]['coverImageUrl']);
+        self::assertNull($this->json()['events'][0]['bannerImageUrl']);
+        $this->call('GET', "/api/public/events/{$this->occurrence}");
+        self::assertSame('/api/public/media/'.$fileId, $this->json()['coverImageUrl']);
     }
 
     public function testAnEventThatIsNotOnSaleIsNotFound(): void
@@ -369,5 +399,87 @@ final class PublicTicketingApiTest extends PaymentApiTestCase
         $this->call('PUT', "/api/events/occurrences/{$this->occurrence}/ticket-types/{$this->general}", $this->admin, ['expectedVersion' => 0, 'name' => 'General', 'priceMinor' => 21000]);
         self::assertSame(200, $this->code(), $this->body());
         self::assertSame(20000, (int) $this->connection->fetchOne('SELECT unit_price_minor FROM event_ticket_order_lines LIMIT 1'), 'an edit never changes history');
+    }
+
+    private function transport(): RecordingEmailTransport
+    {
+        $transport = self::getContainer()->get(RecordingEmailTransport::class);
+        \assert($transport instanceof RecordingEmailTransport);
+
+        return $transport;
+    }
+
+    private function processor(): DeliveryProcessor
+    {
+        $processor = self::getContainer()->get(DeliveryProcessor::class);
+        \assert($processor instanceof DeliveryProcessor);
+
+        return $processor;
+    }
+
+    private function paid(int $seats = 1): string
+    {
+        [$id] = $this->buy([$this->general => $seats]);
+        $total = (int) $this->connection->fetchOne('SELECT total_minor FROM event_ticket_orders WHERE id = ?', [$id]);
+        self::assertSame(204, $this->event($id, 'PAID', 'charge_'.substr($id, 0, 8), $total));
+
+        return $id;
+    }
+
+    public function testAPaidOrderQueuesOneTicketsEmailWithAWalletLinkInTheFragment(): void
+    {
+        $id = $this->paid(2);
+        $this->event($id, 'PAID', 'charge_'.substr($id, 0, 8), (int) $this->connection->fetchOne('SELECT total_minor FROM event_ticket_orders WHERE id = ?', [$id]));
+        self::assertSame(1, $this->rows('event_ticket_emails'), 'a repeated notification queues nothing more');
+        $delivery = (string) $this->connection->fetchOne('SELECT delivery_id FROM event_ticket_emails');
+        $this->processor()->dispatch($delivery);
+        self::assertCount(1, $this->transport()->sent);
+        $body = (string) $this->connection->fetchOne('SELECT body FROM communication_email_deliveries WHERE id = ?', [$delivery]);
+        self::assertSame('buyer@example.org', (string) $this->connection->fetchOne('SELECT recipient FROM communication_email_deliveries WHERE id = ?', [$delivery]));
+        self::assertMatchesRegularExpression('~https://church\.example/tickets#[A-Za-z0-9_-]+~', $body);
+        self::assertStringContainsString('2 ticket(s)', $body);
+
+        self::assertSame(1, preg_match('~/tickets#([A-Za-z0-9_-]+)~', $body, $m));
+        $this->call('POST', '/api/public/ticket-orders/wallet', null, ['token' => $m[1]]);
+        self::assertSame(200, $this->code(), $this->body());
+        self::assertCount(2, $this->json()['tickets']);
+    }
+
+    public function testAFreeOrderEmailsItsTicketsAtOnce(): void
+    {
+        $free = $this->type('Child', 0);
+        $this->call('POST', "/api/public/events/{$this->occurrence}/orders", null, $this->payload([$free => 1]));
+        self::assertSame(201, $this->code(), $this->body());
+        self::assertSame(1, $this->rows('event_ticket_emails'));
+        $this->call('POST', "/api/public/events/{$this->occurrence}/orders", null, $this->payload([$free => 1], (string) $this->json()['id']));
+        self::assertSame(1, $this->rows('event_ticket_emails'), 'a retry queues no second email');
+    }
+
+    public function testNoEmailIsQueuedForLateOrSandboxPayments(): void
+    {
+        [$late] = $this->buy();
+        $this->connection->executeStatement("UPDATE event_ticket_orders SET expires_at = now() - interval '1 minute' WHERE id = ?", [$late]);
+        $this->event($late, 'PAID', 'charge_l', (int) $this->connection->fetchOne('SELECT total_minor FROM event_ticket_orders WHERE id = ?', [$late]));
+        self::assertSame(0, $this->rows('event_ticket_emails'));
+        self::assertSame(0, $this->rows('communication_email_deliveries'));
+    }
+
+    public function testARefundBeforeSendingBlocksTheFrozenEmail(): void
+    {
+        $id = $this->paid();
+        $delivery = (string) $this->connection->fetchOne('SELECT delivery_id FROM event_ticket_emails');
+        $total = (int) $this->connection->fetchOne('SELECT total_minor FROM event_ticket_orders WHERE id = ?', [$id]);
+        $this->event($id, 'REFUNDED', 'refund_x', $total);
+        $this->processor()->dispatch($delivery);
+        self::assertSame([], $this->transport()->sent);
+    }
+
+    public function testChangingTheRecipientOrTheContentBlocksTheFrozenEmail(): void
+    {
+        $this->paid();
+        $delivery = (string) $this->connection->fetchOne('SELECT delivery_id FROM event_ticket_emails');
+        $this->connection->executeStatement('UPDATE communication_email_deliveries SET recipient = ? WHERE id = ?', ['attacker@example.org', $delivery]);
+        $this->processor()->dispatch($delivery);
+        self::assertSame([], $this->transport()->sent);
     }
 }
